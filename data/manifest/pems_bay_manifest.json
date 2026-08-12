@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "timestamp_utc": "2026-08-12T19:34:32.317377+00:00",
+  "source": {
+    "record": "Zenodo PEMS-BAY release 4263971",
+    "doi": "10.5281/zenodo.4263971",
+    "version": "v2",
+    "urls": {
+      "pems-bay.h5": "https://zenodo.org/records/4263971/files/pems-bay.h5",
+      "adj_mx_bay.pkl": "https://zenodo.org/records/4263971/files/adj_mx_bay.pkl",
+      "pems-bay-meta.h5": "https://zenodo.org/records/4263971/files/pems-bay-meta.h5"
+    },
+    "license": "Creative Commons Attribution 4.0 International"
+  },
+  "files": {
+    "pems-bay.h5": {
+      "byte_size": 135930936,
+      "expected_md5": "bfa47e6ee7cc2d665e9b62c0c95c0b41",
+      "observed_md5": "bfa47e6ee7cc2d665e9b62c0c95c0b41"
+    },
+    "adj_mx_bay.pkl": {
+      "byte_size": 1681480,
+      "expected_md5": "55d25daceac847312b7748c59ded6f77",
+      "observed_md5": "55d25daceac847312b7748c59ded6f77"
+    },
+    "pems-bay-meta.h5": {
+      "byte_size": 1110088,
+      "expected_md5": "fbde3d20ac413e29f304d0cb528cfdc2",
+      "observed_md5": "fbde3d20ac413e29f304d0cb528cfdc2"
+    }
+  },
+  "structure": {
+    "time_series_shape": [
+      52116,
+      325
+    ],
+    "sensor_count": 325,
+    "graph_shape": [
+      325,
+      325
+    ],
+    "node_count": 325,
+    "sensor_ids_exact_match": true,
+    "sensor_ids_unique": true,
+    "metadata_identifiers": [
+      "meta"
+    ]
+  },
+  "semantics": {
+    "native_missingness": [
+      "0.0",
+      "NaN"
+    ]
+  },
+  "verification_status": "PASSED",
+  "environment": {
+    "python_version": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

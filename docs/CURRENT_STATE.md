@@ -8,7 +8,7 @@
 - Canonical project documentation, accepted architecture/protocol decisions, and an empty open-question register.
 - Durable AI-agent context under `.agent-context/`.
 - Professional directory contract, packaging metadata, Git workflow, and GitHub review templates.
-- Empty package/config/test directory scaffolding ready for implementation.
+- **Phase 1 Data provenance:** Script to download and verify pinned PEMS-BAY dataset, with strict checksum and structural integrity checks.
 
 ## Deliberately removed
 
@@ -16,4 +16,4 @@ The prior Phase 1 loader, graph code, runner, configuration, and recorded prepro
 
 ## Next authorized work
 
-Begin [Phase 1 — Data provenance](IMPLEMENTATION_PLAN.md): obtain the ADR-0006 dataset files, verify their checksums, and create the dataset manifest. Then progress through Phase 2 data-contract hardening and Phase 3 reproducible preprocessing. Do not start model development before those gates pass.
+Phase 1 implementation is complete and ready for human review. Once approved, begin [Phase 2 — Data-contract hardening](IMPLEMENTATION_PLAN.md): implement the accepted `0.0`/`NaN` native-missingness policy, strict five-minute cadence validation, graph/data alignment checks, and tests. Do not build models yet.

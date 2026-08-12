@@ -54,6 +54,10 @@ Install for development from the repository root:
 pip install -e ".[dev]"
 ```
 
-There is intentionally no runnable pipeline yet. The agent creates the first Phase 1 configuration and command entry point only after the data-provenance contract is complete.
+There is intentionally no full runnable pipeline yet. A Phase 1 CLI command exists to verify data provenance.
+
+```bash
+st-dssm-provenance --download
+```
 
 `pyproject.toml` is the dependency and packaging source of truth. Do not add a second dependency list unless an external deployment tool requires one, in which case generate it from the locked environment and document why.

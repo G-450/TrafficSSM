@@ -1,0 +1,2 @@
+data_dir: "data/raw"
+manifest_path: "data/manifest/pems_bay_manifest.json"

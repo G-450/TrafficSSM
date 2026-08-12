@@ -1,4 +1,10 @@
 # Byte-compiled / optimized / DLL files
+*.egg-info/
+__pycache__/
+*.py[cod]
+*$py.class
+
+egg-info/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -10,6 +16,7 @@ experiments/phase1/logs/
 
 # Large Datasets and Processed NPZ Tensors (prevent Github upload limit rejection)
 data/raw/pems-bay.*
+data/raw/pems-bay-meta.h5
 data/raw/PEMS-BAY.*
 data/raw/adj_mx_bay.pkl
 data/raw/distances_bay_2017.csv
