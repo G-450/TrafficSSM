@@ -9,3 +9,4 @@
 7. For an experiment, save the Git revision, resolved config, dataset manifest, seeds, masks, metrics, units, and artefact paths.
 8. Before reporting a result, verify that validation—not test—data selected the configuration and that mask/target leakage tests pass.
 9. Follow `docs/REPOSITORY_STRUCTURE.md`: production code belongs in `src/st_dssm/`, configs in `configs/`, tests in `tests/`, and generated artefacts in ignored locations.
+Never use 'codex' in branch names; use the current phase instead (e.g., 'phase1/feature-name').
