@@ -19,9 +19,11 @@ def fit_fallback_statistics(training_values: np.ndarray) -> np.ndarray:
     if not np.issubdtype(training_values.dtype, np.number):
         raise ValueError("Values must be numeric.")
         
+    import warnings
     # Ignore NaNs when computing the mean
     # If a sensor is entirely NaN in training, np.nanmean returns NaN, which we can catch later
-    with np.errstate(all='ignore'):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
         fallback = np.nanmean(training_values, axis=0)
         
     if np.isnan(fallback).any():
