@@ -2,7 +2,6 @@ import os
 import sys
 from unittest.mock import MagicMock, mock_open, patch
 
-import pandas as pd
 import pytest
 
 from st_dssm.cli.provenance import main

@@ -30,9 +30,22 @@ No processed NPZ or dataset class currently exists. Phase 3 will persist arrays 
 
 There are two distinct concepts and they must never be merged:
 
-- **Dataset-native missingness:** `0.0` and `NaN` values in the canonical source (ADR-0006). The first Phase 1 implementation must represent and repair this policy without future-information leakage.
+- **Dataset-native missingness:** `0.0` and `NaN` values in the canonical source (ADR-0006). The `st_dssm.missingness.extract_native_missingness` function implements this policy, returning a raw array with `0.0` converted to `np.nan` and a boolean observation mask where `True` indicates a genuinely observed value.
 - **Experimental masking:** values deliberately withheld from the model to simulate failure. Original values remain evaluation targets and must not be fed back to the model.
+
+### Leakage-safe repair
+
+Data repair is implemented in `st_dssm.imputation`. It follows a strict causal contract:
+1. **No future information:** `apply_causal_forward_fill` strictly forward-fills missing values from previous observations.
+2. **Explicit training fallbacks:** Leading gaps are filled using a per-sensor statistic fitted *strictly* on training data via `fit_fallback_statistics`.
+3. **Immutability:** Imputation never mutates the original data array in place.
+4. **Validation:** Imputation will fail if any unresolved NaNs remain.
 
 ## Data validation gate
 
-An experiment may proceed only when timestamp cadence, source pairing, sensor IDs/order, zero/missing policy, and split/scaler metadata are all recorded. If IDs or timestamps are absent in an input format, independently verifiable alignment and cadence evidence must accompany the run; otherwise reject it as non-benchmark data.
+An experiment may proceed only when timestamp cadence, source pairing, sensor IDs/order, zero/missing policy, and split/scaler metadata are all recorded. The automated CLI `st-dssm-validate` enforces this by:
+1. Re-verifying canonical MD5 checksums.
+2. Loading and validating the exact time-series schema, graph adjacency shape `[325, 325]`, and exact sensor ID alignment (`st_dssm.validator`).
+3. Verifying that the index is a strict `DatetimeIndex` with no duplicates.
+4. Rejecting irregular intervals, non-numeric data, and infinities.
+5. Extracting missingness semantics and recording exactly how many `0.0` and `NaN` values occur in a deterministic JSON report.

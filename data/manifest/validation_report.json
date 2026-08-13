@@ -1,0 +1,22 @@
+{
+  "time_series_shape": [
+    52116,
+    325
+  ],
+  "adjacency_shape": [
+    325,
+    325
+  ],
+  "sensor_alignment": "EXACT",
+  "cadence_validated": true,
+  "numeric_validity_validated": true,
+  "missingness": {
+    "total_count": 16937700,
+    "observed_count": 16937179,
+    "missing_count": 521,
+    "zero_count": 521,
+    "nan_count": 0,
+    "invalid_infinity_count": 0,
+    "missing_percentage": 0.003075978438630983
+  }
+}

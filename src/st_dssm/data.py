@@ -5,7 +5,6 @@ import platform
 from datetime import datetime, timezone
 
 import h5py
-import pandas as pd
 
 
 class DataProvenanceError(Exception):
