@@ -76,6 +76,23 @@ def test_validate_time_series_wrong_cadence(valid_ts_data):
     with pytest.raises(DataValidationError, match="non-five-minute intervals"):
         validate_time_series(df, sensors)
 
+def test_validate_time_series_dst_gap(valid_ts_data):
+    df, sensors = valid_ts_data
+    dates = list(df.index)
+    
+    start_time = pd.Timestamp("2017-03-12 01:45:00+00:00")
+    for i in range(2):
+        dates[i] = start_time + pd.Timedelta(minutes=5*i)
+        
+    dates[2] = pd.Timestamp("2017-03-12 01:55:00+00:00")
+    dates[3] = pd.Timestamp("2017-03-12 03:00:00+00:00")
+    for i in range(4, 10):
+        dates[i] = dates[i-1] + pd.Timedelta(minutes=5)
+        
+    df.index = dates
+    # Should not raise
+    validate_time_series(df, sensors)
+
 
 def test_validate_time_series_non_numeric(valid_ts_data):
     df, sensors = valid_ts_data

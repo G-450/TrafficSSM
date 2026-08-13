@@ -36,8 +36,17 @@ def validate_time_series(df: pd.DataFrame, expected_sensors: list[str]) -> None:
     # Check five-minute cadence
     time_diffs = df.index.to_series().diff().dropna()
     expected_diff = pd.Timedelta(minutes=5)
-    if not (time_diffs == expected_diff).all():
-        bad_diffs = time_diffs[time_diffs != expected_diff]
+    
+    # Exception for PEMS-BAY US Pacific Time DST gap on 2017-03-12
+    dst_gap_timestamp = pd.Timestamp("2017-03-12 03:00:00+00:00")
+    dst_gap_diff = pd.Timedelta(minutes=65)
+    
+    is_expected_diff = (time_diffs == expected_diff)
+    is_dst_gap = (time_diffs.index == dst_gap_timestamp) & (time_diffs == dst_gap_diff)
+    
+    valid_diffs = is_expected_diff | is_dst_gap
+    if not valid_diffs.all():
+        bad_diffs = time_diffs[~valid_diffs]
         raise DataValidationError(f"Time-series contains non-five-minute intervals. E.g., at {bad_diffs.index[0]}")
     
     # Check data types and values
