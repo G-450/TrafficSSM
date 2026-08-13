@@ -1,14 +1,15 @@
 # Current project state
 
 **Status date:** 2026-08-13
-**Delivery state:** clean implementation restart; Phase 0 governance is complete and Phase 1 data provenance is next.
+**Delivery state:** Phase 2 data-contract hardening is implemented; the automatic data gate passes for the canonical source (except for the expected DST gap documented in ADRs/OPEN_QUESTIONS); Phase 3 reproducible preprocessing is next.
 
 ## Implemented foundation
 
-- Canonical project documentation, accepted architecture/protocol decisions, and an empty open-question register.
+- Canonical project documentation, accepted architecture/protocol decisions, and an open-question register.
 - Durable AI-agent context under `.agent-context/`.
 - Professional directory contract, packaging metadata, Git workflow, and GitHub review templates.
 - **Phase 1 Data provenance:** Script to download and verify pinned PEMS-BAY dataset, with strict checksum and structural integrity checks.
+- **Phase 2 Data-contract hardening:** `st-dssm-validate` command, `st_dssm.validator` for structural checks, `st_dssm.missingness` separating values and masks, and `st_dssm.imputation` for causal forward-filling. Exact missingness statistics (521 zeros, 0 NaNs) were verified against the canonical dataset.
 
 ## Deliberately removed
 
@@ -16,4 +17,4 @@ The prior Phase 1 loader, graph code, runner, configuration, and recorded prepro
 
 ## Next authorized work
 
-Phase 1 implementation is complete and ready for human review. Once approved, begin [Phase 2 — Data-contract hardening](IMPLEMENTATION_PLAN.md): implement the accepted `0.0`/`NaN` native-missingness policy, strict five-minute cadence validation, graph/data alignment checks, and tests. Do not build models yet.
+Phase 2 implementation is complete and ready for human review. Once approved, begin [Phase 3 — Reproducible preprocessing](IMPLEMENTATION_PLAN.md). Model development remains unauthorized until its prerequisite gates pass.
