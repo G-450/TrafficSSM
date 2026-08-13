@@ -2,7 +2,9 @@ import hashlib
 import json
 import os
 import tempfile
+
 import numpy as np
+
 
 class ArtifactError(Exception):
     pass
@@ -101,7 +103,7 @@ def load_and_validate_artifact(artifact_dir: str) -> tuple[dict[str, np.ndarray]
                 
             # Validate dtype
             if str(arr.dtype) != expected_meta["dtype"]:
-                raise ArtifactError(f"Dtype mismatch for {name}: expected {expected_meta['dtype']}, got {str(arr.dtype)}")
+                raise ArtifactError(f"Dtype mismatch for {name}: expected {expected_meta['dtype']}, got {arr.dtype!s}")
                 
             # Validate checksum
             actual_checksum = _compute_array_checksum(arr)
@@ -109,14 +111,12 @@ def load_and_validate_artifact(artifact_dir: str) -> tuple[dict[str, np.ndarray]
                 raise ArtifactError(f"Checksum mismatch for {name}: expected {expected_meta['checksum']}, got {actual_checksum}")
                 
             # If array is expected to be finite and float, check it
-            if np.issubdtype(arr.dtype, np.floating):
-                if not np.isfinite(arr).all():
-                    # For masks or target data, it might contain NaN natively if we didn't fill targets. 
-                    # But the requirements say: "repaired outputs required for scaling/windowing must be finite"
-                    # We will strictly check that scaled X arrays are finite.
-                    if name.endswith("_X") or name in ["scaler_means", "scaler_stds"]:
-                        if not np.isfinite(arr).all():
-                            raise ArtifactError(f"Array {name} contains non-finite values.")
+            if np.issubdtype(arr.dtype, np.floating) and not np.isfinite(arr).all():
+                # For masks or target data, it might contain NaN natively if we didn't fill targets. 
+                # But the requirements say: "repaired outputs required for scaling/windowing must be finite"
+                # We will strictly check that scaled X arrays are finite.
+                if (name.endswith("_X") or name in ["scaler_means", "scaler_stds"]):
+                    raise ArtifactError(f"Array {name} contains non-finite values.")
                             
     # Verify exact sensor ID alignment
     expected_sensor_ids = metadata.get("sensor_ids", [])
@@ -130,8 +130,7 @@ def load_and_validate_artifact(artifact_dir: str) -> tuple[dict[str, np.ndarray]
         if name in ["train_X", "train_Y", "val_X", "val_Y", "test_X", "test_Y", "train_X_mask", "train_Y_mask", "val_X_mask", "val_Y_mask", "test_X_mask", "test_Y_mask"]:
             if arr.shape[2] != sensor_count:
                 raise ArtifactError(f"Array {name} sensor axis mismatch: expected {sensor_count}, got {arr.shape[2]}")
-        elif name in ["scaler_means", "scaler_stds", "repair_fallback_stats"]:
-            if arr.shape[0] != sensor_count:
-                raise ArtifactError(f"Array {name} shape mismatch: expected {sensor_count}, got {arr.shape[0]}")
+        elif name in ["scaler_means", "scaler_stds", "repair_fallback_stats"] and arr.shape[0] != sensor_count:
+            raise ArtifactError(f"Array {name} shape mismatch: expected {sensor_count}, got {arr.shape[0]}")
                 
     return loaded_arrays, metadata

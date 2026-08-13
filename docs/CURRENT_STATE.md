@@ -1,7 +1,7 @@
 # Current project state
 
 **Status date:** 2026-08-13
-**Delivery state:** Phase 2 data-contract hardening is implemented; the automatic data gate passes for the canonical source (except for the expected DST gap documented in ADRs/OPEN_QUESTIONS); Phase 3 reproducible preprocessing is next.
+**Delivery state:** Phase 3 reproducible preprocessing is implemented and validated. The data-readiness gate covering Phases 1-3 passes. Phase 4 evaluation foundation is next. No model or experimental result exists yet.
 
 ## Implemented foundation
 
@@ -10,6 +10,7 @@
 - Professional directory contract, packaging metadata, Git workflow, and GitHub review templates.
 - **Phase 1 Data provenance:** Script to download and verify pinned PEMS-BAY dataset, with strict checksum and structural integrity checks.
 - **Phase 2 Data-contract hardening:** `st-dssm-validate` command, `st_dssm.validator` for structural checks, `st_dssm.missingness` separating values and masks, and `st_dssm.imputation` for causal forward-filling. Exact missingness statistics (521 zeros, 0 NaNs) were verified against the canonical dataset.
+- **Phase 3 Reproducible preprocessing:** `st-dssm-preprocess` command with chronologically disjoint splits, training-only scalar fitting, safe NPZ serialization, and exact deterministic validation.
 
 ## Deliberately removed
 

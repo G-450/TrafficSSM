@@ -1,13 +1,13 @@
-import os
 import sys
+import tempfile
 from unittest.mock import MagicMock, patch
-import pytest
+
 import numpy as np
 import pandas as pd
-import tempfile
-from datetime import datetime, timezone
+import pytest
 
-from st_dssm.cli.preprocess import main, generate_pipeline
+from st_dssm.cli.preprocess import generate_pipeline, main
+
 
 @pytest.fixture
 def mock_dataset_loaders():
@@ -36,7 +36,7 @@ def mock_dataset_loaders():
         
         speed_group.__getitem__.side_effect = lambda k: {
             "block0_values": values,
-            "block0_items": [f"sensor_{i}".encode("utf-8") for i in range(5)],
+            "block0_items": [f"sensor_{i}".encode() for i in range(5)],
             "axis1": pd.date_range("2026-01-01", periods=100, freq="5min").astype(np.int64)
         }[k]
         
@@ -67,7 +67,7 @@ def test_generate_pipeline_success(mock_dataset_loaders):
 def test_cli_generate_success(mock_load, mock_save, mock_gen):
     mock_gen.return_value = ({}, {})
     
-    with patch.object(sys, 'argv', ['preprocess', 'generate']):
+    with patch.object(sys, 'argv', ['preprocess', 'generate', '--force']):
         main()
 
 

@@ -1,8 +1,15 @@
-import numpy as np
-import tempfile
-import pytest
 import os
-from st_dssm.io import save_processed_artifact, load_and_validate_artifact, ArtifactError
+import tempfile
+
+import numpy as np
+import pytest
+
+from st_dssm.io import (
+    ArtifactError,
+    load_and_validate_artifact,
+    save_processed_artifact,
+)
+
 
 def test_io_roundtrip():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -23,9 +30,9 @@ def test_io_roundtrip():
         loaded_arrays, loaded_meta = load_and_validate_artifact(tmpdir)
         
         assert loaded_meta["schema_version"] == "1.0"
-        for name in arrays:
+        for name, value in arrays.items():
             assert name in loaded_arrays
-            np.testing.assert_array_equal(arrays[name], loaded_arrays[name])
+            np.testing.assert_array_equal(value, loaded_arrays[name])
             
 def test_io_corruption_missing_array():
     with tempfile.TemporaryDirectory() as tmpdir:

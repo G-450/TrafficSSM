@@ -1,6 +1,13 @@
 import numpy as np
 import pytest
-from st_dssm.preprocessing import calculate_split_boundaries, PerSensorScaler, generate_windows, PreprocessingError
+
+from st_dssm.preprocessing import (
+    PerSensorScaler,
+    PreprocessingError,
+    calculate_split_boundaries,
+    generate_windows,
+)
+
 
 def test_calculate_split_boundaries_success():
     train_end, val_end, test_end = calculate_split_boundaries(100)
