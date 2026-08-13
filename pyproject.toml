@@ -24,6 +24,7 @@ dependencies = [
 [project.scripts]
 st-dssm-provenance = "st_dssm.cli.provenance:main"
 st-dssm-validate = "st_dssm.cli.validate:main"
+st-dssm-preprocess = "st_dssm.cli.preprocess:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
