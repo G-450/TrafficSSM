@@ -90,8 +90,9 @@ def test_validate_time_series_dst_gap(valid_ts_data):
         dates[i] = dates[i-1] + pd.Timedelta(minutes=5)
         
     df.index = dates
-    # Should not raise
-    validate_time_series(df, sensors)
+    # Should raise because we removed the DST gap exception
+    with pytest.raises(DataValidationError, match="non-five-minute intervals"):
+        validate_time_series(df, sensors)
 
 
 def test_validate_time_series_non_numeric(valid_ts_data):

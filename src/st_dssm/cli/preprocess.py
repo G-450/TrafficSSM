@@ -5,6 +5,7 @@ import platform
 import subprocess
 import sys
 import tempfile
+import traceback
 from datetime import datetime, timezone
 
 import h5py
@@ -32,7 +33,7 @@ def _get_git_revision() -> str:
     try:
         rev = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL)
         return rev.decode("utf-8").strip()
-    except Exception:
+    except Exception:  # noqa: BLE001
         return "unknown"
 
 
@@ -58,6 +59,13 @@ def generate_pipeline(data_dir: str, output_dir: str, input_length: int = 12, fo
     # might not have tz explicitly set in the h5 file. We coerce to UTC.
     timestamps = pd.to_datetime(idx_raw).tz_localize("UTC")
     df = pd.DataFrame(values, index=timestamps, columns=sensor_ids)
+    
+    # NEW: Resample to strict 5-minute intervals to pad missing DST gap
+    df = df.asfreq("5min")
+    
+    # Update values and timestamps from resampled df
+    values = df.values
+    timestamps = df.index
     
     with open(adj_mx_path, "rb") as f:
         sensor_ids_graph_raw, _, adj_mx = pickle.load(f, encoding='latin1')
@@ -188,7 +196,8 @@ def cmd_generate(args):
         print("Reloading and validating generated artifact...")
         load_and_validate_artifact(args.output_dir)
         print("Phase 3 canonical artifact generated and validated successfully.")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
+        traceback.print_exc()
         print(f"Error during generation: {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -203,7 +212,8 @@ def cmd_validate(args):
         print(f"  Train windows: {loaded_arrays['train_X'].shape[0]}")
         print(f"  Val windows: {loaded_arrays['val_X'].shape[0]}")
         print(f"  Test windows: {loaded_arrays['test_X'].shape[0]}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
+        traceback.print_exc()
         print(f"Error validating artifact: {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -263,7 +273,8 @@ def cmd_smoke(args):
                     sys.exit(1)
                     
             print("Smoke test passed: Regenerated artifact is structurally and deterministically identical.")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
+        traceback.print_exc()
         print(f"Error during smoke test: {e}", file=sys.stderr)
         sys.exit(1)
 
