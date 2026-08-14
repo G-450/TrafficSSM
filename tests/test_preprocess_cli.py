@@ -37,7 +37,7 @@ def mock_dataset_loaders():
         speed_group.__getitem__.side_effect = lambda k: {
             "block0_values": values,
             "block0_items": [f"sensor_{i}".encode() for i in range(5)],
-            "axis1": pd.date_range("2026-01-01", periods=100, freq="5min").astype(np.int64)
+            "axis1": pd.date_range("2026-01-01", periods=100, freq="5min").astype("datetime64[ns]").astype(np.int64)
         }[k]
         
         # Setup pickle mock for graph

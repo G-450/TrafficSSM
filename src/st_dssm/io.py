@@ -111,12 +111,12 @@ def load_and_validate_artifact(artifact_dir: str) -> tuple[dict[str, np.ndarray]
                 raise ArtifactError(f"Checksum mismatch for {name}: expected {expected_meta['checksum']}, got {actual_checksum}")
                 
             # If array is expected to be finite and float, check it
-            if np.issubdtype(arr.dtype, np.floating) and not np.isfinite(arr).all():
+            if (np.issubdtype(arr.dtype, np.floating) and not np.isfinite(arr).all() 
+                and (name.endswith("_X") or name in ["scaler_means", "scaler_stds"])):
                 # For masks or target data, it might contain NaN natively if we didn't fill targets. 
                 # But the requirements say: "repaired outputs required for scaling/windowing must be finite"
                 # We will strictly check that scaled X arrays are finite.
-                if (name.endswith("_X") or name in ["scaler_means", "scaler_stds"]):
-                    raise ArtifactError(f"Array {name} contains non-finite values.")
+                raise ArtifactError(f"Array {name} contains non-finite values.")
                             
     # Verify exact sensor ID alignment
     expected_sensor_ids = metadata.get("sensor_ids", [])
