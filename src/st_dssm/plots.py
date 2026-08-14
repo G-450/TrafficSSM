@@ -1,13 +1,15 @@
-"""Evaluation plotting utilities.
+"""Evaluation plotting utilities for traffic forecasting.
 
 All plots save to files and return the output path.
-No interactive ``plt.show()`` calls.  Uses a consistent visual style.
+No interactive ``plt.show()`` calls. Uses headless Agg backend.
 
 Functions
 ---------
-plot_horizon_metrics : per-horizon bar chart for a single metric.
-plot_prediction_intervals : time-series with confidence bands.
-plot_metric_comparison : grouped bar chart comparing models.
+plot_horizon_metrics : per-horizon bar or line chart with minute annotations.
+plot_prediction_intervals : time-series with observed speeds, mean, and confidence band.
+plot_calibration_curve : reliability diagram comparing empirical vs nominal coverage.
+plot_interval_width_vs_horizon : interval width across forecast horizons in minutes.
+plot_metric_comparison : grouped bar chart comparing multiple models or conditions.
 """
 
 from __future__ import annotations
@@ -16,12 +18,12 @@ import os
 
 import matplotlib
 
-matplotlib.use("Agg")  # non-interactive backend
+matplotlib.use("Agg")  # non-interactive headless backend
 import matplotlib.pyplot as plt
 import numpy as np
 
 # ---------------------------------------------------------------------------
-# Style
+# Visual Style and Color Palette
 # ---------------------------------------------------------------------------
 
 _STYLE = {
@@ -54,8 +56,9 @@ def _apply_style() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Per-horizon bar chart
+# Per-horizon metric chart
 # ---------------------------------------------------------------------------
+
 
 def plot_horizon_metrics(
     horizons: list[int],
@@ -63,23 +66,25 @@ def plot_horizon_metrics(
     metric_name: str,
     output_path: str,
     *,
-    unit: str = "",
+    unit: str = "mph",
     title: str | None = None,
+    minutes_per_step: int = 5,
 ) -> str:
-    """Bar chart showing a metric across forecast horizons.
+    """Bar chart showing a metric across forecast horizons (in steps and minutes).
 
     Parameters
     ----------
-    horizons : list of horizon indices (e.g. [1, 2, ..., 12]).
+    horizons : list of horizon step indices (e.g. [1, 2, ..., 12]).
     values : metric values corresponding to each horizon.
-    metric_name : name for the y-axis label (e.g. 'MAE (mph)').
+    metric_name : name for the y-axis label (e.g. 'MAE').
     output_path : file path to save the figure.
-    unit : optional unit string appended to the y-axis label.
-    title : optional figure title; defaults to metric_name.
+    unit : unit string appended to the y-axis label (default 'mph').
+    title : optional figure title.
+    minutes_per_step : time resolution in minutes per step (default 5).
 
     Returns
     -------
-    The output path (for chaining).
+    The output file path.
     """
     if len(horizons) != len(values):
         raise ValueError("horizons and values must have the same length.")
@@ -87,28 +92,33 @@ def plot_horizon_metrics(
     _apply_style()
     fig, ax = plt.subplots(figsize=(10, 5))
 
+    x_labels = [f"H{h} ({h * minutes_per_step}m)" for h in horizons]
     bars = ax.bar(
-        horizons, values,
-        color=_PALETTE[0], edgecolor=_PALETTE[0], alpha=0.85,
-        width=0.7,
+        range(len(horizons)),
+        values,
+        color=_PALETTE[0],
+        edgecolor=_PALETTE[0],
+        alpha=0.85,
+        width=0.65,
     )
 
     ylabel = metric_name if not unit else f"{metric_name} ({unit})"
-    ax.set_xlabel("Forecast Horizon (steps)")
+    ax.set_xlabel("Forecast Horizon")
     ax.set_ylabel(ylabel)
-    ax.set_title(title or metric_name, fontsize=14, fontweight="bold")
-    ax.set_xticks(horizons)
+    ax.set_title(title or f"{metric_name} across Forecast Horizons", fontsize=14, fontweight="bold")
+    ax.set_xticks(range(len(horizons)))
+    ax.set_xticklabels(x_labels, rotation=30, ha="right")
 
-    # Value labels on bars
     for bar, val in zip(bars, values):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height(),
-            f"{val:.3f}",
-            ha="center", va="bottom", fontsize=9,
+            f"{val:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=9,
         )
 
-    fig.tight_layout()
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -116,8 +126,9 @@ def plot_horizon_metrics(
 
 
 # ---------------------------------------------------------------------------
-# Prediction-interval time-series plot
+# Prediction intervals time-series
 # ---------------------------------------------------------------------------
+
 
 def plot_prediction_intervals(
     y_true: np.ndarray,
@@ -126,55 +137,66 @@ def plot_prediction_intervals(
     upper: np.ndarray,
     output_path: str,
     *,
-    sensor_idx: int = 0,
+    sensor_idx: int | str = 0,
     horizon_range: tuple[int, int] | None = None,
+    unit: str = "mph",
     title: str | None = None,
 ) -> str:
-    """Time-series plot with prediction mean and confidence band.
+    """Time-series plot showing ground-truth traffic speed, predicted mean, and confidence band.
 
     Parameters
     ----------
-    y_true : true values, shape [T] or sliceable 1-D.
+    y_true : true values [T] (1-D array or sliceable).
     mu : predicted means (same shape).
     lower : lower interval bounds (same shape).
     upper : upper interval bounds (same shape).
     output_path : file path to save the figure.
-    sensor_idx : sensor index (for labelling only).
-    horizon_range : optional (start, end) to slice the time axis.
-    title : optional figure title.
+    sensor_idx : sensor identifier or index for the plot title.
+    horizon_range : optional (start, end) time index slice.
+    unit : physical unit string (default 'mph').
+    title : optional custom title.
 
     Returns
     -------
-    The output path.
+    The output file path.
     """
     _apply_style()
 
+    yt = np.asarray(y_true).ravel()
+    m = np.asarray(mu).ravel()
+    lo = np.asarray(lower).ravel()
+    hi = np.asarray(upper).ravel()
+
     if horizon_range is not None:
         s, e = horizon_range
-        y_true = y_true[s:e]
-        mu = mu[s:e]
-        lower = lower[s:e]
-        upper = upper[s:e]
+        yt = yt[s:e]
+        m = m[s:e]
+        lo = lo[s:e]
+        hi = hi[s:e]
 
-    t = np.arange(len(y_true))
+    t = np.arange(len(yt))
 
     fig, ax = plt.subplots(figsize=(12, 5))
     ax.fill_between(
-        t, lower, upper,
-        alpha=0.25, color=_PALETTE[0], label="95% PI",
+        t,
+        lo,
+        hi,
+        alpha=0.25,
+        color=_PALETTE[0],
+        label="95% Prediction Interval",
     )
-    ax.plot(t, mu, color=_PALETTE[0], linewidth=1.5, label="Predicted mean")
-    ax.plot(t, y_true, color=_PALETTE[1], linewidth=1.0, alpha=0.8, label="Observed")
+    ax.plot(t, m, color=_PALETTE[0], linewidth=1.8, label="Predicted Mean")
+    ax.plot(t, yt, color=_PALETTE[1], linewidth=1.2, alpha=0.85, label="Observed Speed")
 
-    ax.set_xlabel("Time Step")
-    ax.set_ylabel("Speed (mph)")
+    ax.set_xlabel("Time Step (5-min intervals)")
+    ax.set_ylabel(f"Speed ({unit})")
     ax.set_title(
-        title or f"Prediction Intervals — Sensor {sensor_idx}",
-        fontsize=14, fontweight="bold",
+        title or f"Traffic Speed Forecast & Prediction Interval — Sensor {sensor_idx}",
+        fontsize=14,
+        fontweight="bold",
     )
     ax.legend(loc="upper right", framealpha=0.7)
 
-    fig.tight_layout()
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -182,8 +204,119 @@ def plot_prediction_intervals(
 
 
 # ---------------------------------------------------------------------------
-# Model comparison grouped bar chart
+# Calibration / Reliability Diagram
 # ---------------------------------------------------------------------------
+
+
+def plot_calibration_curve(
+    nominal_levels: list[float],
+    empirical_coverages: list[float],
+    output_path: str,
+    *,
+    title: str | None = None,
+) -> str:
+    """Reliability diagram comparing empirical coverage to nominal confidence levels.
+
+    Parameters
+    ----------
+    nominal_levels : list of nominal confidence levels (e.g. [0.5, 0.8, 0.9, 0.95, 0.99]).
+    empirical_coverages : empirical coverage values corresponding to nominal levels.
+    output_path : file path to save the figure.
+    title : optional title.
+
+    Returns
+    -------
+    The output file path.
+    """
+    if len(nominal_levels) != len(empirical_coverages):
+        raise ValueError("nominal_levels and empirical_coverages must have the same length.")
+
+    _apply_style()
+    fig, ax = plt.subplots(figsize=(7, 7))
+
+    # Plot diagonal ideal reference
+    ax.plot([0, 1], [0, 1], "--", color="#a0a0a0", linewidth=1.5, label="Ideal Calibration")
+
+    # Plot empirical curve
+    ax.plot(
+        nominal_levels,
+        empirical_coverages,
+        "o-",
+        color=_PALETTE[0],
+        linewidth=2.0,
+        markersize=7,
+        label="Observed Coverage (PICP)",
+    )
+
+    ax.set_xlabel("Nominal Coverage Probability")
+    ax.set_ylabel("Empirical Coverage Probability")
+    ax.set_title(title or "Uncertainty Calibration (Reliability Diagram)", fontsize=14, fontweight="bold")
+    ax.set_xlim([0.45, 1.02])
+    ax.set_ylim([0.45, 1.02])
+    ax.legend(loc="lower right", framealpha=0.7)
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return output_path
+
+
+# ---------------------------------------------------------------------------
+# Interval Width vs Horizon
+# ---------------------------------------------------------------------------
+
+
+def plot_interval_width_vs_horizon(
+    horizons: list[int],
+    widths: list[float],
+    output_path: str,
+    *,
+    unit: str = "mph",
+    title: str | None = None,
+    minutes_per_step: int = 5,
+) -> str:
+    """Plot prediction interval width (MPIW) as a function of forecast horizon.
+
+    Parameters
+    ----------
+    horizons : list of horizon steps (e.g. [1, 2, ..., 12]).
+    widths : mean interval widths for each horizon.
+    output_path : file path to save figure.
+    unit : physical unit string.
+    title : optional title.
+    minutes_per_step : cadence in minutes.
+
+    Returns
+    -------
+    The output file path.
+    """
+    if len(horizons) != len(widths):
+        raise ValueError("horizons and widths must have the same length.")
+
+    _apply_style()
+    fig, ax = plt.subplots(figsize=(9, 5))
+
+    minutes = [h * minutes_per_step for h in horizons]
+    ax.plot(minutes, widths, "s-", color=_PALETTE[3], linewidth=2.0, markersize=6)
+
+    ax.set_xlabel("Forecast Horizon (minutes)")
+    ax.set_ylabel(f"Mean Prediction Interval Width ({unit})")
+    ax.set_title(title or "95% Prediction Interval Width vs Horizon", fontsize=14, fontweight="bold")
+    ax.set_xticks(minutes)
+
+    for m, w in zip(minutes, widths):
+        ax.text(m, w + 0.02 * max(widths), f"{w:.2f}", ha="center", fontsize=9)
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return output_path
+
+
+# ---------------------------------------------------------------------------
+# Model Comparison Grouped Bar Chart
+# ---------------------------------------------------------------------------
+
 
 def plot_metric_comparison(
     results_dict: dict[str, list[float]],
@@ -191,7 +324,7 @@ def plot_metric_comparison(
     output_path: str,
     *,
     group_labels: list[str] | None = None,
-    unit: str = "",
+    unit: str = "mph",
     title: str | None = None,
 ) -> str:
     """Grouped bar chart comparing multiple models on a metric.
@@ -199,16 +332,15 @@ def plot_metric_comparison(
     Parameters
     ----------
     results_dict : ``{model_name: [value_per_group]}``.
-        All value lists must have the same length.
-    metric_name : y-axis label.
-    output_path : file path to save the figure.
-    group_labels : labels for each group (e.g. horizon indices).
-    unit : optional unit string.
-    title : optional figure title.
+    metric_name : metric label on y-axis.
+    output_path : file path to save figure.
+    group_labels : labels for each group (e.g. ['15m', '30m', '60m']).
+    unit : unit string.
+    title : optional title.
 
     Returns
     -------
-    The output path.
+    The output file path.
     """
     if not results_dict:
         raise ValueError("results_dict must not be empty.")
@@ -237,20 +369,23 @@ def plot_metric_comparison(
         offset = (i - n_models / 2 + 0.5) * bar_width
         color = _PALETTE[i % len(_PALETTE)]
         ax.bar(
-            x + offset, vals,
-            width=bar_width, label=model,
-            color=color, edgecolor=color, alpha=0.85,
+            x + offset,
+            vals,
+            width=bar_width,
+            label=model,
+            color=color,
+            edgecolor=color,
+            alpha=0.85,
         )
 
     ylabel = metric_name if not unit else f"{metric_name} ({unit})"
-    ax.set_xlabel("Group")
+    ax.set_xlabel("Horizon / Group")
     ax.set_ylabel(ylabel)
-    ax.set_title(title or f"{metric_name} Comparison", fontsize=14, fontweight="bold")
+    ax.set_title(title or f"{metric_name} Comparison Across Models", fontsize=14, fontweight="bold")
     ax.set_xticks(x)
     ax.set_xticklabels(group_labels)
     ax.legend(loc="upper right", framealpha=0.7)
 
-    fig.tight_layout()
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
