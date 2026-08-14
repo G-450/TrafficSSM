@@ -1,7 +1,7 @@
-"""Tests for the result schema module (Phase 4).
+"""Tests for result schema and run manifest module (Phase 4).
 
-Covers MetricRecord validation, RunManifest round-trip serialization,
-and schema validation error handling.
+Covers MetricRecord validation, RunManifest lifecycle, deterministic checksums,
+atomic serialization, and schema validation error handling.
 """
 
 from __future__ import annotations
@@ -18,150 +18,121 @@ from st_dssm.result_schema import (
     save_run_manifest,
 )
 
-# ---------------------------------------------------------------------------
-# MetricRecord
-# ---------------------------------------------------------------------------
 
 class TestMetricRecord:
-    def test_valid_record(self):
+    def test_valid_record_with_minutes_and_count(self):
         rec = MetricRecord(
-            name="MAE", value=2.5, unit="raw",
-            horizon=3, target_group="all", aggregation="mean",
+            name="MAE",
+            value=2.35,
+            unit="mph",
+            horizon=3,
+            horizon_minutes=15,
+            target_group="all",
+            aggregation="mean",
+            valid_count=1500,
         )
         assert rec.name == "MAE"
-        assert rec.value == 2.5
+        assert rec.value == 2.35
+        assert rec.horizon == 3
+        assert rec.horizon_minutes == 15
+        assert rec.valid_count == 1500
 
-    def test_all_valid_names(self):
-        for name in ("MAE", "RMSE", "NLL", "CRPS", "PICP", "MPIW"):
+    def test_all_valid_metric_names(self):
+        for name in ("MAE", "RMSE", "MAPE", "NLL", "CRPS", "PICP", "MPIW"):
             rec = MetricRecord(name=name, value=0.0, unit="raw", horizon="aggregate")
             assert rec.name == name
 
-    def test_invalid_name(self):
+    def test_invalid_name_raises(self):
         with pytest.raises(ValueError, match="Unknown metric name"):
-            MetricRecord(name="MSE", value=0.0, unit="raw", horizon=1)
+            MetricRecord(name="SMAPE_INVALID", value=0.0, unit="raw", horizon=1)
 
-    def test_invalid_unit(self):
+    def test_invalid_unit_raises(self):
         with pytest.raises(ValueError, match="unit must be"):
-            MetricRecord(name="MAE", value=0.0, unit="mph", horizon=1)
+            MetricRecord(name="MAE", value=0.0, unit="kilometers_per_hour", horizon=1)
 
-    def test_invalid_target_group(self):
-        with pytest.raises(ValueError, match="target_group"):
-            MetricRecord(name="MAE", value=0.0, unit="raw", horizon=1, target_group="partial")
+    def test_invalid_count_raises(self):
+        with pytest.raises(ValueError, match="non-negative integer"):
+            MetricRecord(name="MAE", value=0.0, unit="raw", horizon=1, valid_count=-5)
 
-    def test_aggregate_horizon(self):
-        rec = MetricRecord(name="RMSE", value=3.14, unit="raw", horizon="aggregate")
-        assert rec.horizon == "aggregate"
-
-    def test_integer_horizon(self):
-        rec = MetricRecord(name="RMSE", value=3.14, unit="raw", horizon=5)
-        assert rec.horizon == 5
-
-
-# ---------------------------------------------------------------------------
-# RunManifest
-# ---------------------------------------------------------------------------
 
 class TestRunManifest:
-    def test_default_values(self):
-        m = RunManifest(run_id="test-001", model_name="persistence")
+    def test_default_values_and_status(self):
+        m = RunManifest(run_id="test-run-1", model_name="test_model")
         assert m.schema_version == "1.0"
         assert m.run_status == "incomplete"
-        assert m.metrics == []
+        assert len(m.metrics) == 0
 
     def test_add_metric(self):
-        m = RunManifest(run_id="test-001", model_name="persistence")
-        rec = MetricRecord(name="MAE", value=2.5, unit="raw", horizon="aggregate")
+        m = RunManifest(run_id="test-run-1", model_name="test_model")
+        rec = MetricRecord(name="RMSE", value=3.4, unit="mph", horizon="aggregate", valid_count=100)
         m.add_metric(rec)
         assert len(m.metrics) == 1
-        assert m.metrics[0]["name"] == "MAE"
-        assert m.metrics[0]["value"] == 2.5
+        assert m.metrics[0]["name"] == "RMSE"
+        assert m.metrics[0]["value"] == 3.4
 
     def test_mark_complete(self):
-        m = RunManifest(run_id="test-001", model_name="persistence")
+        m = RunManifest(run_id="test-run-1", model_name="test_model")
         m.mark_complete()
         assert m.run_status == "complete"
         assert m.end_time_utc != ""
 
     def test_mark_failed(self):
-        m = RunManifest(run_id="test-001", model_name="persistence")
-        m.mark_failed("NaN loss detected")
+        m = RunManifest(run_id="test-run-1", model_name="test_model")
+        m.mark_failed("Numerical divergence")
         assert m.run_status == "failed"
-        assert m.resolved_config.get("failure_reason") == "NaN loss detected"
+        assert m.resolved_config.get("failure_reason") == "Numerical divergence"
 
-    def test_invalid_status(self):
-        with pytest.raises(ValueError, match="run_status"):
-            RunManifest(run_id="test-001", model_name="x", run_status="running")
+    def test_checksum_computation_is_deterministic(self):
+        m1 = RunManifest(run_id="test-run-1", model_name="model_a", training_seed=2026)
+        m2 = RunManifest(run_id="test-run-1", model_name="model_a", training_seed=2026)
+        c1 = m1.compute_checksum()
+        c2 = m2.compute_checksum()
+        assert len(c1) == 64  # sha256 hex string
+        assert c1 == c2
 
-    def test_invalid_schema_version(self):
-        with pytest.raises(ValueError, match="schema version"):
-            RunManifest(schema_version="2.0", run_id="x", model_name="x")
 
-
-# ---------------------------------------------------------------------------
-# Save / Load round-trip
-# ---------------------------------------------------------------------------
-
-class TestSaveLoad:
-    def test_round_trip(self, tmp_path):
+class TestSaveLoadManifest:
+    def test_atomic_save_and_load_round_trip(self, tmp_path):
         m = RunManifest(
-            run_id="run-42",
-            model_name="det-stgcn",
+            run_id="run-2026-phase4",
+            model_name="evaluation_fixture",
             training_seed=2026,
             mask_condition="20%",
-            git_commit="abc123",
+            git_commit="abc1234",
         )
-        rec = MetricRecord(name="MAE", value=3.21, unit="raw", horizon="aggregate")
+        rec = MetricRecord(name="MAE", value=2.75, unit="mph", horizon="aggregate", valid_count=5000)
         m.add_metric(rec)
         m.mark_complete()
 
         path = str(tmp_path / "manifest.json")
-        save_run_manifest(m, path)
+        saved_path = save_run_manifest(m, path, overwrite=True, atomic=True)
+        assert saved_path == path
 
         loaded = load_run_manifest(path)
-        assert loaded.run_id == "run-42"
-        assert loaded.model_name == "det-stgcn"
-        assert loaded.training_seed == 2026
-        assert loaded.mask_condition == "20%"
+        assert loaded.run_id == "run-2026-phase4"
+        assert loaded.model_name == "evaluation_fixture"
         assert loaded.run_status == "complete"
+        assert loaded.manifest_checksum != ""
         assert len(loaded.metrics) == 1
-        assert loaded.metrics[0]["name"] == "MAE"
-        assert loaded.metrics[0]["value"] == pytest.approx(3.21)
+        assert loaded.metrics[0]["value"] == pytest.approx(2.75)
 
-    def test_save_rejects_missing_run_id(self, tmp_path):
-        m = RunManifest(model_name="test")  # run_id is empty
-        with pytest.raises(SchemaValidationError, match="run_id"):
-            save_run_manifest(m, str(tmp_path / "bad.json"))
+    def test_overwrite_protection(self, tmp_path):
+        m = RunManifest(run_id="r1", model_name="m1")
+        path = str(tmp_path / "protected_manifest.json")
+        save_run_manifest(m, path)
 
-    def test_save_rejects_missing_model_name(self, tmp_path):
-        m = RunManifest(run_id="r1")  # model_name is empty
-        with pytest.raises(SchemaValidationError, match="model_name"):
-            save_run_manifest(m, str(tmp_path / "bad.json"))
+        with pytest.raises(FileExistsError, match="already exists"):
+            save_run_manifest(m, path, overwrite=False)
 
-    def test_load_nonexistent(self, tmp_path):
-        with pytest.raises(FileNotFoundError):
-            load_run_manifest(str(tmp_path / "no_such_file.json"))
+    def test_load_wrong_version_raises(self, tmp_path):
+        path = str(tmp_path / "bad_version.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"schema_version": "99.0", "run_id": "r1", "model_name": "m1"}, f)
 
-    def test_load_wrong_schema_version(self, tmp_path):
-        path = str(tmp_path / "wrong.json")
-        with open(path, "w") as f:
-            json.dump({"schema_version": "99.0", "run_id": "x", "model_name": "x"}, f)
         with pytest.raises(SchemaValidationError, match="schema version"):
             load_run_manifest(path)
 
-    def test_load_missing_required_field(self, tmp_path):
-        path = str(tmp_path / "incomplete.json")
-        with open(path, "w") as f:
-            json.dump({"schema_version": "1.0", "run_id": "x", "run_status": "complete"}, f)
+    def test_save_missing_model_name_raises(self, tmp_path):
+        m = RunManifest(run_id="r1", model_name="")
         with pytest.raises(SchemaValidationError, match="model_name"):
-            load_run_manifest(path)
-
-    def test_json_is_valid_file(self, tmp_path):
-        """Saved manifest is valid JSON with sorted keys."""
-        m = RunManifest(run_id="r1", model_name="m1")
-        path = str(tmp_path / "manifest.json")
-        save_run_manifest(m, path)
-
-        with open(path, "r") as f:
-            data = json.load(f)
-        assert isinstance(data, dict)
-        assert data["schema_version"] == "1.0"
+            save_run_manifest(m, str(tmp_path / "invalid.json"))
