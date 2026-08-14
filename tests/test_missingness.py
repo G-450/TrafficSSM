@@ -48,6 +48,10 @@ def test_extract_native_missingness_infinity_rejected():
     expected_mask = np.array([[True, False, False]])
     np.testing.assert_array_equal(observed_mask, expected_mask)
     
+    # Verify infinities are replaced by NaN in the values array
+    assert np.isnan(_values_with_nan[0, 1])
+    assert np.isnan(_values_with_nan[0, 2])
+    
     assert stats.invalid_infinity_count == 2
     assert stats.missing_count == 0
     assert stats.observed_count == 1

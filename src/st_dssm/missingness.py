@@ -55,6 +55,9 @@ def extract_native_missingness(values: np.ndarray) -> tuple[np.ndarray, np.ndarr
     values_with_nan = np.copy(values)
     values_with_nan[zero_mask] = np.nan
     
+    # Also replace infinities with NaN for downstream processing (P2-MIS-01)
+    values_with_nan[invalid_infinity_mask] = np.nan
+    
     if values_with_nan.shape != observed_mask.shape:
         raise ValueError(f"Mask shape {observed_mask.shape} does not match values shape {values_with_nan.shape}")
         
