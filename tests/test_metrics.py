@@ -59,6 +59,12 @@ class TestMAE:
         mask = np.array([1, 1, 1, 0])
         assert mae(y_true, y_pred, mask=mask) == pytest.approx(7.0 / 3.0)
 
+    def test_rejects_non_binary_mask(self):
+        y = np.array([10.0, 20.0])
+        bad_mask = np.array([-1.0, 2.0])
+        with pytest.raises(MetricError, match="strictly binary"):
+            mae(y, y, mask=bad_mask)
+
     def test_empty_mask_raises(self):
         y = np.array([1.0, 2.0])
         mask = np.array([0, 0])
@@ -233,6 +239,13 @@ class TestPredictionIntervalAndDiagnostics:
         # 10 in [5,15] (yes), 20 in [15,25] (yes), 30 in [25,35] (yes), 40 in [50,60] (no)
         assert picp(y_true, lower, upper) == pytest.approx(0.75)
 
+    def test_picp_rejects_crossed_bounds(self):
+        y_true = np.array([10.0, 20.0])
+        lower = np.array([15.0, 25.0])
+        upper = np.array([5.0, 20.0])  # upper < lower
+        with pytest.raises(MetricError, match="upper must be >= lower"):
+            picp(y_true, lower, upper)
+
     def test_mpiw_width(self):
         lower = np.array([10.0, 20.0])
         upper = np.array([15.0, 30.0])
@@ -276,6 +289,21 @@ class TestInverseTransform:
         # sigma_raw = 0.5 * std (NO mean added!)
         np.testing.assert_allclose(sigma_raw[0, 0, :, 0], [2.5, 5.0, 4.0])
 
+    def test_zero_variance_is_valid(self):
+        """Zero variance is mathematically valid and must not be rejected."""
+        norm_var = np.array([[0.0, 4.0]])
+        scaler_mean = np.array([50.0, 60.0])
+        scaler_std = np.array([5.0, 2.0])
+
+        res = inverse_transform_predictions(
+            var=norm_var,
+            scaler_mean=scaler_mean,
+            scaler_std=scaler_std,
+        )
+        assert isinstance(res, dict)
+        # 0.0 * 25 = 0.0, 4.0 * 4 = 16.0
+        np.testing.assert_allclose(res["var"][0], [0.0, 16.0])
+
     def test_variance_and_bounds_inversion(self):
         norm_mu = np.array([[1.0, 2.0]])
         norm_var = np.array([[4.0, 9.0]])  # var_norm
@@ -297,6 +325,16 @@ class TestInverseTransform:
         np.testing.assert_allclose(res["var"][0], [100.0, 36.0])
         # lower_raw = 0*5 + 50 = 50, 1*2 + 60 = 62
         np.testing.assert_allclose(res["lower"][0], [50.0, 62.0])
+
+    def test_multi_array_shape_mismatch_raises(self):
+        """Mismatched shapes between provided prediction arrays must be rejected."""
+        mu = np.zeros((2, 12, 5, 1))
+        bad_sigma = np.ones((1, 12, 5, 1))  # S=1 != 2
+        scaler_mean = np.zeros(5)
+        scaler_std = np.ones(5)
+
+        with pytest.raises(MetricError, match="Shape mismatch"):
+            inverse_transform_predictions(mu, bad_sigma, scaler_mean, scaler_std)
 
     def test_sensor_dimension_mismatch_raises(self):
         mu = np.zeros((1, 12, 5, 1))
@@ -321,7 +359,7 @@ class TestEvaluateMetricsByHorizon:
         mask = np.ones((S, H, N, 1))
 
         overall, per_horizon = evaluate_metrics_by_horizon(
-            y_true, y_pred, sigma=sigma, mask=mask, nominal_pi=0.95
+            y_true, y_pred, sigma=sigma, mask=mask, nominal_pi=0.95, cadence_minutes=5
         )
 
         assert overall["MAE"] == pytest.approx(2.0)
@@ -334,3 +372,15 @@ class TestEvaluateMetricsByHorizon:
             assert h_data["horizon_minutes"] == (h + 1) * 5
             assert h_data["MAE"] == pytest.approx(2.0)
             assert h_data["valid_count"] == S * N
+
+    def test_custom_cadence_minutes(self):
+        S, H, N = 2, 4, 2
+        y_true = np.ones((S, H, N, 1)) * 50.0
+        y_pred = np.ones((S, H, N, 1)) * 50.0
+        _, per_horizon = evaluate_metrics_by_horizon(
+            y_true, y_pred, cadence_minutes=15
+        )
+        assert per_horizon[0]["horizon_minutes"] == 15
+        assert per_horizon[1]["horizon_minutes"] == 30
+        assert per_horizon[2]["horizon_minutes"] == 45
+        assert per_horizon[3]["horizon_minutes"] == 60

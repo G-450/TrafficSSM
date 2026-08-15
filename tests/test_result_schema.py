@@ -42,6 +42,14 @@ class TestMetricRecord:
             rec = MetricRecord(name=name, value=0.0, unit="raw", horizon="aggregate")
             assert rec.name == name
 
+    def test_rejects_nan_and_inf(self):
+        """MetricRecord must strictly reject non-finite values (NaN and Inf)."""
+        with pytest.raises(ValueError, match="must be finite"):
+            MetricRecord(name="MAE", value=float("nan"), unit="raw", horizon=1)
+
+        with pytest.raises(ValueError, match="must be finite"):
+            MetricRecord(name="MAE", value=float("inf"), unit="raw", horizon=1)
+
     def test_invalid_name_raises(self):
         with pytest.raises(ValueError, match="Unknown metric name"):
             MetricRecord(name="SMAPE_INVALID", value=0.0, unit="raw", horizon=1)
@@ -115,6 +123,24 @@ class TestSaveLoadManifest:
         assert loaded.manifest_checksum != ""
         assert len(loaded.metrics) == 1
         assert loaded.metrics[0]["value"] == pytest.approx(2.75)
+
+    def test_load_validates_nested_metrics(self, tmp_path):
+        """Invalid nested metric records must be caught during load_run_manifest."""
+        corrupt_manifest = {
+            "schema_version": "1.0",
+            "run_id": "r1",
+            "run_status": "complete",
+            "model_name": "m1",
+            "metrics": [
+                {"name": "INVALID_METRIC", "value": 1.0, "unit": "raw", "horizon": 1}
+            ],
+        }
+        path = str(tmp_path / "corrupt.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(corrupt_manifest, f)
+
+        with pytest.raises(SchemaValidationError, match="Invalid metric record"):
+            load_run_manifest(path)
 
     def test_overwrite_protection(self, tmp_path):
         m = RunManifest(run_id="r1", model_name="m1")
