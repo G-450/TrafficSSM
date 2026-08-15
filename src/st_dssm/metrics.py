@@ -47,11 +47,31 @@ def _validate_positive(arr: np.ndarray, name: str) -> None:
         raise MetricError(f"{name} must be strictly positive everywhere.")
 
 
+def _validate_non_negative(arr: np.ndarray, name: str) -> None:
+    """Reject negative values (used for variance)."""
+    if np.any(arr < 0):
+        raise MetricError(f"{name} must be non-negative everywhere (>= 0).")
+
+
 def _validate_shape_match(*arrays: np.ndarray) -> None:
-    """Ensure all arrays share the same shape."""
+    """Ensure all arrays share the exact same shape without silent broadcasting."""
     shapes = [a.shape for a in arrays]
-    if len(set(shapes)) != 1:
+    if len(set(shapes)) > 1:
         raise MetricError(f"Shape mismatch among metric inputs: {shapes}")
+
+
+def _validate_mask(mask: np.ndarray | None) -> None:
+    """Validate that the mask contains strictly binary (0 or 1) or boolean values."""
+    if mask is None:
+        return
+    if not isinstance(mask, np.ndarray):
+        raise MetricError(f"Mask must be a numpy ndarray, got {type(mask)}")
+    if mask.dtype == bool:
+        return
+    if not np.all(np.isin(mask, [0, 1])):
+        raise MetricError(
+            "Evaluation mask must contain strictly binary (0 or 1) or boolean values."
+        )
 
 
 def _apply_mask(
@@ -61,6 +81,7 @@ def _apply_mask(
     if mask is None:
         return arr.ravel().astype(np.float64)
 
+    _validate_mask(mask)
     if mask.shape != arr.shape:
         raise MetricError(
             f"Mask shape {mask.shape} does not match array shape {arr.shape}."
@@ -158,6 +179,7 @@ def mape(
 
     combined_mask = (y_true >= threshold)
     if mask is not None:
+        _validate_mask(mask)
         if mask.shape != y_true.shape:
             raise MetricError(
                 f"Mask shape {mask.shape} does not match array shape {y_true.shape}."
@@ -310,6 +332,8 @@ def picp(
     """
     _validate_arrays(y_true, lower, upper)
     _validate_shape_match(y_true, lower, upper)
+    if np.any(upper < lower):
+        raise MetricError("upper must be >= lower everywhere.")
 
     yt = _apply_mask(y_true, mask)
     lo = _apply_mask(lower, mask)
@@ -338,13 +362,13 @@ def mpiw(
     """
     _validate_arrays(lower, upper)
     _validate_shape_match(lower, upper)
+    if np.any(upper < lower):
+        raise MetricError("upper must be >= lower everywhere.")
 
     lo = _apply_mask(lower, mask)
     hi = _apply_mask(upper, mask)
 
     widths = hi - lo
-    if np.any(widths < 0):
-        raise MetricError("upper must be >= lower everywhere.")
     return float(np.mean(widths))
 
 
@@ -372,6 +396,7 @@ def calibration_curve(
     _validate_arrays(y_true, mu, sigma)
     _validate_shape_match(y_true, mu, sigma)
     _validate_positive(sigma, "sigma")
+    _validate_mask(mask)
 
     results = {}
     valid_count = int(np.sum(mask.astype(bool))) if mask is not None else int(y_true.size)
@@ -409,7 +434,7 @@ def inverse_transform_predictions(
     Mathematical rules:
         - Mean / Location:   ``mu_raw = mu_norm * std + mean``
         - Standard deviation: ``sigma_raw = sigma_norm * std``  (scale transforms linearly without mean)
-        - Variance:          ``var_raw = var_norm * (std ** 2)``
+        - Variance:          ``var_raw = var_norm * (std ** 2)`` (zero variance permitted)
         - Lower / Upper:     ``bound_raw = bound_norm * std + mean``
 
     Parameters
@@ -418,7 +443,7 @@ def inverse_transform_predictions(
     sigma : normalized predicted std devs (same shape, strictly positive).
     scaler_mean : per-sensor training means, shape [N].
     scaler_std : per-sensor training std devs, shape [N] (strictly positive).
-    var : optional normalized variances (same shape).
+    var : optional normalized variances (same shape, non-negative).
     lower : optional normalized lower bounds (same shape).
     upper : optional normalized upper bounds (same shape).
 
@@ -433,12 +458,15 @@ def inverse_transform_predictions(
     _validate_arrays(scaler_mean, scaler_std)
     _validate_positive(scaler_std, "scaler_std")
 
-    # Find reference array for shape broadcasting
-    ref_arr = mu if mu is not None else (sigma if sigma is not None else lower)
-    if ref_arr is None:
-        raise MetricError("At least one prediction array (mu, sigma, var, lower) must be provided.")
+    # Collect all provided prediction arrays and strictly validate shape match
+    provided_arrays = [a for a in (mu, sigma, var, lower, upper) if a is not None]
+    if not provided_arrays:
+        raise MetricError("At least one prediction array (mu, sigma, var, lower, upper) must be provided.")
 
-    _validate_arrays(ref_arr)
+    _validate_arrays(*provided_arrays)
+    _validate_shape_match(*provided_arrays)
+
+    ref_arr = provided_arrays[0]
     N = len(scaler_mean)
 
     # Determine sensor axis and reshape scaler parameters
@@ -465,26 +493,25 @@ def inverse_transform_predictions(
     results: dict[str, np.ndarray] = {}
 
     if mu is not None:
-        _validate_arrays(mu)
         results["mu"] = mu * s_std + s_mean
 
     if sigma is not None:
-        _validate_arrays(sigma)
         _validate_positive(sigma, "sigma")
         results["sigma"] = sigma * s_std
 
     if var is not None:
-        _validate_arrays(var)
-        _validate_positive(var, "var")
+        _validate_non_negative(var, "var")
         results["var"] = var * (s_std ** 2)
 
     if lower is not None:
-        _validate_arrays(lower)
         results["lower"] = lower * s_std + s_mean
 
     if upper is not None:
-        _validate_arrays(upper)
         results["upper"] = upper * s_std + s_mean
+
+    # Validate interval bounds ordering if both lower and upper are provided
+    if "lower" in results and "upper" in results and np.any(results["upper"] < results["lower"]):
+        raise MetricError("upper bound must be >= lower bound everywhere.")
 
     # Backward-compatible tuple return if only mu and sigma were provided
     if len(results) == 2 and "mu" in results and "sigma" in results and var is None and lower is None and upper is None:
@@ -504,6 +531,7 @@ def evaluate_metrics_by_horizon(
     sigma: np.ndarray | None = None,
     mask: np.ndarray | None = None,
     nominal_pi: float = 0.95,
+    cadence_minutes: int = 5,
 ) -> tuple[dict[str, float | int], list[dict[str, float | int]]]:
     """Evaluate point and probabilistic metrics overall and across each horizon.
 
@@ -516,6 +544,7 @@ def evaluate_metrics_by_horizon(
     sigma : predicted std devs in physical traffic units [S, H, N, 1] (optional).
     mask : binary observation mask [S, H, N, 1] (optional).
     nominal_pi : nominal coverage for interval metrics (default 0.95).
+    cadence_minutes : interval resolution in minutes per step (default 5).
 
     Returns
     -------
@@ -553,7 +582,7 @@ def evaluate_metrics_by_horizon(
 
         h_dict: dict[str, float | int] = {
             "horizon_step": h + 1,
-            "horizon_minutes": (h + 1) * 5,
+            "horizon_minutes": (h + 1) * cadence_minutes,
             "MAE": mae(yt_h, yp_h, mask=m_h),
             "RMSE": rmse(yt_h, yp_h, mask=m_h),
             "MAPE": mape(yt_h, yp_h, mask=m_h),

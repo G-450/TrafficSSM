@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import tempfile
 from dataclasses import asdict, dataclass, field
@@ -40,7 +41,7 @@ class MetricRecord:
     Attributes
     ----------
     name : metric identifier (e.g. 'MAE', 'RMSE', 'MAPE', 'NLL', 'CRPS', 'PICP', 'MPIW').
-    value : scalar metric value.
+    value : scalar metric value (must be finite).
     unit : 'mph', 'raw', 'normalized', 'ratio', or 'percent'.
     horizon : forecast horizon step index (1-based integer) or 'aggregate'.
     horizon_minutes : forecast horizon in elapsed minutes (e.g. 5..60) or None.
@@ -76,6 +77,8 @@ class MetricRecord:
             )
         if not isinstance(self.value, (int, float)):
             raise TypeError(f"value must be numeric, got {type(self.value)}")
+        if not math.isfinite(self.value):
+            raise ValueError(f"value must be finite (not NaN or Inf), got {self.value}")
         if not isinstance(self.valid_count, int) or self.valid_count < 0:
             raise ValueError(f"valid_count must be a non-negative integer, got {self.valid_count}")
 
@@ -240,14 +243,19 @@ def save_run_manifest(
     json_str = json.dumps(data, indent=2, sort_keys=True, default=str)
 
     if atomic:
-        tmp_fd, tmp_path = tempfile.mkstemp(dir=out_dir, suffix=".tmp")
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=out_dir, delete=False, suffix=".tmp"
+        ) as tmp_file:
+            tmp_path = tmp_file.name
+            tmp_file.write(json_str)
         try:
-            with open(tmp_fd, "w", encoding="utf-8") as f:
-                f.write(json_str)
             os.replace(tmp_path, path)
         except Exception:
             if os.path.exists(tmp_path):
-                os.remove(tmp_path)
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
             raise
     else:
         with open(path, "w", encoding="utf-8") as f:
@@ -257,7 +265,7 @@ def save_run_manifest(
 
 
 def load_run_manifest(path: str) -> RunManifest:
-    """Deserialize a RunManifest from JSON with schema validation.
+    """Deserialize a RunManifest from JSON with strict schema validation.
 
     Parameters
     ----------
@@ -292,6 +300,18 @@ def load_run_manifest(path: str) -> RunManifest:
             raise SchemaValidationError(
                 f"Required field '{field_name}' is missing or empty in loaded manifest."
             )
+
+    # Validate each metric record through MetricRecord instantiation
+    raw_metrics = data.get("metrics", [])
+    validated_metrics = []
+    for i, m in enumerate(raw_metrics):
+        try:
+            rec = MetricRecord(**m)
+            validated_metrics.append(asdict(rec))
+        except Exception as err:
+            raise SchemaValidationError(f"Invalid metric record at index {i}: {err}") from err
+
+    data["metrics"] = validated_metrics
 
     # Construct RunManifest from dict, ignoring unknown keys
     known_fields = {f.name for f in RunManifest.__dataclass_fields__.values()}
