@@ -15,8 +15,9 @@
 
 ## Deliberately removed
 
-The prior Phase 1 loader, graph code, runner, configuration, and recorded preprocessing artefacts were discarded on 2026-08-13 at the project owner's request. They must not be reused as evidence or treated as a baseline. There is currently no implemented data pipeline, model, experiment, test suite, or result.
+The legacy implementations prior to the 2026-08-13 repository restart (unverified loaders, ad-hoc graph scripts, and uncalibrated experiments) were discarded. Only the modular, verified implementations from Phases 1–4 are active.
 
 ## Next authorized work
 
-Phase 4 implementation is complete and ready for human review. Once approved, begin [Phase 5 — Deterministic baseline](IMPLEMENTATION_PLAN.md). Baseline and model development remains unauthorized until its prerequisite gates pass.
+Phase 4 evaluation foundation is complete, thoroughly tested, and ready for human review. Once approved, proceed to [Phase 5 — Deterministic baseline](IMPLEMENTATION_PLAN.md). Model development remains unauthorized until baseline and evaluation gates pass.
+
