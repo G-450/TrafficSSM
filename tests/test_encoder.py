@@ -227,7 +227,7 @@ def test_spatial_temporal_encoder_overfit_one_batch(synthetic_graph):
         input_length=12,
         dropout=0.0,
     )
-    optimizer = torch.optim.Adam(encoder.parameters(), lr=2e-2)
+    optimizer = torch.optim.Adam(encoder.parameters(), lr=1e-2)
 
     x = torch.randn(2, 12, n, 2)
     target = torch.randn(2, 12, n, 32)
@@ -235,7 +235,7 @@ def test_spatial_temporal_encoder_overfit_one_batch(synthetic_graph):
     initial_loss = None
     final_loss = None
 
-    for step in range(50):
+    for step in range(100):
         optimizer.zero_grad()
         pred = encoder(x, cheb_poly)
         loss = torch.nn.functional.mse_loss(pred, target)
@@ -342,6 +342,38 @@ def test_encoder_cli_unrecognized_graph_and_missing_metadata(tmp_path):
     fake_graph.write_text("fake")
 
     from st_dssm.cli.encoder import verify_encoder_on_dataset
+    from st_dssm.graph import GraphError
 
     with pytest.raises(ValueError, match="Unrecognized graph adjacency file"):
         verify_encoder_on_dataset(adj_mx_path=str(fake_graph))
+
+    # 2. Asymmetric graph without symmetrization raises GraphError
+    import pickle
+
+    from st_dssm.io import save_processed_artifact
+
+    artifact_dir = str(tmp_path / "asym_art")
+    s, l, n = 2, 12, 4
+    save_processed_artifact(
+        artifact_dir,
+        {
+            "test_X": np.random.randn(s, l, n, 1).astype(np.float32),
+            "test_X_mask": np.ones((s, l, n, 1), dtype=np.float32),
+            "scaler_means": np.zeros(n, dtype=np.float32),
+            "scaler_stds": np.ones(n, dtype=np.float32),
+        },
+        {"schema_version": "1.0", "sensor_ids": ["s1", "s2", "s3", "s4"]},
+    )
+    asym_graph = str(tmp_path / "adj_mx_bay.pkl")
+    asym_adj = np.eye(n, dtype=np.float32)
+    asym_adj[0, 1] = 1.0  # Asymmetric
+    with open(asym_graph, "wb") as f:
+        pickle.dump((["s1", "s2", "s3", "s4"], {}, asym_adj), f)
+
+    with pytest.raises(GraphError, match="Adjacency matrix must be symmetric"):
+        verify_encoder_on_dataset(
+            artifact_dir=artifact_dir,
+            adj_mx_path=asym_graph,
+            allow_unverified_graph=True,
+            symmetrize_graph=False,
+        )

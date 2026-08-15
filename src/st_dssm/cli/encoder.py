@@ -133,6 +133,7 @@ def verify_encoder_on_dataset(
     batch_size: int = 64,
     device: torch.device | None = None,
     allow_unverified_graph: bool = False,
+    symmetrize_graph: bool = True,
 ) -> dict[str, Any]:
     """Verify SpatialTemporalEncoder execution on canonical preprocessed dataset.
 
@@ -143,6 +144,7 @@ def verify_encoder_on_dataset(
         batch_size: Batch size for inference.
         device: Compute device.
         allow_unverified_graph: Whether to skip checksum check for custom/synthetic test graphs.
+        symmetrize_graph: Whether to apply canonical symmetrization (W + W.T)/2 per ADR-0009.
 
     Returns:
         Dictionary report of verification.
@@ -188,8 +190,9 @@ def verify_encoder_on_dataset(
         )
     validate_graph(adj_mx, graph_sensor_ids, expected_sensor_ids)
 
-    if not np.allclose(adj_mx, adj_mx.T, atol=1e-5):
-        print("Note: Applying canonical symmetrization (W + W.T)/2 for Chebyshev spectral convolution.", flush=True)
+    # Explicit symmetrization per ADR-0009
+    if symmetrize_graph and not np.allclose(adj_mx, adj_mx.T, atol=1e-5):
+        print("Note: Applying canonical symmetrization (W + W.T)/2 per ADR-0009 for Chebyshev spectral convolution.", flush=True)
         adj_mx = symmetrize_adjacency(adj_mx, method="average")
 
     norm_lap = calculate_normalized_laplacian(adj_mx)
@@ -236,6 +239,7 @@ def verify_encoder_on_dataset(
         "seq_len": seq_len,
         "num_nodes": num_nodes,
         "context_dimension": 64,
+        "symmetrize_graph_applied": bool(symmetrize_graph),
         "capacity_report": cap,
     }
 
@@ -269,6 +273,18 @@ def main(argv: list[str] | None = None) -> int:
         help="Split to verify ('test', 'val', 'train').",
     )
     parser.add_argument(
+        "--symmetrize-graph",
+        action="store_true",
+        default=True,
+        help="Apply canonical (W + W.T)/2 symmetrization for Chebyshev convolution per ADR-0009.",
+    )
+    parser.add_argument(
+        "--no-symmetrize-graph",
+        dest="symmetrize_graph",
+        action="store_false",
+        help="Do not symmetrize graph adjacency; requires graph to be strictly symmetric.",
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default=None,
@@ -285,6 +301,7 @@ def main(argv: list[str] | None = None) -> int:
                 artifact_dir=args.artifact_dir,
                 adj_mx_path=args.adj_mx_path,
                 split=args.split,
+                symmetrize_graph=args.symmetrize_graph,
             )
 
         if args.output:

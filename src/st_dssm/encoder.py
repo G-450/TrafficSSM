@@ -33,7 +33,6 @@ class CausalGatedTemporalConv(nn.Module):
         in_channels: int,
         out_channels: int,
         kernel_size: int = 3,
-        dropout: float = 0.0,
     ) -> None:
         super().__init__()
         if kernel_size < 1:
@@ -50,7 +49,6 @@ class CausalGatedTemporalConv(nn.Module):
             out_channels=2 * out_channels,
             kernel_size=(kernel_size, 1),
         )
-        self.dropout = nn.Dropout(dropout) if dropout > 0.0 else nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
@@ -83,7 +81,6 @@ class CausalGatedTemporalConv(nn.Module):
 
         # Gated activation: tanh(P) * sigmoid(Q) per ADR-0007 / ST-GCN standard
         gated = torch.tanh(p) * torch.sigmoid(q)
-        gated = self.dropout(gated)
 
         # Permute back to [B, T, N, C_out]
         return gated.permute(0, 2, 3, 1)
@@ -92,11 +89,11 @@ class CausalGatedTemporalConv(nn.Module):
 class SpatialTemporalBlock(nn.Module):
     """Canonical Spatial-Temporal Residual Block.
 
-    Structure per ADR-0007:
+    Structure per ADR-0007 / Phase 5 baseline:
         1. Causal Gated Temporal Conv (K_t=3)
         2. Chebyshev Graph Conv (K=3)
         3. Causal Gated Temporal Conv (K_t=3)
-        4. Layer Normalization (over channel dimension), Dropout (0.1), and Residual Connection.
+        4. Layer Normalization (over channels) -> Dropout (0.1) -> Residual Addition.
     """
 
     def __init__(
@@ -118,7 +115,6 @@ class SpatialTemporalBlock(nn.Module):
             in_channels=in_channels,
             out_channels=hidden_channels,
             kernel_size=kernel_size,
-            dropout=dropout,
         )
 
         # 2. Chebyshev Graph Conv
@@ -135,7 +131,6 @@ class SpatialTemporalBlock(nn.Module):
             in_channels=hidden_channels,
             out_channels=hidden_channels,
             kernel_size=kernel_size,
-            dropout=dropout,
         )
 
         # 4. Normalization and Dropout (Channel-only LayerNorm preserves node equivariance per ADR-0007)
@@ -174,9 +169,8 @@ class SpatialTemporalBlock(nn.Module):
         # 3. Second temporal convolution
         h = self.tconv2(h)  # [B, T, N, hidden_channels]
 
-        # 4. Residual addition + LayerNorm + Dropout
-        h = self.norm(h + res)
-        h = self.dropout(h)
+        # 4. LayerNorm -> Dropout -> Residual addition (matching Phase 5 ST-GCN baseline)
+        h = self.dropout(self.norm(h)) + res
         return h
 
 
