@@ -132,6 +132,7 @@ def verify_encoder_on_dataset(
     split: str = "test",
     batch_size: int = 64,
     device: torch.device | None = None,
+    allow_unverified_graph: bool = False,
 ) -> dict[str, Any]:
     """Verify SpatialTemporalEncoder execution on canonical preprocessed dataset.
 
@@ -141,6 +142,7 @@ def verify_encoder_on_dataset(
         split: Partition to verify ('test', 'val', 'train').
         batch_size: Batch size for inference.
         device: Compute device.
+        allow_unverified_graph: Whether to skip checksum check for custom/synthetic test graphs.
 
     Returns:
         Dictionary report of verification.
@@ -162,7 +164,12 @@ def verify_encoder_on_dataset(
         raise FileNotFoundError(f"Required graph adjacency file not found at: {adj_mx_path}")
 
     fname = os.path.basename(adj_mx_path)
-    if fname in EXPECTED_FILES:
+    if not allow_unverified_graph:
+        if fname not in EXPECTED_FILES:
+            raise ValueError(
+                f"Unrecognized graph adjacency file: '{fname}'. Expected canonical pinned graph '{list(EXPECTED_FILES.keys())}'."
+            )
+
         observed_md5 = compute_md5(adj_mx_path)
         expected_md5 = EXPECTED_FILES[fname]
         if observed_md5 != expected_md5:
@@ -175,8 +182,11 @@ def verify_encoder_on_dataset(
 
     graph_sensor_ids = [str(sid) for sid in sensor_ids_raw]
     expected_sensor_ids = metadata.get("sensor_ids", [])
-    if expected_sensor_ids:
-        validate_graph(adj_mx, graph_sensor_ids, expected_sensor_ids)
+    if not expected_sensor_ids:
+        raise ValueError(
+            f"Sensor metadata 'sensor_ids' is missing or empty in dataset artifact metadata at {artifact_dir}."
+        )
+    validate_graph(adj_mx, graph_sensor_ids, expected_sensor_ids)
 
     if not np.allclose(adj_mx, adj_mx.T, atol=1e-5):
         print("Note: Applying canonical symmetrization (W + W.T)/2 for Chebyshev spectral convolution.", flush=True)
@@ -278,7 +288,8 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         if args.output:
-            os.makedirs(os.path.dirname(args.output), exist_ok=True)
+            if out_dir := os.path.dirname(args.output):
+                os.makedirs(out_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2)
             print(f"Report saved to: {args.output}", flush=True)

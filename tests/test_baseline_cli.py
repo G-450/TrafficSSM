@@ -117,6 +117,7 @@ class TestBaselineCLI:
             "patience": 2,
             "output_dir": out_dir,
             "checkpoint_dir": ckpt_dir,
+            "allow_unverified_graph": True,
         }
         with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(config_data, f)

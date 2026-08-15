@@ -275,3 +275,73 @@ def test_encoder_cli_synthetic_smoke(capsys):
     assert ret == 0
     captured = capsys.readouterr()
     assert "Synthetic encoder verification completed successfully." in captured.out
+
+
+def test_spatial_temporal_encoder_node_permutation_equivariance():
+    """Test that the encoder is strictly node-permutation equivariant per ADR-0007.
+
+    Permuting node indices in both input X and graph adjacency A produces an identically
+    permuted context output representation:
+        Encoder(P X, P Cheb P^T) == P Encoder(X, Cheb)
+    """
+    n = 6
+    torch.manual_seed(123)
+    np.random.seed(123)
+
+    adj = np.random.uniform(0.1, 0.9, size=(n, n)).astype(np.float32)
+    adj = (adj + adj.T) / 2.0
+    np.fill_diagonal(adj, 1.0)
+
+    perm = np.random.permutation(n)
+    p_mat = np.eye(n, dtype=np.float32)[perm]
+    adj_perm = p_mat @ adj @ p_mat.T
+
+    norm_lap = calculate_normalized_laplacian(adj)
+    scaled_lap, _ = calculate_scaled_laplacian(norm_lap)
+    cheb = torch.tensor(compute_chebyshev_polynomials(scaled_lap, k=3), dtype=torch.float32)
+
+    norm_lap_perm = calculate_normalized_laplacian(adj_perm)
+    scaled_lap_perm, _ = calculate_scaled_laplacian(norm_lap_perm)
+    cheb_perm = torch.tensor(compute_chebyshev_polynomials(scaled_lap_perm, k=3), dtype=torch.float32)
+
+    encoder = SpatialTemporalEncoder(
+        num_nodes=n,
+        in_channels=2,
+        hidden_channels=32,
+        input_length=12,
+        dropout=0.0,
+    )
+    encoder.eval()
+
+    x = torch.randn(2, 12, n, 2)
+    x_perm = x[:, :, perm, :]
+
+    with torch.no_grad():
+        out = encoder(x, cheb)
+        out_perm = encoder(x_perm, cheb_perm)
+
+    expected_out_perm = out[:, :, perm, :]
+    assert torch.allclose(out_perm, expected_out_perm, atol=1e-5), (
+        f"Node-permutation equivariance broken! Max diff: {torch.max(torch.abs(out_perm - expected_out_perm)).item()}"
+    )
+
+
+def test_encoder_cli_bare_output_filename(tmp_path, monkeypatch):
+    """Test CLI runs cleanly when output path is a bare filename in current working directory."""
+    monkeypatch.chdir(tmp_path)
+    bare_file = "bare_report.json"
+    ret = encoder_main(["--synthetic-smoke", "--output", bare_file])
+    assert ret == 0
+    assert (tmp_path / bare_file).exists()
+
+
+def test_encoder_cli_unrecognized_graph_and_missing_metadata(tmp_path):
+    """Test CLI fails fast on unrecognized graph names or missing metadata."""
+    # 1. Unrecognized graph name
+    fake_graph = tmp_path / "malicious.pkl"
+    fake_graph.write_text("fake")
+
+    from st_dssm.cli.encoder import verify_encoder_on_dataset
+
+    with pytest.raises(ValueError, match="Unrecognized graph adjacency file"):
+        verify_encoder_on_dataset(adj_mx_path=str(fake_graph))

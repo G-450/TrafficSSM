@@ -81,8 +81,8 @@ class CausalGatedTemporalConv(nn.Module):
         # Split into filter and gate activations along channel axis
         p, q = torch.chunk(conv_out, 2, dim=1)
 
-        # Gated activation: P * sigmoid(Q)
-        gated = p * torch.sigmoid(q)
+        # Gated activation: tanh(P) * sigmoid(Q) per ADR-0007 / ST-GCN standard
+        gated = torch.tanh(p) * torch.sigmoid(q)
         gated = self.dropout(gated)
 
         # Permute back to [B, T, N, C_out]
@@ -96,14 +96,14 @@ class SpatialTemporalBlock(nn.Module):
         1. Causal Gated Temporal Conv (K_t=3)
         2. Chebyshev Graph Conv (K=3)
         3. Causal Gated Temporal Conv (K_t=3)
-        4. Layer Normalization, Dropout (0.1), and Residual Connection.
+        4. Layer Normalization (over channel dimension), Dropout (0.1), and Residual Connection.
     """
 
     def __init__(
         self,
         in_channels: int,
         hidden_channels: int,
-        num_nodes: int,
+        num_nodes: int | None = None,
         kernel_size: int = 3,
         cheb_k: int = 3,
         dropout: float = 0.1,
@@ -138,8 +138,8 @@ class SpatialTemporalBlock(nn.Module):
             dropout=dropout,
         )
 
-        # 4. Normalization and Dropout
-        self.norm = nn.LayerNorm([num_nodes, hidden_channels])
+        # 4. Normalization and Dropout (Channel-only LayerNorm preserves node equivariance per ADR-0007)
+        self.norm = nn.LayerNorm(hidden_channels)
         self.dropout = nn.Dropout(dropout)
 
         # Residual shortcut projection when input/output channels differ
