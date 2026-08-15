@@ -1,0 +1,8 @@
+schema_version: "1.0"
+model: "persistence"
+artifact_dir: "data/processed"
+split: "test"
+forecast_horizon: 12
+cadence_minutes: 5
+output_dir: "artifacts/results"
+save_plots: true
