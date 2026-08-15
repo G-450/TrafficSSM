@@ -129,9 +129,15 @@ def train_and_eval_st_gcn(
             "Please acquire the canonical dataset using 'st-dssm-provenance --download'."
         )
 
-    # Verify checksum if filename matches pinned canonical release
+    # Verify checksum against pinned canonical release
+    allow_unverified_graph = bool(config.get("allow_unverified_graph", False))
     fname = os.path.basename(adj_mx_path)
-    if fname in EXPECTED_FILES:
+    if not allow_unverified_graph:
+        if fname not in EXPECTED_FILES:
+            raise ValueError(
+                f"Unrecognized graph adjacency file: '{fname}'. Expected canonical pinned graph '{list(EXPECTED_FILES.keys())}'."
+            )
+
         observed_md5 = compute_md5(adj_mx_path)
         expected_md5 = EXPECTED_FILES[fname]
         if observed_md5 != expected_md5:
@@ -144,8 +150,11 @@ def train_and_eval_st_gcn(
 
     graph_sensor_ids = [str(sid) for sid in sensor_ids_graph_raw]
     expected_sensor_ids = _metadata.get("sensor_ids", [])
-    if expected_sensor_ids:
-        validate_graph(adj_mx, graph_sensor_ids, expected_sensor_ids)
+    if not expected_sensor_ids:
+        raise ValueError(
+            f"Sensor metadata 'sensor_ids' is missing or empty in dataset artifact metadata at {artifact_dir}."
+        )
+    validate_graph(adj_mx, graph_sensor_ids, expected_sensor_ids)
 
     # Symmetrize if directed (as standard in spectral graph convolutions)
     if not np.allclose(adj_mx, adj_mx.T, atol=1e-5):
