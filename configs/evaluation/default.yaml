@@ -1,0 +1,40 @@
+# Default Evaluation Configuration for ST-DSSM
+schema_version: "1.0"
+unit: "mph"
+forecast_horizon: 12
+cadence_minutes: 5
+
+metrics:
+  point:
+    - "MAE"
+    - "RMSE"
+    - "MAPE"
+  probabilistic:
+    - "NLL"
+    - "CRPS"
+    - "PICP"
+    - "MPIW"
+
+intervals:
+  nominal_levels:
+    - 0.50
+    - 0.80
+    - 0.90
+    - 0.95
+    - 0.99
+  primary_level: 0.95
+
+mape_threshold_mph: 1.0
+
+subsets:
+  - "all"
+  - "masked"
+  - "unmasked"
+
+plotting:
+  dpi: 150
+  format: "png"
+  save_horizon_plots: true
+  save_prediction_intervals: true
+  save_calibration_curve: true
+  save_width_vs_horizon: true
