@@ -255,17 +255,32 @@ def run_evaluation(
         print(f"Loading canonical Phase 3 dataset artifact from: {artifact_dir}")
         arrays, metadata = load_and_validate_artifact(artifact_dir)
 
-        target_key = f"y_{split}"
-        mask_key = f"y_{split}_mask"
+        target_key = None
+        mask_key = None
+        for cand_t, cand_m in [
+            (f"{split}_Y", f"{split}_Y_mask"),
+            (f"y_{split}", f"y_{split}_mask"),
+            (f"{split}_y", f"{split}_y_mask"),
+        ]:
+            if cand_t in arrays:
+                target_key = cand_t
+                mask_key = cand_m
+                break
 
-        if target_key not in arrays:
-            raise MetricError(f"Target split '{target_key}' not found in artifact.")
+        if target_key is None:
+            raise MetricError(f"Target split for '{split}' not found in artifact keys: {list(arrays.keys())}")
 
         y_true_norm = arrays[target_key]
         mask = arrays.get(mask_key)
 
-        scaler_mean = np.array(metadata["scaler"]["mean"], dtype=np.float32)
-        scaler_std = np.array(metadata["scaler"]["std"], dtype=np.float32)
+        if "scaler_means" in arrays and "scaler_stds" in arrays:
+            scaler_mean = np.array(arrays["scaler_means"], dtype=np.float32)
+            scaler_std = np.array(arrays["scaler_stds"], dtype=np.float32)
+        elif "scaler" in metadata and "mean" in metadata["scaler"]:
+            scaler_mean = np.array(metadata["scaler"]["mean"], dtype=np.float32)
+            scaler_std = np.array(metadata["scaler"]["std"], dtype=np.float32)
+        else:
+            raise MetricError("Scaler parameters not found in artifact arrays or metadata.")
         sensor_ids = metadata.get("sensor_ids", [])
     else:
         # Load from direct file paths if specified
@@ -311,13 +326,16 @@ def run_evaluation(
         sigma_norm = None
 
     # Inverse transform targets and predictions to physical speed units (mph)
-    dummy_sigma = np.ones_like(y_true_norm) if sigma_norm is None else sigma_norm
-    raw_true, _ = inverse_transform_predictions(y_true_norm, dummy_sigma, scaler_mean, scaler_std)
+    res_true = inverse_transform_predictions(mu=y_true_norm, scaler_mean=scaler_mean, scaler_std=scaler_std)
+    raw_true = res_true["mu"] if isinstance(res_true, dict) else res_true
 
     if sigma_norm is not None:
-        raw_pred, raw_sigma = inverse_transform_predictions(y_pred_norm, sigma_norm, scaler_mean, scaler_std)
+        res_pred = inverse_transform_predictions(mu=y_pred_norm, sigma=sigma_norm, scaler_mean=scaler_mean, scaler_std=scaler_std)
+        raw_pred = res_pred["mu"] if isinstance(res_pred, dict) else res_pred[0]
+        raw_sigma = res_pred["sigma"] if isinstance(res_pred, dict) else res_pred[1]
     else:
-        raw_pred, _ = inverse_transform_predictions(y_pred_norm, dummy_sigma, scaler_mean, scaler_std)
+        res_pred = inverse_transform_predictions(mu=y_pred_norm, scaler_mean=scaler_mean, scaler_std=scaler_std)
+        raw_pred = res_pred["mu"] if isinstance(res_pred, dict) else res_pred
         raw_sigma = None
 
     # Evaluate metrics

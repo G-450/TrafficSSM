@@ -79,7 +79,7 @@ def _apply_mask(
 ) -> np.ndarray:
     """Filter an array by a boolean or binary mask, flattening to 1D."""
     if mask is None:
-        return arr.ravel().astype(np.float64)
+        return arr.ravel()
 
     _validate_mask(mask)
     if mask.shape != arr.shape:
@@ -87,13 +87,13 @@ def _apply_mask(
             f"Mask shape {mask.shape} does not match array shape {arr.shape}."
         )
 
-    bool_mask = mask.astype(bool)
+    bool_mask = mask.astype(bool, copy=False)
     if not np.any(bool_mask):
         raise MetricError(
             "Evaluation mask is completely empty (no valid observations to evaluate)."
         )
 
-    return arr[bool_mask].astype(np.float64)
+    return arr[bool_mask]
 
 
 # ---------------------------------------------------------------------------
@@ -191,9 +191,9 @@ def mape(
             f"No valid targets with y_true >= {threshold} found for MAPE calculation."
         )
 
-    yt = y_true[combined_mask].astype(np.float64)
-    yp = y_pred[combined_mask].astype(np.float64)
-    return float(np.mean(np.abs((yt - yp) / yt)) * 100.0)
+    yt = y_true[combined_mask]
+    yp = y_pred[combined_mask]
+    return float(np.mean(np.abs((yt - yp) / yt), dtype=np.float64) * 100.0)
 
 
 # ---------------------------------------------------------------------------
@@ -513,7 +513,10 @@ def inverse_transform_predictions(
     if "lower" in results and "upper" in results and np.any(results["upper"] < results["lower"]):
         raise MetricError("upper bound must be >= lower bound everywhere.")
 
-    # Backward-compatible tuple return if only mu and sigma were provided
+    # Backward-compatible tuple/array return if only mu or (mu, sigma) were provided
+    if len(results) == 1 and "mu" in results and sigma is None and var is None and lower is None and upper is None:
+        return results["mu"]
+
     if len(results) == 2 and "mu" in results and "sigma" in results and var is None and lower is None and upper is None:
         return results["mu"], results["sigma"]
 
@@ -557,46 +560,81 @@ def evaluate_metrics_by_horizon(
 
     H = y_true.shape[1]
 
-    # Compute overall
-    overall: dict[str, float | int] = {
-        "MAE": mae(y_true, y_pred, mask=mask),
-        "RMSE": rmse(y_true, y_pred, mask=mask),
-        "MAPE": mape(y_true, y_pred, mask=mask),
-        "valid_count": int(np.sum(mask.astype(bool))) if mask is not None else int(y_true.size),
-    }
-
     if sigma is not None:
         _validate_arrays(sigma)
         _validate_shape_match(y_true, sigma)
-        lo, hi = prediction_interval(y_pred, sigma, nominal=nominal_pi)
-        overall["NLL"] = gaussian_nll(y_true, y_pred, sigma, mask=mask)
-        overall["CRPS"] = gaussian_crps(y_true, y_pred, sigma, mask=mask)
-        overall["PICP"] = picp(y_true, lo, hi, mask=mask)
-        overall["MPIW"] = mpiw(lo, hi, mask=mask)
 
     per_horizon = []
+    tot_valid_count = 0
+    tot_abs_err = 0.0
+    tot_sq_err = 0.0
+    tot_mape_err = 0.0
+    tot_mape_count = 0
+    tot_nll = 0.0
+    tot_crps = 0.0
+    tot_picp = 0.0
+    tot_mpiw = 0.0
+
     for h in range(H):
         yt_h = y_true[:, h : h + 1, :, :]
         yp_h = y_pred[:, h : h + 1, :, :]
         m_h = mask[:, h : h + 1, :, :] if mask is not None else None
 
+        h_valid = int(np.sum(m_h.astype(bool))) if m_h is not None else int(yt_h.size)
+        h_mae = mae(yt_h, yp_h, mask=m_h)
+        h_rmse = rmse(yt_h, yp_h, mask=m_h)
+        h_mape = mape(yt_h, yp_h, mask=m_h)
+
+        tot_valid_count += h_valid
+        tot_abs_err += h_mae * h_valid
+        tot_sq_err += (h_rmse**2) * h_valid
+
+        # count for mape (y_true >= 1.0)
+        m_mape = (yt_h >= 1.0) if m_h is None else ((yt_h >= 1.0) & m_h.astype(bool))
+        h_mape_count = int(np.sum(m_mape))
+        tot_mape_count += h_mape_count
+        tot_mape_err += h_mape * h_mape_count
+
         h_dict: dict[str, float | int] = {
             "horizon_step": h + 1,
             "horizon_minutes": (h + 1) * cadence_minutes,
-            "MAE": mae(yt_h, yp_h, mask=m_h),
-            "RMSE": rmse(yt_h, yp_h, mask=m_h),
-            "MAPE": mape(yt_h, yp_h, mask=m_h),
-            "valid_count": int(np.sum(m_h.astype(bool))) if m_h is not None else int(yt_h.size),
+            "MAE": h_mae,
+            "RMSE": h_rmse,
+            "MAPE": h_mape,
+            "valid_count": h_valid,
         }
 
         if sigma is not None:
             sig_h = sigma[:, h : h + 1, :, :]
             lo_h, hi_h = prediction_interval(yp_h, sig_h, nominal=nominal_pi)
-            h_dict["NLL"] = gaussian_nll(yt_h, yp_h, sig_h, mask=m_h)
-            h_dict["CRPS"] = gaussian_crps(yt_h, yp_h, sig_h, mask=m_h)
-            h_dict["PICP"] = picp(yt_h, lo_h, hi_h, mask=m_h)
-            h_dict["MPIW"] = mpiw(lo_h, hi_h, mask=m_h)
+            h_nll = gaussian_nll(yt_h, yp_h, sig_h, mask=m_h)
+            h_crps = gaussian_crps(yt_h, yp_h, sig_h, mask=m_h)
+            h_picp = picp(yt_h, lo_h, hi_h, mask=m_h)
+            h_mpiw = mpiw(lo_h, hi_h, mask=m_h)
+
+            tot_nll += h_nll * h_valid
+            tot_crps += h_crps * h_valid
+            tot_picp += h_picp * h_valid
+            tot_mpiw += h_mpiw * h_valid
+
+            h_dict["NLL"] = h_nll
+            h_dict["CRPS"] = h_crps
+            h_dict["PICP"] = h_picp
+            h_dict["MPIW"] = h_mpiw
 
         per_horizon.append(h_dict)
+
+    overall: dict[str, float | int] = {
+        "MAE": float(tot_abs_err / max(1, tot_valid_count)),
+        "RMSE": float(np.sqrt(tot_sq_err / max(1, tot_valid_count))),
+        "MAPE": float(tot_mape_err / max(1, tot_mape_count)),
+        "valid_count": tot_valid_count,
+    }
+
+    if sigma is not None:
+        overall["NLL"] = float(tot_nll / max(1, tot_valid_count))
+        overall["CRPS"] = float(tot_crps / max(1, tot_valid_count))
+        overall["PICP"] = float(tot_picp / max(1, tot_valid_count))
+        overall["MPIW"] = float(tot_mpiw / max(1, tot_valid_count))
 
     return overall, per_horizon

@@ -1,0 +1,5 @@
+schema_version: "1.0"
+mode: "synthetic_smoke"
+model: "persistence"
+output_dir: "artifacts/results"
+save_plots: true

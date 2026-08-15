@@ -9,6 +9,7 @@ import traceback
 from datetime import datetime, timezone
 
 import h5py
+import numpy as np
 import pandas as pd
 
 from st_dssm.data import (
@@ -63,8 +64,8 @@ def generate_pipeline(data_dir: str, output_dir: str, input_length: int = 12, fo
     # NEW: Resample to strict 5-minute intervals to pad missing DST gap
     df = df.asfreq("5min")
     
-    # Update values and timestamps from resampled df
-    values = df.values
+    # Update values and timestamps from resampled df (use standard float32 for deep learning pipelines)
+    values = df.values.astype(np.float32)
     timestamps = df.index
     
     with open(adj_mx_path, "rb") as f:

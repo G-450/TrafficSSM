@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "timestamp_utc": "2026-08-13T03:59:43.201916+00:00",
+  "timestamp_utc": "2026-08-15T11:23:30.194141+00:00",
   "source": {
     "record": "Zenodo PEMS-BAY release 4263971",
     "doi": "10.5281/zenodo.4263971",
@@ -54,7 +54,7 @@
   },
   "verification_status": "PASSED",
   "environment": {
-    "python_version": "3.12.10",
-    "platform": "Windows-11-10.0.26200-SP0"
+    "python_version": "3.10.0",
+    "platform": "Windows-10-10.0.26200-SP0"
   }
 }

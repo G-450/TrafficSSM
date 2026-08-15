@@ -1,141 +1,141 @@
 {
   "arrays": {
     "repair_fallback_stats": {
-      "checksum": "445bda45c579ac3c39788c53cfd7c3c2",
-      "dtype": "float64",
+      "checksum": "ebf552f1fe8a4eec2a5501647527a06c",
+      "dtype": "float32",
       "shape": [
         325
       ]
     },
     "scaler_means": {
-      "checksum": "1fc274c80e71c42ccd68fd2850989da0",
-      "dtype": "float64",
+      "checksum": "5a6e97a17e760051d9db21455a4fe039",
+      "dtype": "float32",
       "shape": [
         325
       ]
     },
     "scaler_stds": {
-      "checksum": "cecc7a16ca5917088af008b811c5bad3",
-      "dtype": "float64",
+      "checksum": "57e5976e7cc808313ed6fee87d061bf0",
+      "dtype": "float32",
       "shape": [
         325
       ]
     },
     "test_X": {
-      "checksum": "56e0c48fc7aa110ec3a7834d6015964d",
-      "dtype": "float64",
+      "checksum": "9cfec2f460b40b6dcd79d4baa59bb414",
+      "dtype": "float32",
       "shape": [
-        10401,
+        10403,
         12,
         325,
         1
       ]
     },
     "test_X_mask": {
-      "checksum": "ec99b128d2ea093565f80b7405676b1b",
+      "checksum": "7e6768461e04e0ccb83af32dd36aa709",
       "dtype": "bool",
       "shape": [
-        10401,
+        10403,
         12,
         325,
         1
       ]
     },
     "test_Y": {
-      "checksum": "a0bcc099de7ea4c73df8cee8c7d0d28d",
-      "dtype": "float64",
+      "checksum": "6ee4f22bc7c5a657089bd113aad82e17",
+      "dtype": "float32",
       "shape": [
-        10401,
+        10403,
         12,
         325,
         1
       ]
     },
     "test_Y_mask": {
-      "checksum": "dc520cc5ca58c7c2049a24d6f70d9e28",
+      "checksum": "58340a3d16229e623c8bc86b959defd6",
       "dtype": "bool",
       "shape": [
-        10401,
+        10403,
         12,
         325,
         1
       ]
     },
     "train_X": {
-      "checksum": "d772149524edd8b85d065464855989ec",
-      "dtype": "float64",
+      "checksum": "67155555d6e34be638da8faa730a307a",
+      "dtype": "float32",
       "shape": [
-        36458,
+        36466,
         12,
         325,
         1
       ]
     },
     "train_X_mask": {
-      "checksum": "70d31141a4d6fdd08e97701dd908e1b1",
+      "checksum": "a32245118f74d3da291c333b33becd9d",
       "dtype": "bool",
       "shape": [
-        36458,
+        36466,
         12,
         325,
         1
       ]
     },
     "train_Y": {
-      "checksum": "894ac61e97771f3b6e378901e5c39ed5",
-      "dtype": "float64",
+      "checksum": "0094c8fc03746b0b207d42204ba37c27",
+      "dtype": "float32",
       "shape": [
-        36458,
+        36466,
         12,
         325,
         1
       ]
     },
     "train_Y_mask": {
-      "checksum": "195afa5d01936bcdba4aad7611ad1058",
+      "checksum": "898ca8afdefc5692b95499b500bcb0e7",
       "dtype": "bool",
       "shape": [
-        36458,
+        36466,
         12,
         325,
         1
       ]
     },
     "val_X": {
-      "checksum": "7a13c3ee5660c7c1989f8bed7c8bfae0",
-      "dtype": "float64",
+      "checksum": "a605d8acf1cda0b312fc476da19eeb40",
+      "dtype": "float32",
       "shape": [
-        5188,
+        5190,
         12,
         325,
         1
       ]
     },
     "val_X_mask": {
-      "checksum": "bf7225cd3b6dc0ef09427a1407f5fb32",
+      "checksum": "349df96e3a1ef8aa8620236e7c580a67",
       "dtype": "bool",
       "shape": [
-        5188,
+        5190,
         12,
         325,
         1
       ]
     },
     "val_Y": {
-      "checksum": "60612ac3ad207d7954b74532f7c6cda0",
-      "dtype": "float64",
+      "checksum": "d2432a0825fc0bf824c6305f5f8f2b78",
+      "dtype": "float32",
       "shape": [
-        5188,
+        5190,
         12,
         325,
         1
       ]
     },
     "val_Y_mask": {
-      "checksum": "f7c3250f264b55ef61f82529c85deedf",
+      "checksum": "169148c5bce626bff8d5af9e5a7ac446",
       "dtype": "bool",
       "shape": [
-        5188,
+        5190,
         12,
         325,
         1
@@ -146,12 +146,12 @@
     "forecast_horizon": 12,
     "input_length": 12
   },
-  "creation_timestamp_utc": "2026-08-13T16:12:03.542658+00:00",
+  "creation_timestamp_utc": "2026-08-15T11:26:55.737073+00:00",
   "environment": {
-    "platform": "Windows-11-10.0.26200-SP0",
-    "python_version": "3.12.10"
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python_version": "3.10.0"
   },
-  "git_revision": "ea899f882b1996171317b1ce111d70cb9163d0cb",
+  "git_revision": "934e97a3704cb2a817536598b9452503982f31b9",
   "preprocessing": {
     "feature_names": [
       "speed"
@@ -160,8 +160,8 @@
       "mph"
     ],
     "missingness_counts": {
-      "nan_count": 0,
-      "total_count": 16937700,
+      "nan_count": 3900,
+      "total_count": 16941600,
       "zero_count": 521
     },
     "missingness_semantics": "0.0 and NaN are dataset-native missing observations.",
@@ -169,33 +169,33 @@
     "repair_method": "causal_forward_fill_with_train_fallback",
     "scaler_fit_scope": "train_only",
     "split_boundaries": {
-      "test_end": 52116,
-      "train_end": 36481,
-      "val_end": 41692
+      "test_end": 52128,
+      "train_end": 36489,
+      "val_end": 41702
     },
     "split_raw_observation_counts": {
-      "test": 10424,
-      "train": 36481,
-      "val": 5211
+      "test": 10426,
+      "train": 36489,
+      "val": 5213
     },
     "split_timestamp_ranges": {
       "test": [
-        "2017-05-25T19:20:00+00:00",
+        "2017-05-25T19:10:00+00:00",
         "2017-06-30T23:55:00+00:00"
       ],
       "train": [
         "2017-01-01T00:00:00+00:00",
-        "2017-05-07T17:00:00+00:00"
+        "2017-05-07T16:40:00+00:00"
       ],
       "val": [
-        "2017-05-07T17:05:00+00:00",
-        "2017-05-25T19:15:00+00:00"
+        "2017-05-07T16:45:00+00:00",
+        "2017-05-25T19:05:00+00:00"
       ]
     },
     "split_window_counts": {
-      "test": 10401,
-      "train": 36458,
-      "val": 5188
+      "test": 10403,
+      "train": 36466,
+      "val": 5190
     }
   },
   "schema_version": "1.0",
@@ -528,8 +528,8 @@
   ],
   "source_dataset_manifest": {
     "environment": {
-      "platform": "Windows-11-10.0.26200-SP0",
-      "python_version": "3.12.10"
+      "platform": "Windows-10-10.0.26200-SP0",
+      "python_version": "3.10.0"
     },
     "files": {
       "adj_mx_bay.pkl": {
@@ -583,7 +583,7 @@
         325
       ]
     },
-    "timestamp_utc": "2026-08-13T16:12:01.464497+00:00",
+    "timestamp_utc": "2026-08-15T11:26:53.795412+00:00",
     "verification_status": "PASSED"
   }
 }

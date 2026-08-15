@@ -13,6 +13,7 @@ __pycache__/
 artifacts/checkpoints/
 artifacts/results/
 experiments/phase1/logs/
+experiments/**/*.npz
 
 # Large Datasets and Processed NPZ Tensors (prevent Github upload limit rejection)
 data/raw/pems-bay.*

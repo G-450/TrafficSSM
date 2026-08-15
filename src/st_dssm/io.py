@@ -10,10 +10,10 @@ class ArtifactError(Exception):
     pass
 
 def _compute_array_checksum(arr: np.ndarray) -> str:
-    """Computes a deterministic MD5 checksum for a numpy array's data buffer."""
+    """Computes a deterministic MD5 checksum for a numpy array's data buffer using zero-copy memoryview."""
     # Ensure contiguous buffer
     arr_c = np.ascontiguousarray(arr)
-    return hashlib.md5(arr_c.data.tobytes()).hexdigest()
+    return hashlib.md5(memoryview(arr_c)).hexdigest()
 
 def save_processed_artifact(
     output_dir: str,
