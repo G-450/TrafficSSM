@@ -252,6 +252,11 @@ class SpatialTemporalEncoder(nn.Module):
         if c != self.in_channels:
             raise ValueError(f"Input channel mismatch: expected {self.in_channels}, got {c}")
 
+        if cheb_polynomials.dim() != 3:
+            raise ValueError(
+                f"Expected 3D Chebyshev basis tensor [K, N, N], got {cheb_polynomials.dim()}D tensor with shape {cheb_polynomials.shape}"
+            )
+
         if (
             cheb_polynomials.shape[0] != self.cheb_k
             or cheb_polynomials.shape[1] != n
@@ -286,6 +291,8 @@ class SpatialTemporalEncoder(nn.Module):
             raise ValueError(
                 f"Expected context shape [B, {self.input_length}, N, 64], got {context.shape}"
             )
+        if not torch.isfinite(context).all():
+            raise ValueError("Context tensor contains non-finite values (NaN or Inf).")
         return context[:, -1, :, :]  # [B, N, 64]
 
 

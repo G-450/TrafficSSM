@@ -160,6 +160,12 @@ def test_spatial_temporal_encoder_context_summary(synthetic_graph):
     with pytest.raises(ValueError, match="Expected context shape"):
         encoder.get_context_summary(torch.randn(2, 6, n, 64))
 
+    # Non-finite context guard
+    context_nan = context.clone()
+    context_nan[0, 0, 0, 0] = float("nan")
+    with pytest.raises(ValueError, match="non-finite values"):
+        encoder.get_context_summary(context_nan)
+
 
 def test_spatial_temporal_encoder_input_validation(synthetic_graph):
     """Test strict input validation and non-finite guards."""
@@ -182,9 +188,13 @@ def test_spatial_temporal_encoder_input_validation(synthetic_graph):
     with pytest.raises(ValueError, match="Input channel mismatch"):
         encoder(torch.randn(2, 12, n, 3), cheb_poly)
 
-    # Wrong chebyshev basis
+    # Wrong chebyshev basis (mismatched K)
     with pytest.raises(ValueError, match="Chebyshev basis mismatch"):
         encoder(torch.randn(2, 12, n, 2), cheb_poly[:2, :, :])
+
+    # Non-3D chebyshev basis (e.g. 2D tensor)
+    with pytest.raises(ValueError, match="Expected 3D Chebyshev basis"):
+        encoder(torch.randn(2, 12, n, 2), torch.randn(n, n))
 
     # Non-finite values
     x_nan = torch.randn(2, 12, n, 2)
@@ -216,40 +226,41 @@ def test_spatial_temporal_encoder_gradient_flow(synthetic_graph):
 
 
 def test_spatial_temporal_encoder_overfit_one_batch(synthetic_graph):
-    """Test that encoder can overfit a single batch fixture (verifying optimization capacity)."""
+    """Test that encoder can overfit a single batch fixture across seeds to a hard threshold."""
     cheb_poly, n = synthetic_graph
-    torch.manual_seed(42)
 
-    encoder = SpatialTemporalEncoder(
-        num_nodes=n,
-        in_channels=2,
-        hidden_channels=32,
-        input_length=12,
-        dropout=0.0,
-    )
-    optimizer = torch.optim.Adam(encoder.parameters(), lr=1e-2)
+    # Test optimization stability and convergence across multiple distinct seeds
+    for seed in (42, 123, 777):
+        torch.manual_seed(seed)
+        np.random.seed(seed)
 
-    x = torch.randn(2, 12, n, 2)
-    target = torch.randn(2, 12, n, 32)
+        encoder = SpatialTemporalEncoder(
+            num_nodes=n,
+            in_channels=2,
+            hidden_channels=32,
+            input_length=12,
+            dropout=0.0,
+        )
+        optimizer = torch.optim.Adam(encoder.parameters(), lr=1.5e-2)
 
-    initial_loss = None
-    final_loss = None
+        x = torch.randn(2, 12, n, 2)
+        target = torch.randn(2, 12, n, 32)
 
-    for step in range(100):
-        optimizer.zero_grad()
-        pred = encoder(x, cheb_poly)
-        loss = torch.nn.functional.mse_loss(pred, target)
-        loss.backward()
-        optimizer.step()
+        final_loss = None
 
-        if step == 0:
-            initial_loss = loss.item()
-        final_loss = loss.item()
+        for _ in range(120):
+            optimizer.zero_grad()
+            pred = encoder(x, cheb_poly)
+            loss = torch.nn.functional.mse_loss(pred, target)
+            loss.backward()
+            optimizer.step()
+            final_loss = loss.item()
 
-    assert final_loss is not None and initial_loss is not None
-    assert final_loss < initial_loss * 0.1, (
-        f"Encoder failed single-batch overfit: initial {initial_loss:.4f} -> final {final_loss:.4f}"
-    )
+        assert final_loss is not None
+        # Hard convergence threshold verifying true overfit optimization capacity
+        assert final_loss < 0.1, (
+            f"Seed {seed}: Encoder failed to reach hard overfit threshold (< 0.1), got {final_loss:.4f}"
+        )
 
 
 def test_encoder_capacity_report(synthetic_graph):

@@ -228,7 +228,10 @@ def verify_encoder_on_dataset(
             context = encoder(bx_in, cheb_poly)
             context_shapes.append(context.shape)
 
-    assert len(context_shapes) == total_batches
+    if len(context_shapes) != total_batches:
+        raise RuntimeError(
+            f"Batch count mismatch: expected {total_batches} batch contexts, got {len(context_shapes)}"
+        )
     print(f"Successfully processed all {total_batches} batches. Context shape per batch: {context_shapes[0]}", flush=True)
 
     return {
