@@ -255,17 +255,32 @@ def run_evaluation(
         print(f"Loading canonical Phase 3 dataset artifact from: {artifact_dir}")
         arrays, metadata = load_and_validate_artifact(artifact_dir)
 
-        target_key = f"y_{split}"
-        mask_key = f"y_{split}_mask"
+        target_key = None
+        mask_key = None
+        for cand_t, cand_m in [
+            (f"{split}_Y", f"{split}_Y_mask"),
+            (f"y_{split}", f"y_{split}_mask"),
+            (f"{split}_y", f"{split}_y_mask"),
+        ]:
+            if cand_t in arrays:
+                target_key = cand_t
+                mask_key = cand_m
+                break
 
-        if target_key not in arrays:
-            raise MetricError(f"Target split '{target_key}' not found in artifact.")
+        if target_key is None:
+            raise MetricError(f"Target split for '{split}' not found in artifact keys: {list(arrays.keys())}")
 
         y_true_norm = arrays[target_key]
         mask = arrays.get(mask_key)
 
-        scaler_mean = np.array(metadata["scaler"]["mean"], dtype=np.float32)
-        scaler_std = np.array(metadata["scaler"]["std"], dtype=np.float32)
+        if "scaler_means" in arrays and "scaler_stds" in arrays:
+            scaler_mean = np.array(arrays["scaler_means"], dtype=np.float32)
+            scaler_std = np.array(arrays["scaler_stds"], dtype=np.float32)
+        elif "scaler" in metadata and "mean" in metadata["scaler"]:
+            scaler_mean = np.array(metadata["scaler"]["mean"], dtype=np.float32)
+            scaler_std = np.array(metadata["scaler"]["std"], dtype=np.float32)
+        else:
+            raise MetricError("Scaler parameters not found in artifact arrays or metadata.")
         sensor_ids = metadata.get("sensor_ids", [])
     else:
         # Load from direct file paths if specified
