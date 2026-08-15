@@ -143,3 +143,13 @@ class TestBaselineCLI:
         assert loaded.model_name == "deterministic_st_gcn"
         assert loaded.run_status == "complete"
         assert "MAE" in loaded.overall_metrics
+
+    def test_cli_st_gcn_missing_graph_fails_explicitly(self, tmp_path):
+        config_path = str(tmp_path / "missing_graph_config.yaml")
+        with open(config_path, "w", encoding="utf-8") as f:
+            yaml.dump({
+                "model": "st_gcn",
+                "adj_mx_path": str(tmp_path / "non_existent_graph.pkl"),
+            }, f)
+        exit_code = main(["--config", config_path])
+        assert exit_code == 1

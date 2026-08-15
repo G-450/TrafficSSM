@@ -45,8 +45,7 @@ class TestTrainingUtilities:
         mask = torch.zeros(1, 2, 1, 1)
 
         loss = loss_fn(pred, true, mask)
-        assert torch.isfinite(loss)
-        assert loss.item() == pytest.approx(0.0, abs=1e-4)
+        assert torch.isnan(loss)
 
     def test_early_stopping_patience_and_improvement(self):
         patience = 3

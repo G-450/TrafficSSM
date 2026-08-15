@@ -242,12 +242,15 @@ class DeterministicSTGCN(nn.Module):
         if x.dim() != 4:
             raise ValueError(f"Expected 4D input tensor [B, L, N, C], got {x.shape}")
 
-        c = x.shape[-1]
-        n = x.shape[2]
+        _b, l_in, n, c = x.shape
+        if l_in != self.input_length:
+            raise ValueError(f"Input length mismatch: expected {self.input_length}, got {l_in}")
+        if n != self.num_nodes:
+            raise ValueError(f"Number of nodes mismatch: expected {self.num_nodes}, got {n}")
         if c != self.in_channels:
             raise ValueError(f"Input channel mismatch: expected {self.in_channels}, got {c}")
 
-        if cheb_polynomials.shape[0] != self.cheb_k or cheb_polynomials.shape[1] != n:
+        if cheb_polynomials.shape[0] != self.cheb_k or cheb_polynomials.shape[1] != n or cheb_polynomials.shape[2] != n:
             raise ValueError(
                 f"Chebyshev basis mismatch: expected [{self.cheb_k}, {n}, {n}], got {cheb_polynomials.shape}"
             )
@@ -307,6 +310,6 @@ def get_capacity_report(
         report["capacity_ratio_valid"] = 0.5 <= ratio <= 2.0
     else:
         report["capacity_ratio_vs_reference"] = None
-        report["capacity_ratio_valid"] = True
+        report["capacity_ratio_valid"] = False
 
     return report

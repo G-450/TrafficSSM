@@ -17,6 +17,28 @@ class GraphError(Exception):
     """Raised for errors in graph structure or operator computations."""
 
 
+def symmetrize_adjacency(adj: np.ndarray, method: str = "average") -> np.ndarray:
+    """Symmetrize a directed adjacency matrix for spectral graph operators.
+
+    Args:
+        adj: Square adjacency matrix of shape [N, N].
+        method: Symmetrization method ('average' for (W + W.T) / 2 or 'max' for max(W, W.T)).
+
+    Returns:
+        Symmetric adjacency matrix of shape [N, N].
+    """
+    if adj.ndim != 2 or adj.shape[0] != adj.shape[1]:
+        raise GraphError(f"Adjacency matrix must be square 2D array, got shape {adj.shape}")
+    if not np.isfinite(adj).all():
+        raise GraphError("Adjacency matrix contains non-finite values (NaN or Inf).")
+
+    if method == "average":
+        return 0.5 * (adj + adj.T)
+    if method == "max":
+        return np.maximum(adj, adj.T)
+    raise ValueError(f"Unknown symmetrization method: {method}")
+
+
 def calculate_normalized_laplacian(adj: np.ndarray) -> np.ndarray:
     """Calculate the symmetric normalized graph Laplacian L = I - D^(-1/2) W D^(-1/2).
 
@@ -32,7 +54,10 @@ def calculate_normalized_laplacian(adj: np.ndarray) -> np.ndarray:
     if not np.isfinite(adj).all():
         raise GraphError("Adjacency matrix contains non-finite values (NaN or Inf).")
 
-    # Symmetric check/enforcement if needed
+    # Symmetric check per graph operator requirements
+    if not np.allclose(adj, adj.T, atol=1e-5):
+        raise GraphError("Adjacency matrix must be symmetric for normalized Laplacian calculation.")
+
     adj = adj.astype(np.float64)
     row_sum = np.sum(adj, axis=1)
 
@@ -187,16 +212,12 @@ class ChebConv(nn.Module):
                 f"Expected cheb_polynomials of shape [{self.k}, N, N], got {cheb_polynomials.shape}"
             )
 
-        if has_time_dim:
-            # x: [B, T, N, C_in]
-            # T_k: [K, N, N], weights: [K, C_in, C_out]
-            # output: sum_k (T_k @ x @ W_k)
-            # einsum: 'knm,btmc,kco->btno'
-            out = torch.einsum("knm,btmc,kco->btno", cheb_polynomials, x, self.weights)
-        else:
-            # x: [B, N, C_in]
-            # einsum: 'knm,bmc,kco->bno'
-            out = torch.einsum("knm,bmc,kco->bno", cheb_polynomials, x, self.weights)
+        out = 0.0
+        for k in range(self.k):
+            # Spatial graph propagation: T_k @ X broadcasted across batch and time
+            x_k = torch.matmul(cheb_polynomials[k], x)
+            # Channel transformation: X_k @ W_k
+            out = out + torch.matmul(x_k, self.weights[k])
 
         if self.bias is not None:
             out = out + self.bias

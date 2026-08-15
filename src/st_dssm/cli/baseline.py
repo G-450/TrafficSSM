@@ -24,10 +24,12 @@ from torch.utils.data import DataLoader, TensorDataset
 from st_dssm.baselines.persistence import HistoricalPersistence
 from st_dssm.baselines.st_gcn import DeterministicSTGCN, get_capacity_report
 from st_dssm.cli.evaluate import run_evaluation
+from st_dssm.data import EXPECTED_FILES, ChecksumMismatchError, compute_md5
 from st_dssm.graph import (
     calculate_normalized_laplacian,
     calculate_scaled_laplacian,
     compute_chebyshev_polynomials,
+    symmetrize_adjacency,
 )
 from st_dssm.io import load_and_validate_artifact
 from st_dssm.training import (
@@ -36,6 +38,7 @@ from st_dssm.training import (
     save_checkpoint,
     set_seed,
 )
+from st_dssm.validator import validate_graph
 
 
 def run_persistence_baseline(
@@ -116,22 +119,38 @@ def train_and_eval_st_gcn(
     test_x = arrays[test_x_key]
     test_x_mask = arrays[test_x_mask_key]
 
-    # Combine input values with observation masks per ADR-0007: [B, L, N, 2]
-    train_in = np.concatenate([train_x, train_x_mask.astype(train_x.dtype)], axis=-1)
-    val_in = np.concatenate([val_x, val_x_mask.astype(val_x.dtype)], axis=-1)
-    test_in = np.concatenate([test_x, test_x_mask.astype(test_x.dtype)], axis=-1)
-
     # 2. Graph & Chebyshev Polynomials
     adj_mx_path = config.get("adj_mx_path", "data/raw/adj_mx_bay.pkl")
     cheb_k = int(config.get("cheb_k", 3))
 
-    if os.path.exists(adj_mx_path):
-        with open(adj_mx_path, "rb") as f:
-            _, _, adj_mx = pickle.load(f, encoding="latin1")
-    else:
-        # Construct identity adjacency as fallback
-        num_nodes = train_x.shape[2]
-        adj_mx = np.eye(num_nodes, dtype=np.float32)
+    if not os.path.exists(adj_mx_path):
+        raise FileNotFoundError(
+            f"Required graph adjacency file not found at: {adj_mx_path}. "
+            "Please acquire the canonical dataset using 'st-dssm-provenance --download'."
+        )
+
+    # Verify checksum if filename matches pinned canonical release
+    fname = os.path.basename(adj_mx_path)
+    if fname in EXPECTED_FILES:
+        observed_md5 = compute_md5(adj_mx_path)
+        expected_md5 = EXPECTED_FILES[fname]
+        if observed_md5 != expected_md5:
+            raise ChecksumMismatchError(
+                f"MD5 checksum mismatch for {fname}: expected {expected_md5}, got {observed_md5}"
+            )
+
+    with open(adj_mx_path, "rb") as f:
+        sensor_ids_graph_raw, _, adj_mx = pickle.load(f, encoding="latin1")
+
+    graph_sensor_ids = [str(sid) for sid in sensor_ids_graph_raw]
+    expected_sensor_ids = _metadata.get("sensor_ids", [])
+    if expected_sensor_ids:
+        validate_graph(adj_mx, graph_sensor_ids, expected_sensor_ids)
+
+    # Symmetrize if directed (as standard in spectral graph convolutions)
+    if not np.allclose(adj_mx, adj_mx.T, atol=1e-5):
+        print("Note: Raw graph adjacency is directed; applying canonical symmetrization (W + W.T)/2 for Chebyshev spectral convolution.", flush=True)
+        adj_mx = symmetrize_adjacency(adj_mx, method="average")
 
     norm_lap = calculate_normalized_laplacian(adj_mx)
     scaled_lap, _lambda_max = calculate_scaled_laplacian(norm_lap)
@@ -155,19 +174,21 @@ def train_and_eval_st_gcn(
     ).to(device)
 
     capacity_report = get_capacity_report(model, "deterministic_st_gcn")
-    print(f"Model capacity: {capacity_report['trainable_parameters']} trainable parameters.")
+    print(f"Model capacity: {capacity_report['trainable_parameters']} trainable parameters.", flush=True)
 
-    # 4. DataLoaders
+    # 4. DataLoaders using zero-copy tensor views and batch-level channel concatenation
     batch_size = int(config.get("batch_size", 64))
     train_dataset = TensorDataset(
-        torch.tensor(train_in, dtype=torch.float32),
-        torch.tensor(train_y, dtype=torch.float32),
-        torch.tensor(train_y_mask, dtype=torch.float32),
+        torch.from_numpy(train_x),
+        torch.from_numpy(train_x_mask),
+        torch.from_numpy(train_y),
+        torch.from_numpy(train_y_mask),
     )
     val_dataset = TensorDataset(
-        torch.tensor(val_in, dtype=torch.float32),
-        torch.tensor(val_y, dtype=torch.float32),
-        torch.tensor(val_y_mask, dtype=torch.float32),
+        torch.from_numpy(val_x),
+        torch.from_numpy(val_x_mask),
+        torch.from_numpy(val_y),
+        torch.from_numpy(val_y_mask),
     )
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -188,46 +209,54 @@ def train_and_eval_st_gcn(
     os.makedirs(checkpoint_dir, exist_ok=True)
     best_ckpt_path = os.path.join(checkpoint_dir, f"{run_id}_best.pt")
 
-    print(f"Beginning training (Max epochs={max_epochs}, Patience={patience}, Min delta={min_delta})...")
+    print(f"Beginning training (Max epochs={max_epochs}, Patience={patience}, Min delta={min_delta})...", flush=True)
 
     for epoch in range(1, max_epochs + 1):
         model.train()
-        train_loss_sum = 0.0
-        train_batches = 0
+        total_train_abs_err = 0.0
+        total_train_valid_count = 0.0
 
-        for bx, by, bm in train_loader:
-            bx, by, bm = bx.to(device), by.to(device), bm.to(device)
+        for bx, bxm, by, bym in train_loader:
+            bx_in = torch.cat([bx, bxm.float()], dim=-1).to(device)
+            by = by.to(device)
+            bym = bym.to(device)
+
             optimizer.zero_grad()
-            pred = model(bx, cheb_poly)
-            loss = criterion(pred, by, bm)
+            pred = model(bx_in, cheb_poly)
+            loss = criterion(pred, by, bym)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
             optimizer.step()
 
-            train_loss_sum += loss.item()
-            train_batches += 1
+            with torch.no_grad():
+                diff = torch.abs(pred - by) * bym
+                total_train_abs_err += torch.sum(diff).item()
+                total_train_valid_count += torch.sum(bym).item()
 
-        avg_train_loss = train_loss_sum / max(1, train_batches)
+        avg_train_loss = total_train_abs_err / max(1.0, total_train_valid_count)
 
-        # Validation
+        # Validation with mathematically exact global sum over valid targets
         model.eval()
-        val_loss_sum = 0.0
-        val_batches = 0
+        total_val_abs_err = 0.0
+        total_val_valid_count = 0.0
         with torch.no_grad():
-            for bx, by, bm in val_loader:
-                bx, by, bm = bx.to(device), by.to(device), bm.to(device)
-                pred = model(bx, cheb_poly)
-                loss = criterion(pred, by, bm)
-                val_loss_sum += loss.item()
-                val_batches += 1
+            for bx, bxm, by, bym in val_loader:
+                bx_in = torch.cat([bx, bxm.float()], dim=-1).to(device)
+                by = by.to(device)
+                bym = bym.to(device)
 
-        avg_val_loss = val_loss_sum / max(1, val_batches)
+                pred = model(bx_in, cheb_poly)
+                diff = torch.abs(pred - by) * bym
+                total_val_abs_err += torch.sum(diff).item()
+                total_val_valid_count += torch.sum(bym).item()
+
+        avg_val_loss = total_val_abs_err / max(1.0, total_val_valid_count)
 
         should_stop = early_stopping.step(avg_val_loss, model, epoch)
-        print(f"Epoch {epoch:03d} | Train MAE (norm): {avg_train_loss:.4f} | Val MAE (norm): {avg_val_loss:.4f} | Best Val: {early_stopping.best_score:.4f} (Ep {early_stopping.best_epoch})")
+        print(f"Epoch {epoch:03d} | Train MAE (norm): {avg_train_loss:.4f} | Val MAE (norm): {avg_val_loss:.4f} | Best Val: {early_stopping.best_score:.4f} (Ep {early_stopping.best_epoch})", flush=True)
 
         if should_stop:
-            print(f"Early stopping triggered at epoch {epoch}. Restoring best weights from epoch {early_stopping.best_epoch}.")
+            print(f"Early stopping triggered at epoch {epoch}. Restoring best weights from epoch {early_stopping.best_epoch}.", flush=True)
             break
 
     # Restore best checkpoint
@@ -240,18 +269,18 @@ def train_and_eval_st_gcn(
         val_loss=early_stopping.best_score or 0.0,
         config=config,
     )
-    print(f"Best checkpoint saved to: {best_ckpt_path}")
+    print(f"Best checkpoint saved to: {best_ckpt_path}", flush=True)
 
     # 6. Evaluation on target split
     model.eval()
-    test_tensor = torch.tensor(test_in, dtype=torch.float32).to(device)
+    test_dataset = TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_x_mask))
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     test_preds = []
 
-    eval_batch_size = batch_size
     with torch.no_grad():
-        for i in range(0, len(test_tensor), eval_batch_size):
-            batch_x = test_tensor[i : i + eval_batch_size]
-            pred = model(batch_x, cheb_poly)
+        for bx, bxm in test_loader:
+            bx_in = torch.cat([bx, bxm.float()], dim=-1).to(device)
+            pred = model(bx_in, cheb_poly)
             test_preds.append(pred.cpu().numpy())
 
     y_pred = np.concatenate(test_preds, axis=0)
@@ -402,6 +431,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Random seed for reproducibility.",
     )
     parser.add_argument(
+        "--adj-mx-path",
+        type=str,
+        default=None,
+        help="Path to graph adjacency pickle file.",
+    )
+    parser.add_argument(
         "--epochs",
         type=int,
         default=100,
@@ -439,6 +474,8 @@ def main(argv: list[str] | None = None) -> int:
         config.setdefault("split", args.split)
         config.setdefault("seed", args.seed)
         config.setdefault("max_epochs", args.epochs)
+        if args.adj_mx_path:
+            config["adj_mx_path"] = args.adj_mx_path
 
         model_type = config.get("model", args.model)
 
@@ -465,7 +502,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     except Exception as e:  # noqa: BLE001
-        print(f"Baseline runner error: {e}", file=sys.stderr)
+        import traceback
+
+        print(f"Baseline runner error: {e}", file=sys.stderr, flush=True)
+        traceback.print_exc()
         return 1
 
 

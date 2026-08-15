@@ -66,6 +66,9 @@ class TestHistoricalPersistence:
         with pytest.raises(ValueError, match="sequence length L must be >= 1"):
             persistence.predict(np.zeros((2, 0, 3, 1)))
 
+        with pytest.raises(ValueError, match="forecast_horizon must be >= 1"):
+            persistence.predict(np.ones((2, 5, 3, 1)), forecast_horizon=0)
+
         with pytest.raises(TypeError, match="must be numpy.ndarray or torch.Tensor"):
             persistence.predict([1, 2, 3])  # type: ignore
 
@@ -151,9 +154,43 @@ class TestDeterministicSTGCN:
         n_params = count_trainable_parameters(model)
         assert n_params > 10_000
 
+        # With reference
         report = get_capacity_report(model, "ST-GCN", reference_param_count=n_params)
         assert report["capacity_ratio_valid"] is True
         assert report["capacity_ratio_vs_reference"] == pytest.approx(1.0)
+
+        # Without reference -> must be False
+        report_no_ref = get_capacity_report(model, "ST-GCN", reference_param_count=None)
+        assert report_no_ref["capacity_ratio_valid"] is False
+        assert report_no_ref["capacity_ratio_vs_reference"] is None
+
+    def test_st_gcn_input_dimension_mismatches(self):
+        n = 4
+        adj = np.eye(n, dtype=np.float32)
+        norm_lap = calculate_normalized_laplacian(adj)
+        scaled_lap, _ = calculate_scaled_laplacian(norm_lap)
+        cheb_poly = torch.tensor(compute_chebyshev_polynomials(scaled_lap, k=3), dtype=torch.float32)
+
+        model = DeterministicSTGCN(
+            num_nodes=n,
+            in_channels=2,
+            hidden_channels=16,
+            input_length=12,
+            forecast_horizon=12,
+            cheb_k=3,
+        )
+
+        # Wrong sequence length (10 instead of 12)
+        with pytest.raises(ValueError, match="Input length mismatch"):
+            model(torch.randn(2, 10, n, 2), cheb_poly)
+
+        # Wrong node count (5 instead of 4)
+        with pytest.raises(ValueError, match="Number of nodes mismatch"):
+            model(torch.randn(2, 12, 5, 2), cheb_poly)
+
+        # Wrong channel count (1 instead of 2)
+        with pytest.raises(ValueError, match="Input channel mismatch"):
+            model(torch.randn(2, 12, n, 1), cheb_poly)
 
     def test_overfit_one_batch(self):
         """Sanity test verifying model optimization capacity on a single fixed batch."""

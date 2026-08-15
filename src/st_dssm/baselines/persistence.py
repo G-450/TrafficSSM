@@ -37,7 +37,7 @@ class HistoricalPersistence:
         Returns:
             Forecast of shape [B, H, N, 1] matching input type.
         """
-        h = forecast_horizon or self.forecast_horizon
+        h = self.forecast_horizon if forecast_horizon is None else forecast_horizon
         if h < 1:
             raise ValueError(f"forecast_horizon must be >= 1, got {h}")
 

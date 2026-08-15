@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import random
+import tempfile
 from typing import Any
 
 import numpy as np
@@ -33,10 +34,11 @@ class MaskedMAELoss(nn.Module):
     """Masked Mean Absolute Error loss.
 
     Computes MAE exclusively over observed target values where mask == 1:
-        Loss = sum(|y_pred - y_true| * mask) / (sum(mask) + eps)
+        Loss = sum(|y_pred - y_true| * mask) / sum(mask)
+    Returns NaN if no valid targets are observed (sum(mask) == 0) to prevent false zero loss.
     """
 
-    def __init__(self, eps: float = 1e-5) -> None:
+    def __init__(self, eps: float = 1e-8) -> None:
         super().__init__()
         self.eps = eps
 
@@ -54,15 +56,17 @@ class MaskedMAELoss(nn.Module):
             mask: Binary observation mask [B, H, N, 1]. If None, all elements are used.
 
         Returns:
-            Scalar loss tensor.
+            Scalar loss tensor (NaN if mask has zero valid entries).
         """
         diff = torch.abs(y_pred - y_true)
         if mask is not None:
             mask = mask.to(dtype=diff.dtype, device=diff.device)
-            loss = torch.sum(diff * mask) / (torch.sum(mask) + self.eps)
-        else:
-            loss = torch.mean(diff)
-        return loss
+            valid_count = torch.sum(mask)
+            if valid_count <= 0:
+                return torch.tensor(float("nan"), dtype=diff.dtype, device=diff.device)
+            return torch.sum(diff * mask) / valid_count
+
+        return torch.mean(diff)
 
 
 class EarlyStopping:
@@ -143,8 +147,11 @@ def save_checkpoint(
     val_loss: float = 0.0,
     config: dict[str, Any] | None = None,
 ) -> None:
-    """Save training checkpoint safely."""
-    os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+    """Save training checkpoint safely using atomic temporary file replacement."""
+    dir_name = os.path.dirname(checkpoint_path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+
     payload = {
         "model_state_dict": model.state_dict(),
         "optimizer_state_dict": optimizer.state_dict() if optimizer else None,
@@ -152,7 +159,15 @@ def save_checkpoint(
         "val_loss": val_loss,
         "config": config or {},
     }
-    torch.save(payload, checkpoint_path)
+
+    fd, tmp_path = tempfile.mkstemp(dir=dir_name or None, suffix=".pt.tmp")
+    os.close(fd)
+    try:
+        torch.save(payload, tmp_path)
+        os.replace(tmp_path, checkpoint_path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 
 def load_checkpoint(
@@ -161,11 +176,11 @@ def load_checkpoint(
     optimizer: optim.Optimizer | None = None,
     map_location: str | torch.device = "cpu",
 ) -> dict[str, Any]:
-    """Load training checkpoint into model."""
+    """Load training checkpoint into model securely."""
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
 
-    checkpoint = torch.load(checkpoint_path, map_location=map_location)
+    checkpoint = torch.load(checkpoint_path, map_location=map_location, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     if optimizer is not None and checkpoint.get("optimizer_state_dict"):
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])

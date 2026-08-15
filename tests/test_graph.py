@@ -12,6 +12,7 @@ from st_dssm.graph import (
     calculate_normalized_laplacian,
     calculate_scaled_laplacian,
     compute_chebyshev_polynomials,
+    symmetrize_adjacency,
 )
 
 
@@ -50,6 +51,28 @@ class TestGraphOperators:
 
         with pytest.raises(GraphError, match="non-finite"):
             calculate_normalized_laplacian(np.array([[1.0, np.nan], [0.0, 1.0]]))
+
+        with pytest.raises(GraphError, match="must be symmetric"):
+            calculate_normalized_laplacian(np.array([[0.0, 1.0], [0.0, 0.0]]))
+
+    def test_symmetrize_adjacency(self):
+        adj_asym = np.array([
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 2.0],
+            [0.0, 0.0, 0.0],
+        ], dtype=np.float32)
+
+        # Average method: (W + W.T) / 2
+        sym_avg = symmetrize_adjacency(adj_asym, method="average")
+        assert np.allclose(sym_avg, sym_avg.T)
+        assert sym_avg[0, 1] == 0.5 and sym_avg[1, 0] == 0.5
+        assert sym_avg[1, 2] == 1.0 and sym_avg[2, 1] == 1.0
+
+        # Max method: max(W, W.T)
+        sym_max = symmetrize_adjacency(adj_asym, method="max")
+        assert np.allclose(sym_max, sym_max.T)
+        assert sym_max[0, 1] == 1.0 and sym_max[1, 0] == 1.0
+        assert sym_max[1, 2] == 2.0 and sym_max[2, 1] == 2.0
 
     def test_scaled_laplacian_bounds(self):
         adj = np.array([

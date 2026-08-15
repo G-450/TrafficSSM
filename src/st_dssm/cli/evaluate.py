@@ -326,13 +326,16 @@ def run_evaluation(
         sigma_norm = None
 
     # Inverse transform targets and predictions to physical speed units (mph)
-    dummy_sigma = np.ones_like(y_true_norm) if sigma_norm is None else sigma_norm
-    raw_true, _ = inverse_transform_predictions(y_true_norm, dummy_sigma, scaler_mean, scaler_std)
+    res_true = inverse_transform_predictions(mu=y_true_norm, scaler_mean=scaler_mean, scaler_std=scaler_std)
+    raw_true = res_true["mu"] if isinstance(res_true, dict) else res_true
 
     if sigma_norm is not None:
-        raw_pred, raw_sigma = inverse_transform_predictions(y_pred_norm, sigma_norm, scaler_mean, scaler_std)
+        res_pred = inverse_transform_predictions(mu=y_pred_norm, sigma=sigma_norm, scaler_mean=scaler_mean, scaler_std=scaler_std)
+        raw_pred = res_pred["mu"] if isinstance(res_pred, dict) else res_pred[0]
+        raw_sigma = res_pred["sigma"] if isinstance(res_pred, dict) else res_pred[1]
     else:
-        raw_pred, _ = inverse_transform_predictions(y_pred_norm, dummy_sigma, scaler_mean, scaler_std)
+        res_pred = inverse_transform_predictions(mu=y_pred_norm, scaler_mean=scaler_mean, scaler_std=scaler_std)
+        raw_pred = res_pred["mu"] if isinstance(res_pred, dict) else res_pred
         raw_sigma = None
 
     # Evaluate metrics
