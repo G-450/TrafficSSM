@@ -1,7 +1,7 @@
 # Current project state
 
 **Status date:** 2026-08-15
-**Delivery state:** Phase 5 deterministic baselines (Historical Persistence and Deterministic ST-GCN) are fully implemented, tested, and validated. Phase 6 spatial-temporal encoder / core ST-DSSM is next.
+**Delivery state:** Phase 6 spatial-temporal encoder is fully implemented, tested, and validated. Phase 7 probabilistic forecast head is next.
 
 ## Implemented foundation
 
@@ -13,6 +13,7 @@
 - **Phase 3 Reproducible preprocessing:** `st-dssm-preprocess` command with chronologically disjoint splits, training-only scalar fitting, safe NPZ serialization, and exact deterministic validation.
 - **Phase 4 Evaluation foundation:** Model-independent evaluation metrics (`mae`, `rmse`, `gaussian_nll`, `gaussian_crps`, `picp`, `mpiw`), `inverse_transform_predictions` utility, machine-readable JSON result and run-manifest schemas (`MetricRecord`, `RunManifest`), and plotting utilities. Validated with comprehensive synthetic test suites.
 - **Phase 5 Deterministic baseline:** Non-parametric `HistoricalPersistence` baseline, capacity-controlled `DeterministicSTGCN` baseline with 2 causal ST-blocks (Gated TCN + ChebConv $K=3$ + LayerNorm/Dropout/Residual), graph Laplacian and Chebyshev polynomial operators (`st_dssm.graph`), `MaskedMAELoss`, `EarlyStopping` (15 epochs, $10^{-4}$ threshold), and `st-dssm-baseline` CLI runner with automated evaluation and checkpointing.
+- **Phase 6 Spatial-temporal encoder:** Canonical 2-block ST-GCN encoder (`st_dssm.encoder.SpatialTemporalEncoder`), `CausalGatedTemporalConv` with strict causal left-padding, `SpatialTemporalBlock` with Chebyshev graph convolutions ($K=3$, BLAS-accelerated), LayerNorm, Dropout ($0.1$), residual projections, and 64-dimensional context projection (`[B, 12, 325, 64]`). Validated with mathematical causality probes (zero future leakage), single-batch optimization tests, capacity reports, and the `st-dssm-encoder` CLI runner.
 
 ## Canonical Baseline Results (PEMS-BAY Test Set, Physical Units `mph`)
 
@@ -25,5 +26,5 @@ The canonical deterministic baseline evaluations were executed on the validated 
 
 ## Next authorized work
 
-Phase 5 deterministic baselines are complete, thoroughly tested (144 unit/integration tests passing, 0 lint errors), with rigorous graph provenance, zero-mask stability, and exact mathematical loss aggregation. Once approved, proceed to [Phase 6 — Spatial-temporal encoder](IMPLEMENTATION_PLAN.md).
+Phase 6 spatial-temporal encoder is complete, thoroughly tested (155 unit/integration tests passing, 0 lint errors), and validated on both synthetic and canonical PEMS-BAY datasets. Once approved, proceed to [Phase 7 — Probabilistic forecast head](IMPLEMENTATION_PLAN.md).
 
