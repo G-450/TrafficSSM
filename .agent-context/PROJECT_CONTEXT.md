@@ -7,7 +7,7 @@
 
 ## Facts currently true
 
-- The implementation was intentionally restarted on 2026-08-13. No data pipeline, configuration, model, baseline, experiment, metric suite, or automated test exists yet.
+- The implementation was restarted on 2026-08-13. Phases 1-8 (data provenance, contract hardening, preprocessing, evaluation, deterministic baseline, spatial-temporal encoder, forecast head, and DSSM integration) are fully implemented and tested.
 - Canonical raw data is Zenodo PEMS-BAY release 4263971; `0.0` and `NaN` are native missingness (ADR-0006).
 - Canonical detailed documentation is in `docs/`; old root reports are not authoritative.
 - Repository placement rules are binding and documented in `docs/REPOSITORY_STRUCTURE.md`.
