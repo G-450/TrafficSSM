@@ -429,35 +429,23 @@ def main(argv: list[str] | None = None) -> int:
                 config = yaml.safe_load(f)
 
         # Merge CLI arguments into config, giving CLI precedence over YAML
-        if args.artifact_dir != "data/processed":
-            config["artifact_dir"] = args.artifact_dir
-        elif "artifact_dir" not in config:
+        if args.artifact_dir != "data/processed" or "artifact_dir" not in config:
             config["artifact_dir"] = args.artifact_dir
 
-        if args.output_dir != "artifacts/results":
-            config["output_dir"] = args.output_dir
-        elif "output_dir" not in config:
+        if args.output_dir != "artifacts/results" or "output_dir" not in config:
             config["output_dir"] = args.output_dir
 
-        if args.checkpoint_dir != "artifacts/checkpoints":
-            config["checkpoint_dir"] = args.checkpoint_dir
-        elif "checkpoint_dir" not in config:
+        if args.checkpoint_dir != "artifacts/checkpoints" or "checkpoint_dir" not in config:
             config["checkpoint_dir"] = args.checkpoint_dir
 
-        if args.split != "test":
-            config["split"] = args.split
-        elif "split" not in config:
+        if args.split != "test" or "split" not in config:
             config["split"] = args.split
 
-        if args.seed != 2026:
-            config["seed"] = args.seed
-        elif "seed" not in config:
+        if args.seed != 2026 or "seed" not in config:
             config["seed"] = args.seed
 
         default_device = "cuda" if torch.cuda.is_available() else "cpu"
-        if args.device != default_device:
-            config["device"] = args.device
-        elif "device" not in config:
+        if args.device != default_device or "device" not in config:
             config["device"] = args.device
         if args.adj_mx_path:
             config["adj_mx_path"] = args.adj_mx_path
