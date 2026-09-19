@@ -22,10 +22,10 @@ class TestBaselineCLI:
     def test_cli_persistence_with_artifact(self, tmp_path):
         # 1. Create a dummy Phase 3 artifact
         artifact_dir = str(tmp_path / "artifact")
-        s, l, h, n = 8, 12, 12, 4
+        s, L, h, n = 8, 12, 12, 4
         arrays = {
-            "test_X": np.ones((s, l, n, 1), dtype=np.float32) * 0.5,
-            "test_X_mask": np.ones((s, l, n, 1), dtype=np.float32),
+            "test_X": np.ones((s, L, n, 1), dtype=np.float32) * 0.5,
+            "test_X_mask": np.ones((s, L, n, 1), dtype=np.float32),
             "test_Y": np.ones((s, h, n, 1), dtype=np.float32) * 0.5,
             "test_Y_mask": np.ones((s, h, n, 1), dtype=np.float32),
             "scaler_means": np.array([50.0, 55.0, 60.0, 65.0], dtype=np.float32),
@@ -66,19 +66,19 @@ class TestBaselineCLI:
         # 1. Create a dummy Phase 3 artifact with train, val, and test splits
         artifact_dir = str(tmp_path / "st_gcn_artifact")
         s_train, s_val, s_test = 8, 4, 4
-        l, h, n = 12, 12, 4
+        L, h, n = 12, 12, 4
 
         arrays = {
-            "train_X": np.random.randn(s_train, l, n, 1).astype(np.float32),
-            "train_X_mask": np.ones((s_train, l, n, 1), dtype=np.float32),
+            "train_X": np.random.randn(s_train, L, n, 1).astype(np.float32),
+            "train_X_mask": np.ones((s_train, L, n, 1), dtype=np.float32),
             "train_Y": np.random.randn(s_train, h, n, 1).astype(np.float32),
             "train_Y_mask": np.ones((s_train, h, n, 1), dtype=np.float32),
-            "val_X": np.random.randn(s_val, l, n, 1).astype(np.float32),
-            "val_X_mask": np.ones((s_val, l, n, 1), dtype=np.float32),
+            "val_X": np.random.randn(s_val, L, n, 1).astype(np.float32),
+            "val_X_mask": np.ones((s_val, L, n, 1), dtype=np.float32),
             "val_Y": np.random.randn(s_val, h, n, 1).astype(np.float32),
             "val_Y_mask": np.ones((s_val, h, n, 1), dtype=np.float32),
-            "test_X": np.random.randn(s_test, l, n, 1).astype(np.float32),
-            "test_X_mask": np.ones((s_test, l, n, 1), dtype=np.float32),
+            "test_X": np.random.randn(s_test, L, n, 1).astype(np.float32),
+            "test_X_mask": np.ones((s_test, L, n, 1), dtype=np.float32),
             "test_Y": np.random.randn(s_test, h, n, 1).astype(np.float32),
             "test_Y_mask": np.ones((s_test, h, n, 1), dtype=np.float32),
             "scaler_means": np.array([50.0, 55.0, 60.0, 65.0], dtype=np.float32),

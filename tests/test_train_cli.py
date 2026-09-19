@@ -35,7 +35,6 @@ def test_train_cli_resume(tmp_path: os.PathLike[str]) -> None:
     # Actually, train_st_dssm with dummy config fails on dataset load,
     # so we will just verify the parser parses it correctly, or we can mock load_and_validate_artifact.
     # A simple parser check for now:
-    import argparse
     from unittest.mock import patch
     
     with patch("st_dssm.cli.train.train_st_dssm") as mock_train:

@@ -24,8 +24,8 @@ from st_dssm.training import MaskedMAELoss, set_seed
 
 class TestHistoricalPersistence:
     def test_numpy_prediction_4d(self):
-        s, l, n, c = 4, 12, 5, 1
-        x = np.random.normal(0, 1, (s, l, n, c)).astype(np.float32)
+        s, L, n, c = 4, 12, 5, 1
+        x = np.random.normal(0, 1, (s, L, n, c)).astype(np.float32)
         persistence = HistoricalPersistence(forecast_horizon=12)
 
         pred = persistence.predict(x)
@@ -37,8 +37,8 @@ class TestHistoricalPersistence:
             np.testing.assert_allclose(pred[:, h, :, :], x[:, -1, :, :])
 
     def test_numpy_prediction_3d(self):
-        s, l, n = 3, 10, 4
-        x = np.random.normal(0, 1, (s, l, n)).astype(np.float32)
+        s, L, n = 3, 10, 4
+        x = np.random.normal(0, 1, (s, L, n)).astype(np.float32)
         persistence = HistoricalPersistence(forecast_horizon=6)
 
         pred = persistence.predict(x)
@@ -47,8 +47,8 @@ class TestHistoricalPersistence:
             np.testing.assert_allclose(pred[:, h, :, 0], x[:, -1, :])
 
     def test_torch_prediction(self):
-        s, l, n, c = 2, 8, 3, 2
-        x = torch.randn(s, l, n, c)
+        s, L, n, c = 2, 8, 3, 2
+        x = torch.randn(s, L, n, c)
         persistence = HistoricalPersistence(forecast_horizon=4)
 
         pred = persistence(x)
@@ -111,7 +111,7 @@ class TestSTGCNBlock:
 
 class TestDeterministicSTGCN:
     def test_full_forward_and_backward(self):
-        b, l, h, n, c_in, hidden = 2, 12, 12, 6, 2, 32
+        b, L, h, n, c_in, hidden = 2, 12, 12, 6, 2, 32
         adj = np.eye(n, dtype=np.float32)
         for i in range(n - 1):
             adj[i, i + 1] = 0.5
@@ -125,12 +125,12 @@ class TestDeterministicSTGCN:
             num_nodes=n,
             in_channels=c_in,
             hidden_channels=hidden,
-            input_length=l,
+            input_length=L,
             forecast_horizon=h,
             cheb_k=3,
         )
 
-        x = torch.randn(b, l, n, c_in, requires_grad=True)
+        x = torch.randn(b, L, n, c_in, requires_grad=True)
         pred = model(x, cheb_poly)
 
         assert pred.shape == (b, h, n, 1)
@@ -195,7 +195,7 @@ class TestDeterministicSTGCN:
     def test_overfit_one_batch(self):
         """Sanity test verifying model optimization capacity on a single fixed batch."""
         set_seed(42)
-        b, l, h, n = 2, 12, 12, 4
+        b, L, h, n = 2, 12, 12, 4
         adj = np.eye(n, dtype=np.float32)
         norm_lap = calculate_normalized_laplacian(adj)
         scaled_lap, _ = calculate_scaled_laplacian(norm_lap)
@@ -205,13 +205,13 @@ class TestDeterministicSTGCN:
             num_nodes=n,
             in_channels=2,
             hidden_channels=16,
-            input_length=l,
+            input_length=L,
             forecast_horizon=h,
             cheb_k=3,
             dropout=0.0,
         )
 
-        x = torch.randn(b, l, n, 2)
+        x = torch.randn(b, L, n, 2)
         y = torch.randn(b, h, n, 1)
         mask = torch.ones(b, h, n, 1)
 
