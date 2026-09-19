@@ -101,39 +101,39 @@ def test_spatial_temporal_block_shape_and_residual(synthetic_graph):
 def test_spatial_temporal_encoder_forward_shape(synthetic_graph):
     """Test full SpatialTemporalEncoder forward pass and output shape."""
     cheb_poly, n = synthetic_graph
-    b, l, c_in, hidden = 4, 12, 2, 64
+    b, L, c_in, hidden = 4, 12, 2, 64
     encoder = SpatialTemporalEncoder(
         num_nodes=n,
         in_channels=c_in,
         hidden_channels=hidden,
-        input_length=l,
+        input_length=L,
         cheb_k=3,
     )
 
-    x = torch.randn(b, l, n, c_in)
+    x = torch.randn(b, L, n, c_in)
     context = encoder(x, cheb_poly)
 
-    assert context.shape == (b, l, n, hidden)
+    assert context.shape == (b, L, n, hidden)
     assert torch.isfinite(context).all()
 
 
 def test_spatial_temporal_encoder_strict_causality(synthetic_graph):
     """Test that future changes in input never leak into past/present encoder representations."""
     cheb_poly, n = synthetic_graph
-    l, c_in, hidden = 12, 2, 64
+    L, c_in, hidden = 12, 2, 64
     encoder = SpatialTemporalEncoder(
         num_nodes=n,
         in_channels=c_in,
         hidden_channels=hidden,
-        input_length=l,
+        input_length=L,
         cheb_k=3,
     )
     encoder.eval()
 
-    x1 = torch.randn(1, l, n, c_in)
+    x1 = torch.randn(1, L, n, c_in)
     x2 = x1.clone()
     # Modify steps from t=5 to t=11
-    x2[:, 5:, :, :] = torch.randn(1, l - 5, n, c_in) * 20.0
+    x2[:, 5:, :, :] = torch.randn(1, L - 5, n, c_in) * 20.0
 
     with torch.no_grad():
         c1 = encoder(x1, cheb_poly)
@@ -348,33 +348,33 @@ def test_encoder_cli_bare_output_filename(tmp_path, monkeypatch):
 
 def test_encoder_cli_unrecognized_graph_and_missing_metadata(tmp_path):
     """Test CLI fails fast on unrecognized graph names or missing metadata."""
-    # 1. Unrecognized graph name
-    fake_graph = tmp_path / "malicious.pkl"
-    fake_graph.write_text("fake")
+    import pickle
 
     from st_dssm.cli.encoder import verify_encoder_on_dataset
     from st_dssm.graph import GraphError
-
-    with pytest.raises(ValueError, match="Unrecognized graph adjacency file"):
-        verify_encoder_on_dataset(adj_mx_path=str(fake_graph))
-
-    # 2. Asymmetric graph without symmetrization raises GraphError
-    import pickle
-
     from st_dssm.io import save_processed_artifact
 
     artifact_dir = str(tmp_path / "asym_art")
-    s, l, n = 2, 12, 4
+    s, L, n = 2, 12, 4
     save_processed_artifact(
         artifact_dir,
         {
-            "test_X": np.random.randn(s, l, n, 1).astype(np.float32),
-            "test_X_mask": np.ones((s, l, n, 1), dtype=np.float32),
+            "test_X": np.random.randn(s, L, n, 1).astype(np.float32),
+            "test_X_mask": np.ones((s, L, n, 1), dtype=np.float32),
             "scaler_means": np.zeros(n, dtype=np.float32),
             "scaler_stds": np.ones(n, dtype=np.float32),
         },
         {"schema_version": "1.0", "sensor_ids": ["s1", "s2", "s3", "s4"]},
     )
+
+    # 1. Unrecognized graph name
+    fake_graph = tmp_path / "malicious.pkl"
+    fake_graph.write_text("fake")
+
+    with pytest.raises(ValueError, match="Unrecognized graph adjacency file"):
+        verify_encoder_on_dataset(artifact_dir=artifact_dir, adj_mx_path=str(fake_graph))
+
+    # 2. Asymmetric graph without symmetrization raises GraphError
     asym_graph = str(tmp_path / "adj_mx_bay.pkl")
     asym_adj = np.eye(n, dtype=np.float32)
     asym_adj[0, 1] = 1.0  # Asymmetric

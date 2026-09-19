@@ -1,0 +1,25 @@
+model:
+  num_nodes: 325
+  in_channels: 2
+  latent_dim: 32
+  context_dim: 64
+  hidden_dim: 128
+  horizon: 12
+  input_length: 12
+  cheb_k: 3
+  dropout: 0.1
+
+training:
+  max_epochs: 100
+  batch_size: 64
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+
+schedules:
+  beta_anneal_epochs: 20
+  teacher_force_decay_epochs: 50
+
+seeds:
+  - 2026
+  - 2027
+  - 2028

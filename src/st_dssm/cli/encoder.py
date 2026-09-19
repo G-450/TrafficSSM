@@ -50,8 +50,8 @@ def run_synthetic_encoder_smoke(device: torch.device | None = None) -> dict[str,
     dev = device or torch.device("cpu")
     set_seed(42)
 
-    b, l, n, c_in, hidden = 4, 12, 6, 2, 64
-    x_synth = torch.randn(b, l, n, c_in, device=dev)
+    b, L, n, c_in, hidden = 4, 12, 6, 2, 64
+    x_synth = torch.randn(b, L, n, c_in, device=dev)
 
     # 1. Synthetic symmetric graph
     adj = np.eye(n, dtype=np.float32)
@@ -69,14 +69,14 @@ def run_synthetic_encoder_smoke(device: torch.device | None = None) -> dict[str,
         num_nodes=n,
         in_channels=c_in,
         hidden_channels=hidden,
-        input_length=l,
+        input_length=L,
         cheb_k=3,
         dropout=0.1,
     ).to(dev)
 
     # 3. Forward pass
     context = encoder(x_synth, cheb_poly)
-    assert context.shape == (b, l, n, hidden), f"Expected shape {(b, l, n, hidden)}, got {context.shape}"
+    assert context.shape == (b, L, n, hidden), f"Expected shape {(b, L, n, hidden)}, got {context.shape}"
     assert torch.isfinite(context).all(), "Context contains non-finite values"
     print("  [PASSED] Forward pass shape and finiteness check.", flush=True)
 
@@ -86,10 +86,10 @@ def run_synthetic_encoder_smoke(device: torch.device | None = None) -> dict[str,
     print("  [PASSED] Context sequence summary extraction check.", flush=True)
 
     # 5. Strict causality verification
-    x1 = torch.randn(1, l, n, c_in, device=dev)
+    x1 = torch.randn(1, L, n, c_in, device=dev)
     x2 = x1.clone()
     # Modify future time steps t >= 4
-    x2[:, 4:, :, :] = torch.randn(1, l - 4, n, c_in, device=dev) * 50.0
+    x2[:, 4:, :, :] = torch.randn(1, L - 4, n, c_in, device=dev) * 50.0
 
     encoder.eval()
     with torch.no_grad():
