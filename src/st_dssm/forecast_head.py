@@ -25,6 +25,8 @@ Canonical hyperparameters (ADR-0007):
 
 from __future__ import annotations
 
+import random
+
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -210,7 +212,7 @@ class GaussianForecastHead(nn.Module):
             if h < self.horizon - 1:
                 if teacher_force_ratio > 0.0 and y_target is not None:
                     # Stochastic teacher forcing: use ground truth with probability teacher_force_ratio
-                    use_teacher = torch.rand(1, device=device).item() < teacher_force_ratio
+                    use_teacher = random.random() < teacher_force_ratio
                     if use_teacher:
                         prev_mu = y_target[:, h, :, :]  # [B, N, 1]
                     else:

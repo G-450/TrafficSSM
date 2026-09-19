@@ -89,12 +89,15 @@ class _TransitionNet(nn.Module):
         self,
         context: torch.Tensor,
         z0: torch.Tensor,
+        z_q_samples: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Run causal prior forward through L history steps.
 
         Args:
             context: Encoder context [B, L, N, context_dim].
             z0:      Initial latent state [B, N, latent_dim] (typically zeros).
+            z_q_samples: Optional posterior samples [B, L, N, latent_dim] for 
+                         teacher-forcing the prior during training.
 
         Returns:
             (mu_p, sigma_p, z_L):
@@ -131,7 +134,10 @@ class _TransitionNet(nn.Module):
             mu_p_list.append(mu_p_t.reshape(B, N, self.latent_dim))
             sigma_p_list.append(sigma_p_t.reshape(B, N, self.latent_dim))
 
-            z_prev = z_t
+            if z_q_samples is not None:
+                z_prev = z_q_samples[:, t, :, :].reshape(B * N, self.latent_dim)
+            else:
+                z_prev = z_t
             z_last = z_t
 
         mu_p = torch.stack(mu_p_list, dim=1)     # [B, L, N, latent_dim]
@@ -201,8 +207,8 @@ class _RecognitionNet(nn.Module):
         # Concatenate inputs: [B, L, N, context_dim + 2]
         rec_in = torch.cat([context, masked_speed, obs_mask], dim=-1)
 
-        # Collapse B and N for parallel GRU: [B*N, L, context_dim + 2]
-        rec_in_flat = rec_in.reshape(B * N, L, self.context_dim + 2)
+        # Collapse B and N for parallel GRU: [B, L, N, C] -> [B, N, L, C] -> [B*N, L, C]
+        rec_in_flat = rec_in.transpose(1, 2).reshape(B * N, L, self.context_dim + 2)
 
         # Bi-GRU forward: [B*N, L, 2*hidden_dim]
         bigru_out, _ = self.bigru(rec_in_flat)
@@ -211,10 +217,11 @@ class _RecognitionNet(nn.Module):
         raw = self.out_proj(bigru_out)
 
         # Restore spatial dimensions and split into (mu_q, sigma_q)
-        mu_q = raw[:, :, : self.latent_dim].reshape(B, L, N, self.latent_dim)
+        raw_restored = raw.reshape(B, N, L, 2 * self.latent_dim).transpose(1, 2)
+        mu_q = raw_restored[..., :self.latent_dim]
         log_s_q = torch.clamp(
-            raw[:, :, self.latent_dim :], _LOG_SIGMA_MIN, _LOG_SIGMA_MAX
-        ).reshape(B, L, N, self.latent_dim)
+            raw_restored[..., self.latent_dim:], _LOG_SIGMA_MIN, _LOG_SIGMA_MAX
+        )
         sigma_q = F.softplus(log_s_q) + _SIGMA_FLOOR
 
         return mu_q, sigma_q
@@ -430,17 +437,20 @@ class GaussianDSSM(nn.Module):
         mu_q, sigma_q = self.recognition(context, x_speed, obs_mask_hist)
         # mu_q, sigma_q: [B, L, N, latent_dim]
 
+        # Sample z_q for the entire sequence to pass to TransitionNet
+        eps_q = torch.randn_like(sigma_q)
+        z_q_samples = mu_q + sigma_q * eps_q  # [B, L, N, latent_dim]
+
         # 3. Prior: p(z_t | z_{t-1}, c_t) — causal forward through L steps
         z0 = torch.zeros(B, N, self.latent_dim, device=device, dtype=dtype)
-        mu_p, sigma_p, _ = self.transition(context, z0)
+        mu_p, sigma_p, _ = self.transition(context, z0, z_q_samples)
         # mu_p, sigma_p: [B, L, N, latent_dim]
 
         # 4. KL(q || p) — mean over all elements, always >= 0 for valid sigmas
         kl = _diagonal_gaussian_kl(mu_q, sigma_q, mu_p, sigma_p)
 
         # 5. Sample z_L from posterior at the last history step (reparameterization)
-        eps_L = torch.randn_like(sigma_q[:, -1, :, :])
-        z_L = mu_q[:, -1, :, :] + sigma_q[:, -1, :, :] * eps_L  # [B, N, latent_dim]
+        z_L = z_q_samples[:, -1, :, :]  # [B, N, latent_dim]
 
         # 6. Context summary at last history step: [B, N, context_dim]
         context_summary = self.encoder.get_context_summary(context)
