@@ -2,7 +2,7 @@
 
 ## Status and design boundary
 
-This is the **accepted target architecture**, not an implementation claim. No data pipeline, graph preprocessing, or model is currently implemented; see [current state](CURRENT_STATE.md).
+This is the **accepted target architecture**. Phases 1 through 8 (data pipeline, metrics, deterministic baseline, spatial-temporal encoder, forecast head, and DSSM) are implemented and tested. See [current state](CURRENT_STATE.md) for detailed delivery status.
 
 ## System flow
 

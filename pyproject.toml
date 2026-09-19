@@ -28,6 +28,7 @@ st-dssm-preprocess = "st_dssm.cli.preprocess:main"
 st-dssm-evaluate = "st_dssm.cli.evaluate:main"
 st-dssm-baseline = "st_dssm.cli.baseline:main"
 st-dssm-encoder = "st_dssm.cli.encoder:main"
+st-dssm-dssm = "st_dssm.cli.dssm:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
