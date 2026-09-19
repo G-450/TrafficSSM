@@ -348,9 +348,10 @@ def test_encoder_cli_bare_output_filename(tmp_path, monkeypatch):
 
 def test_encoder_cli_unrecognized_graph_and_missing_metadata(tmp_path):
     """Test CLI fails fast on unrecognized graph names or missing metadata."""
+    import pickle
+
     from st_dssm.cli.encoder import verify_encoder_on_dataset
     from st_dssm.graph import GraphError
-    import pickle
     from st_dssm.io import save_processed_artifact
 
     artifact_dir = str(tmp_path / "asym_art")

@@ -4,11 +4,13 @@ Tunes the hyperparameters against Validation NLL with a predefined search record
 Outputs the best configuration to be used for the normal-condition study.
 """
 
+import argparse
 import os
 import subprocess
-import yaml
 import sys
-import argparse
+
+import yaml
+
 
 def main():
     parser = argparse.ArgumentParser(description="Phase 10 Tuning Script")

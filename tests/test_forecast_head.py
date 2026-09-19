@@ -20,12 +20,11 @@ import torch
 import torch.nn.functional as F
 
 from st_dssm.forecast_head import (
-    GaussianForecastHead,
     _LOG_SIGMA_MAX,
     _LOG_SIGMA_MIN,
     _SIGMA_FLOOR,
+    GaussianForecastHead,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

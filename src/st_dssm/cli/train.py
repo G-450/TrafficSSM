@@ -23,9 +23,9 @@ import yaml
 from torch import optim
 from torch.utils.data import DataLoader, TensorDataset
 
-from st_dssm.dssm import GaussianDSSM, _masked_gaussian_nll
 from st_dssm.cli.evaluate import run_evaluation
 from st_dssm.data import EXPECTED_FILES, ChecksumMismatchError, compute_md5
+from st_dssm.dssm import GaussianDSSM, _masked_gaussian_nll
 from st_dssm.graph import (
     calculate_normalized_laplacian,
     calculate_scaled_laplacian,
@@ -282,6 +282,7 @@ def train_st_dssm(
     test_dataset = TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_x_mask))
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     test_preds = []
+    test_sigmas = []
 
     with torch.no_grad():
         for bx, bxm in test_loader:
@@ -289,13 +290,15 @@ def train_st_dssm(
             # Draw predictions (mean is returned as mu_pred)
             mu_pred, sigma_pred = model.forward_predict(bx_in, cheb_poly)
             test_preds.append(mu_pred.cpu().numpy())
+            test_sigmas.append(sigma_pred.cpu().numpy())
 
     y_pred = np.concatenate(test_preds, axis=0)
+    y_sigma = np.concatenate(test_sigmas, axis=0)
 
     # Save predictions
     os.makedirs(output_dir, exist_ok=True)
     predictions_path = os.path.join(output_dir, f"{run_id}_predictions.npz")
-    np.savez_compressed(predictions_path, predictions=y_pred)
+    np.savez_compressed(predictions_path, predictions=y_pred, sigmas=y_sigma)
     print(f"Predictions saved to: {predictions_path}")
 
     # 7. Run evaluation and create manifest
@@ -361,7 +364,7 @@ def run_synthetic_train_smoke(output_dir: str = "artifacts/results") -> None:
 
     model.train()
     optimizer.zero_grad()
-    mu, sigma, kl, nll = model.forward_train(
+    _mu, _sigma, kl, nll = model.forward_train(
         x=in_tensor,
         cheb_polynomials=cheb_poly,
         y_target=target_tensor,
@@ -390,9 +393,9 @@ def run_synthetic_train_smoke(output_dir: str = "artifacts/results") -> None:
     
     model.eval()
     with torch.no_grad():
-        mu_pred, sigma_pred = model.forward_predict(in_tensor, cheb_poly)
+        _mu_pred, _sigma_pred = model.forward_predict(in_tensor, cheb_poly)
     
-    assert mu_pred.shape == (S, H, N, 1)
+    assert _mu_pred.shape == (S, H, N, 1)
     print("  [PASSED] Synthetic ST-DSSM eval step check.")
     print("Synthetic train smoke test completed successfully.")
 
@@ -425,13 +428,37 @@ def main(argv: list[str] | None = None) -> int:
             with open(args.config, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
 
-        # Merge CLI arguments into config
-        config.setdefault("artifact_dir", args.artifact_dir)
-        config.setdefault("output_dir", args.output_dir)
-        config.setdefault("checkpoint_dir", args.checkpoint_dir)
-        config.setdefault("split", args.split)
-        config.setdefault("seed", args.seed)
-        config.setdefault("device", args.device)
+        # Merge CLI arguments into config, giving CLI precedence over YAML
+        if args.artifact_dir != "data/processed":
+            config["artifact_dir"] = args.artifact_dir
+        elif "artifact_dir" not in config:
+            config["artifact_dir"] = args.artifact_dir
+
+        if args.output_dir != "artifacts/results":
+            config["output_dir"] = args.output_dir
+        elif "output_dir" not in config:
+            config["output_dir"] = args.output_dir
+
+        if args.checkpoint_dir != "artifacts/checkpoints":
+            config["checkpoint_dir"] = args.checkpoint_dir
+        elif "checkpoint_dir" not in config:
+            config["checkpoint_dir"] = args.checkpoint_dir
+
+        if args.split != "test":
+            config["split"] = args.split
+        elif "split" not in config:
+            config["split"] = args.split
+
+        if args.seed != 2026:
+            config["seed"] = args.seed
+        elif "seed" not in config:
+            config["seed"] = args.seed
+
+        default_device = "cuda" if torch.cuda.is_available() else "cpu"
+        if args.device != default_device:
+            config["device"] = args.device
+        elif "device" not in config:
+            config["device"] = args.device
         if args.adj_mx_path:
             config["adj_mx_path"] = args.adj_mx_path
 
@@ -448,7 +475,7 @@ def main(argv: list[str] | None = None) -> int:
 
         return 0
 
-    except Exception as e:
+    except RuntimeError as e:
         import traceback
 
         print(f"Trainer runner error: {e}", file=sys.stderr, flush=True)

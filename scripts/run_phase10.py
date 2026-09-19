@@ -10,7 +10,9 @@ import argparse
 import os
 import subprocess
 import sys
+
 import yaml
+
 
 def main():
     parser = argparse.ArgumentParser(description="Phase 10 Automation Script")
