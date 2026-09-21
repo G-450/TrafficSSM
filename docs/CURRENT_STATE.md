@@ -42,9 +42,19 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 | Phase 6 (encoder) | 14 | ✅ Passing |
 | Phase 7 (forecast head) | 25 | ✅ Passing |
 | Phase 8 (DSSM) | 30 | ✅ Passing |
-| **Total** | **172** | **✅ All passing** |
+| Phase 9 (training CLI) | 3 | ✅ Passing |
+| **Total** | **216** | **✅ All passing** (verified 2026-09-21, full local reinstall + `pytest`) |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
+
+### Phase 9 hardening (2026-09-21)
+
+Reviewing the merged Phase 9/10 code against real data surfaced and fixed two defects, verified against real downloaded/preprocessed PEMS-BAY data on a CUDA machine:
+- `st-dssm-train` crashed with `UnicodeEncodeError` on Windows consoles (default `cp1252` encoding cannot encode the `β` character in the epoch-progress print). Fixed by using ASCII-only log output.
+- The CLI-argument/YAML-config merge logic decided whether a flag was "explicitly passed" by comparing the parsed value against the hardcoded default, so a CLI flag could never override a config value back to that default (e.g. `--seed 2026` was silently ignored if the config file set a different `seed`). Fixed by using `None` argparse defaults with explicit precedence (CLI > config > hardcoded default); covered by a new regression test in `tests/test_train_cli.py`.
+- `scripts/tune_phase10.py` selected the best hyperparameter configuration by regex-parsing training stdout for `"Best Val NLL:"`; rewritten to call `train_st_dssm` directly and read `manifest.overall_metrics["NLL"]`, which is robust to log-format changes and avoids a subprocess per grid point.
+
+**Real-data timing measurement:** one training epoch (36,466 train windows, batch size 64, `N=325` sensors) took **~40 minutes** on an NVIDIA RTX 3050 Laptop GPU (6 GB, 100% utilization throughout) — expected given the model's inherently sequential 12-step recurrent prior transition and 12-step autoregressive decoder. At `max_epochs: 100` / `patience: 15` (`configs/train.yaml`), a single canonical run is realistically several hours to ~1 day; the full Phase 10 protocol (3 tuning-grid runs + 3 canonical-seed runs) is a multi-day compute commitment not undertaken in this session — execution was deferred to a machine with more sustained GPU budget.
 
 ## Next authorized work
 
