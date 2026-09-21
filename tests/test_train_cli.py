@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import os
+from unittest.mock import patch
+
+import yaml
 
 from st_dssm.cli.train import main
 
@@ -41,3 +44,25 @@ def test_train_cli_resume(tmp_path: os.PathLike[str]) -> None:
         main(["--resume", ckpt_path])
         mock_train.assert_called_once()
         assert mock_train.call_args[1]["resume_path"] == ckpt_path
+
+
+def test_train_cli_flag_overrides_config_value_matching_hardcoded_default(
+    tmp_path: os.PathLike[str],
+) -> None:
+    """An explicit CLI flag must override a config value even when the CLI
+    value happens to equal the argparse default (regression test: previously
+    the merge logic compared the parsed CLI value against the hardcoded
+    default to decide whether the flag was "explicitly passed", so a config
+    value could not be overridden back to that default via the CLI)."""
+    config_path = os.path.join(tmp_path, "config.yaml")
+    with open(config_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump({"seed": 99, "split": "val"}, f)
+
+    with patch("st_dssm.cli.train.train_st_dssm") as mock_train:
+        # --seed 2026 and (implicitly) --split test both match the CLI's
+        # hardcoded defaults, but must still win over the config's seed=99/split=val.
+        main(["--config", config_path, "--seed", "2026", "--split", "test"])
+        mock_train.assert_called_once()
+        called_config = mock_train.call_args[1]["config"]
+        assert called_config["seed"] == 2026
+        assert called_config["split"] == "test"
