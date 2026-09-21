@@ -21,8 +21,8 @@ The project restarted its implementation on 2026-08-13.
 | 6 | Spatial-temporal encoder | ✅ Done |
 | 7 | Probabilistic forecast head | ✅ Done |
 | 8 | DSSM integration | ✅ Done |
-| 9 | Training operations | 🔲 Next |
-| 10 | Normal-condition study | 🔲 Pending |
+| 9 | Training operations | ✅ Done |
+| 10 | Normal-condition study | 🔲 Next |
 | 11 | Missingness mechanism | 🔲 Pending |
 | 12 | Robustness study | 🔲 Pending |
 | 13 | Calibration and robustness review | 🔲 Pending |
@@ -154,8 +154,7 @@ TrafficSSM/
     └── test_dssm.py                  # Phase 8 — GaussianDSSM (30 tests)
 ```
 
-**Total tests:** 213 collected · 212 pass · 1 pre-existing skip
-(the skip requires `data/processed` on disk and is unrelated to Phases 7–8)
+**Total tests:** 215 collected · 215 pass (verified 2026-09-21)
 
 ---
 
