@@ -1,7 +1,7 @@
 # Current project state
 
-**Status date:** 2026-09-17
-**Delivery state:** Phase 8 Deep State Space Model (DSSM) integration is fully implemented, tested, and validated. Phase 9 training operations is next.
+**Status date:** 2026-10-07
+**Delivery state:** Phase 9 training operations is fully implemented, tested, and validated. Phase 10 normal-condition study is next.
 
 ## Implemented foundation
 
@@ -48,9 +48,11 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 
 ## Next authorized work
 
-Phase 7 probabilistic forecast head and Phase 8 DSSM integration are complete, thoroughly tested (172 unit/integration tests passing, 0 lint errors from new code), and validated end-to-end on synthetic fixtures with full provenance. Once approved, proceed to [Phase 9 — Training operations](IMPLEMENTATION_PLAN.md):
-- Configuration-driven training loop with checkpoint selection on validation NLL
-- Logging, rerun metadata, and run manifests
-- Canonical seed schedule (2026, 2027, 2028)
-- Device handling and optional mixed precision
+Phase 9 Training operations is complete, with the `st-dssm-train` CLI and its tests merged. Once approved, proceed to [Phase 10 — Normal-condition study](IMPLEMENTATION_PLAN.md):
+- Tune ST-DSSM hyperparameters against validation NLL only, with predefined search record
+- Lock configuration, evaluate test set once per seed (2026, 2027, 2028)
+- Compare with Phase 5 deterministic baseline at 0% masking
+- Produce locked test tables and figures in `experiments/normal/`
+
+*Note: `scripts/tune_phase10.py` and `scripts/run_phase10.py` are scaffolded but have not been executed end-to-end.*
 

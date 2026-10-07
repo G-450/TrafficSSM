@@ -21,8 +21,8 @@ The project restarted its implementation on 2026-08-13.
 | 6 | Spatial-temporal encoder | ✅ Done |
 | 7 | Probabilistic forecast head | ✅ Done |
 | 8 | DSSM integration | ✅ Done |
-| 9 | Training operations | 🔲 Next |
-| 10 | Normal-condition study | 🔲 Pending |
+| 9 | Training operations | ✅ Done |
+| 10 | Normal-condition study | 🔲 Next |
 | 11 | Missingness mechanism | 🔲 Pending |
 | 12 | Robustness study | 🔲 Pending |
 | 13 | Calibration and robustness review | 🔲 Pending |
@@ -170,6 +170,7 @@ TrafficSSM/
 | `st-dssm-baseline` | `cli.baseline` | 5 | Train and evaluate deterministic baseline |
 | `st-dssm-encoder` | `cli.encoder` | 6 | Verify encoder on canonical dataset |
 | `st-dssm-dssm` | `cli.dssm` | 8 | End-to-end DSSM synthetic smoke test |
+| `st-dssm-train` | `cli.train` | 9 | Configuration-driven training loop |
 
 ---
 
@@ -281,9 +282,9 @@ capacity report, CLI.
 
 ---
 
-### 🔲 Phase 9 — Training operations (next)
+### ✅ Phase 9 — Training operations
 
-Planned deliverables:
+Planned deliverables (completed via PR #11):
 - `configs/` — YAML training configuration (lr, batch size, epochs, seed schedule)
 - `src/st_dssm/cli/train.py` — `st-dssm-train` CLI
 - Configuration-driven training loop consuming `GaussianDSSM.forward_train`
@@ -295,16 +296,18 @@ Planned deliverables:
 - Run manifest output after every evaluation
 - `tests/test_train_cli.py` — interrupted/resumed and deterministic-smoke tests
 
-**Gate:** Interrupted/resumed and deterministic-smoke runs work without data leakage.
+**Gate:** Interrupted/resumed and deterministic-smoke runs work without data leakage. ✅
 
 ---
 
-### 🔲 Phase 10 — Normal-condition study
+### 🔲 Phase 10 — Normal-condition study (next)
 
 - Tune ST-DSSM hyperparameters against validation NLL only, with predefined search record
 - Lock configuration, evaluate test set once per seed (2026, 2027, 2028)
 - Compare with Phase 5 deterministic baseline at 0% masking
 - Produce locked test tables and figures in `experiments/normal/`
+
+*Note: `scripts/tune_phase10.py` and `scripts/run_phase10.py` are scaffolded but have not been executed end-to-end.*
 
 **Gate:** Normal-condition tables and figures are reproducible from manifests.
 
