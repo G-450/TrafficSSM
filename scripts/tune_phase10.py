@@ -7,7 +7,6 @@ Outputs the best configuration to be used for the normal-condition study.
 import argparse
 import copy
 import os
-import shutil
 import sys
 
 import yaml
@@ -86,7 +85,13 @@ def main() -> None:
     if best_cfg_path:
         print(f"Tuning Complete. Best Val NLL: {best_nll}")
         print(f"Best configuration saved at: {best_cfg_path}")
-        shutil.copy(best_cfg_path, "configs/tuned.yaml")
+        with open(best_cfg_path, "r", encoding="utf-8") as f:
+            tuned_cfg = yaml.safe_load(f)
+        # seed and split were only for tuning; the locked config must not carry them.
+        tuned_cfg.pop("seed", None)
+        tuned_cfg.pop("split", None)
+        with open("configs/tuned.yaml", "w", encoding="utf-8") as f:
+            yaml.safe_dump(tuned_cfg, f)
         print("Locked configuration copied to configs/tuned.yaml")
     else:
         print("Tuning failed to find a valid configuration.")
