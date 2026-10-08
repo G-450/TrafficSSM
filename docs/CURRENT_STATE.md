@@ -1,7 +1,7 @@
 # Current project state
 
-**Status date:** 2026-09-17
-**Delivery state:** Phase 8 Deep State Space Model (DSSM) integration is fully implemented, tested, and validated. Phase 9 training operations is next.
+**Status date:** 2026-10-08
+**Delivery state:** Phase 9 Training operations and Phase 10 Normal-condition study are fully implemented. Phase 11 Missingness mechanism is in progress.
 
 ## Implemented foundation
 
