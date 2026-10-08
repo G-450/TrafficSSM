@@ -17,7 +17,9 @@ class MaskGenerator:
             seed: Random seed for reproducibility (canonical seeds: 2026, 2027, 2028).
         """
         if not (0.0 <= missing_ratio < 1.0):
-            raise ValueError(f"Missing ratio must be in [0.0, 1.0), got {missing_ratio}")
+            raise ValueError(
+                f"Missing ratio must be in [0.0, 1.0), got {missing_ratio}"
+            )
 
         self.num_nodes = num_nodes
         self.missing_ratio = missing_ratio
@@ -35,17 +37,25 @@ class MaskGenerator:
     def get_masked_sensor_ids(self, sensor_ids: list[str]) -> list[str]:
         """Returns the IDs of the sensors that are masked."""
         if len(sensor_ids) != self.num_nodes:
-            raise ValueError(f"Expected {self.num_nodes} sensor IDs, got {len(sensor_ids)}")
-        return [sid for sid, is_observed in zip(sensor_ids, self.node_mask) if not is_observed]
+            raise ValueError(
+                f"Expected {self.num_nodes} sensor IDs, got {len(sensor_ids)}"
+            )
+        return [
+            sid
+            for sid, is_observed in zip(sensor_ids, self.node_mask)
+            if not is_observed
+        ]
 
-    def apply_mask(self, x: np.ndarray, x_mask_native: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def apply_mask(
+        self, x: np.ndarray, x_mask_native: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Applies the experimental mask to input arrays.
         M_obs = M_native AND M_experiment.
         Unobserved numeric inputs are set to 0.0.
 
         Args:
-            x: Input array, typically [S, L, N, C] or similar. The last or second to last axis 
+            x: Input array, typically [S, L, N, C] or similar. The last or second to last axis
                usually contains nodes. Assuming shape [..., N, C] or [..., N].
             x_mask_native: Native missingness mask, same shape as x.
 
@@ -53,7 +63,9 @@ class MaskGenerator:
             tuple containing (x_masked, x_mask_combined)
         """
         if x.shape != x_mask_native.shape:
-            raise ValueError(f"Shape mismatch: x {x.shape} != x_mask_native {x_mask_native.shape}")
+            raise ValueError(
+                f"Shape mismatch: x {x.shape} != x_mask_native {x_mask_native.shape}"
+            )
 
         # Find the node axis. Usually it's axis -2 if C=1, or axis -1 if C is missing.
         if x.shape[-1] == self.num_nodes:
@@ -61,7 +73,9 @@ class MaskGenerator:
         elif len(x.shape) > 1 and x.shape[-2] == self.num_nodes:
             node_axis = -2
         else:
-            raise ValueError(f"Cannot find node dimension of size {self.num_nodes} in shape {x.shape}")
+            raise ValueError(
+                f"Cannot find node dimension of size {self.num_nodes} in shape {x.shape}"
+            )
 
         # Broadcast node mask to x's shape
         reshape_dims = [1] * x.ndim
