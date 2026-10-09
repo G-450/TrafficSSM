@@ -7,12 +7,14 @@ from st_dssm.encoder import (
     SpatialTemporalEncoder,
 )
 from st_dssm.forecast_head import GaussianForecastHead
+from st_dssm.mask_generator import MaskGenerator
 
 __version__ = "0.1.0"
 __all__ = [
     "CausalGatedTemporalConv",
+    "GaussianDSSM",
+    "GaussianForecastHead",
+    "MaskGenerator",
     "SpatialTemporalBlock",
     "SpatialTemporalEncoder",
-    "GaussianForecastHead",
-    "GaussianDSSM",
 ]
