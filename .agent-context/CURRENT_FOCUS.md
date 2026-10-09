@@ -1,8 +1,8 @@
 # Current focus
 
-Phase 7 probabilistic forecast head and Phase 8 Deep State Space Model (DSSM) integration are complete and verified across synthetic fixtures with capacity reports and passing tests. 
+Phase 9 training operations is complete, including the `st-dssm-train` CLI and its tests.
 
-The next focus is Phase 9 — Training operations.
+The next focus is Phase 10 — Normal-condition study. Note that `scripts/tune_phase10.py` and `scripts/run_phase10.py` are scaffolded but have not been executed end-to-end.
 
 See `docs/IMPLEMENTATION_PLAN.md` for gates and sequencing, and consult the accepted decision records before making a material design choice. Record any newly discovered ambiguity in `docs/OPEN_QUESTIONS.md`.
 
