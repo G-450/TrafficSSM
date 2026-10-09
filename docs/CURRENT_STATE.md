@@ -42,9 +42,9 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 | Phase 6 (encoder + graph) | 24 | ✅ Passing |
 | Phase 7 (forecast head) | 25 | ✅ Passing |
 | Phase 8 (DSSM) | 30 | ✅ Passing |
-| Phase 9 (training CLI) | 3 | ✅ Passing |
+| Phase 9 (training CLI) | 7 | ✅ Passing |
 | Phase 11 (missingness mechanism) | 15 | ✅ Passing |
-| **Total** | **231** | **✅ All passing** |
+| **Total** | **235** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 
@@ -59,7 +59,16 @@ Phase 9 Training operations is complete, with the `st-dssm-train` CLI and its te
 *Note: `scripts/tune_phase10.py` and `scripts/run_phase10.py` are scaffolded but have not been executed end-to-end.*
 
 *Phase 9 hardening (#12): fixed a Windows console crash in `st-dssm-train` and CLI/config
-precedence, and `tune_phase10.py` now reads val NLL from the run manifest. Real-data timing:
-one epoch took ~40 min on an RTX 3050 Laptop GPU, so the full Phase 10 protocol
-(3 tuning + 3 seed runs) is a multi-day compute job.*
+precedence, and `tune_phase10.py` now reads val NLL from the run manifest.*
+
+*Training memory and evaluation fix (2026-10-10): at `batch_size: 64` training needs about
+7 GB of GPU memory; on 6–8 GB laptop GPUs under Windows the overflow spills into system RAM
+and an epoch takes ~40–100 min. `training.micro_batch_size: 32` runs each batch as two
+micro-batches whose weighted gradients sum exactly to the full-batch gradient (tested), so
+the optimisation protocol is unchanged and peak memory is ~3.5 GB. Measured on an RTX 4060
+Laptop GPU with real PEMS-BAY data: one epoch including validation takes ~5 min, so a
+100-epoch run is at most ~8 h. The same change fixes `st-dssm-train` saving predicted
+sigmas under a key the evaluator did not read, which had silently dropped NLL, CRPS, PICP
+and MPIW from every ST-DSSM run manifest. Run manifests now also record the training seed,
+checkpoint, best epoch, epochs run and the full training config.*
 

@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 import os
+import pickle
 from unittest.mock import patch
 
+import numpy as np
+import pytest
+import torch
 import yaml
 
-from st_dssm.cli.train import main
+from st_dssm.cli.train import main, train_st_dssm, train_step
+from st_dssm.dssm import GaussianDSSM
+from st_dssm.graph import (
+    calculate_normalized_laplacian,
+    calculate_scaled_laplacian,
+    compute_chebyshev_polynomials,
+)
+from st_dssm.io import save_processed_artifact
+from st_dssm.result_schema import load_run_manifest
 
 
 def test_train_cli_synthetic_smoke(tmp_path: os.PathLike[str]) -> None:
@@ -66,3 +78,115 @@ def test_train_cli_flag_overrides_config_value_matching_hardcoded_default(
         called_config = mock_train.call_args[1]["config"]
         assert called_config["seed"] == 2026
         assert called_config["split"] == "test"
+
+
+def _grads_after_step(micro_batch_size: int | None) -> tuple[list[torch.Tensor], tuple[float, float, float]]:
+    """One train_step on a fixed synthetic batch with all sampling noise disabled."""
+    torch.manual_seed(0)
+    n_nodes, length = 5, 12
+    adj = np.eye(n_nodes, dtype=np.float32)
+    for i in range(n_nodes - 1):
+        adj[i, i + 1] = adj[i + 1, i] = 0.5
+    scaled_lap, _ = calculate_scaled_laplacian(calculate_normalized_laplacian(adj))
+    cheb = torch.tensor(compute_chebyshev_polynomials(scaled_lap, k=3), dtype=torch.float32)
+
+    model = GaussianDSSM(
+        num_nodes=n_nodes, in_channels=2, latent_dim=4, context_dim=8, hidden_dim=8,
+        horizon=length, input_length=length, cheb_k=3, dropout=0.0,
+    )
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0)
+
+    gen = torch.Generator().manual_seed(1)
+    x = torch.randn(8, length, n_nodes, 1, generator=gen)
+    x_mask = torch.rand(8, length, n_nodes, 1, generator=gen) > 0.2
+    y = torch.randn(8, length, n_nodes, 1, generator=gen)
+    # Uneven observed-target counts per sample exercise the NLL weighting.
+    y_mask = torch.rand(8, length, n_nodes, 1, generator=gen) > torch.linspace(0.1, 0.7, 8).view(8, 1, 1, 1)
+
+    with patch("torch.randn_like", side_effect=torch.zeros_like):
+        losses = train_step(
+            model, optimizer, (x, x_mask, y, y_mask), cheb, torch.device("cpu"),
+            teacher_force_ratio=1.0, beta=0.5, micro_batch_size=micro_batch_size,
+        )
+    grads = [p.grad.detach().clone() for p in model.parameters() if p.grad is not None]
+    return grads, losses
+
+
+@pytest.mark.parametrize("micro_batch_size", [4, 3])
+def test_train_step_micro_batches_match_full_batch(micro_batch_size: int) -> None:
+    """Gradient accumulation must reproduce the full-batch gradient and losses,
+    including when the last micro-batch is smaller than the others."""
+    full_grads, full_losses = _grads_after_step(None)
+    micro_grads, micro_losses = _grads_after_step(micro_batch_size)
+
+    assert len(full_grads) == len(micro_grads) > 0
+    for g_full, g_micro in zip(full_grads, micro_grads):
+        torch.testing.assert_close(g_micro, g_full, rtol=1e-4, atol=1e-6)
+    assert micro_losses == pytest.approx(full_losses, rel=1e-5)
+
+
+def _tiny_training_config(tmp_path, micro_batch_size: int) -> dict:
+    """Write a 4-sensor artifact and graph to tmp_path and return a CPU training config."""
+    rng = np.random.default_rng(0)
+    n, length = 4, 12
+    sensor_ids = [f"s{i}" for i in range(n)]
+    arrays = {}
+    for split, count in [("train", 16), ("val", 8), ("test", 8)]:
+        arrays[f"{split}_X"] = rng.normal(size=(count, length, n, 1)).astype(np.float32)
+        arrays[f"{split}_X_mask"] = np.ones((count, length, n, 1), dtype=bool)
+        arrays[f"{split}_Y"] = rng.normal(size=(count, length, n, 1)).astype(np.float32)
+        arrays[f"{split}_Y_mask"] = np.ones((count, length, n, 1), dtype=bool)
+    arrays["scaler_means"] = np.full(n, 60.0, dtype=np.float32)
+    arrays["scaler_stds"] = np.full(n, 5.0, dtype=np.float32)
+    artifact_dir = str(tmp_path / "artifact")
+    save_processed_artifact(artifact_dir, arrays, {"schema_version": "1.0", "sensor_ids": sensor_ids})
+
+    adj = np.eye(n, dtype=np.float32)
+    for i in range(n - 1):
+        adj[i, i + 1] = adj[i + 1, i] = 0.5
+    adj_path = str(tmp_path / "adj.pkl")
+    with open(adj_path, "wb") as f:
+        pickle.dump((sensor_ids, {}, adj), f)
+
+    return {
+        "seed": 7,
+        "device": "cpu",
+        "artifact_dir": artifact_dir,
+        "adj_mx_path": adj_path,
+        "allow_unverified_graph": True,
+        "split": "test",
+        "model": {"latent_dim": 4, "context_dim": 8, "hidden_dim": 8, "dropout": 0.0},
+        "training": {"max_epochs": 2, "batch_size": 8, "micro_batch_size": micro_batch_size},
+    }
+
+
+def test_train_st_dssm_end_to_end_records_uncertainty_and_provenance(tmp_path) -> None:
+    """A full train_st_dssm run must produce a manifest with the probabilistic
+    metrics and the training settings (regression test: predictions were saved
+    under a key the evaluator did not read, so NLL/CRPS/PICP were silently lost)."""
+    result = train_st_dssm(
+        config=_tiny_training_config(tmp_path, micro_batch_size=4),
+        output_dir=str(tmp_path / "results"),
+        checkpoint_dir=str(tmp_path / "ckpt"),
+        save_plots=False,
+    )
+
+    manifest = load_run_manifest(result["manifest_path"])
+    for metric in ("MAE", "NLL", "CRPS", "PICP", "MPIW"):
+        assert metric in manifest.overall_metrics
+    assert manifest.training_seed == 7
+    assert manifest.selection_metric == "val_nll"
+    assert manifest.total_epochs == 2
+    assert 1 <= manifest.best_epoch <= 2
+    assert os.path.exists(manifest.checkpoint_path)
+    assert manifest.resolved_config["training_config"]["training"]["micro_batch_size"] == 4
+
+
+def test_train_st_dssm_rejects_micro_batch_larger_than_batch(tmp_path) -> None:
+    with pytest.raises(ValueError, match="micro_batch_size"):
+        train_st_dssm(
+            config=_tiny_training_config(tmp_path, micro_batch_size=16),
+            output_dir=str(tmp_path / "results"),
+            checkpoint_dir=str(tmp_path / "ckpt"),
+            save_plots=False,
+        )
