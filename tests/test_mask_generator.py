@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 
@@ -92,3 +94,91 @@ def test_apply_mask_shape_mismatch():
 
     with pytest.raises(ValueError):
         gen.apply_mask(x2, x_mask2)
+
+
+def test_leakage_probe():
+    gen = MaskGenerator(num_nodes=5, missing_ratio=0.4, seed=42)  # 2 missing
+    x = np.ones((2, 5, 1), dtype=np.float32)
+
+    # Fill masked sensors with 999.0
+    masked_indices = np.where(~gen.node_mask)[0]
+    for idx in masked_indices:
+        x[:, idx, :] = 999.0
+
+    x_original = x.copy()
+
+    x_mask_native = np.ones((2, 5, 1), dtype=bool)
+
+    x_masked, x_mask_combined = gen.apply_mask(x, x_mask_native, node_axis=-2)
+
+    assert 999.0 not in x_masked
+    assert np.all(x_mask_combined[:, masked_indices, :] == False)
+    assert np.array_equal(x, x_original)
+
+
+def test_targets_untouched():
+    gen = MaskGenerator(num_nodes=5, missing_ratio=0.4, seed=42)
+    x = np.ones((2, 5, 1), dtype=np.float32)
+    x_mask_native = np.ones((2, 5, 1), dtype=bool)
+    y = np.ones((2, 5, 1), dtype=np.float32) * 5.0
+    y_mask = np.ones((2, 5, 1), dtype=bool)
+    y_orig = y.copy()
+    y_mask_orig = y_mask.copy()
+
+    gen.apply_mask(x, x_mask_native, node_axis=-2)
+
+    assert np.array_equal(y, y_orig)
+    assert np.array_equal(y_mask, y_mask_orig)
+
+
+def test_save_load_round_trip(tmp_path):
+    gen = MaskGenerator(num_nodes=325, missing_ratio=0.2, seed=2026)
+    path = tmp_path / "mask.json"
+    gen.save(path)
+
+    loaded_gen = MaskGenerator.load(path)
+    np.testing.assert_array_equal(gen.node_mask, loaded_gen.node_mask)
+    assert gen.checksum == loaded_gen.checksum
+
+    # Edit checksum and check error
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    data["checksum"] = "bad_checksum"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+    with pytest.raises(ValueError, match="Checksum mismatch"):
+        MaskGenerator.load(path)
+
+
+def test_canonical_counts():
+    gen10 = MaskGenerator(num_nodes=325, missing_ratio=0.1, seed=42)
+    assert np.sum(~gen10.node_mask) == 32
+
+    gen20 = MaskGenerator(num_nodes=325, missing_ratio=0.2, seed=42)
+    assert np.sum(~gen20.node_mask) == 65
+
+    gen30 = MaskGenerator(num_nodes=325, missing_ratio=0.3, seed=42)
+    assert np.sum(~gen30.node_mask) == 98
+
+
+def test_fairness():
+    gen1 = MaskGenerator(num_nodes=325, missing_ratio=0.2, seed=2026)
+    gen2 = MaskGenerator(num_nodes=325, missing_ratio=0.2, seed=2026)
+
+    assert gen1.checksum == gen2.checksum
+    assert gen1.mask_id == gen2.mask_id
+
+
+def test_explicit_node_axis():
+    gen = MaskGenerator(num_nodes=3, missing_ratio=0.0, seed=42)
+    x = np.ones((2, 3, 1))  # nodes are at axis -2 (or 1)
+    x_mask = np.ones((2, 3, 1), dtype=bool)
+
+    # wrong axis: -1 (size 1)
+    with pytest.raises(ValueError, match="Expected 3 nodes along axis -1, got 1"):
+        gen.apply_mask(x, x_mask, node_axis=-1)
+
+    # invalid axis: -5
+    with pytest.raises(ValueError, match="Invalid node_axis"):
+        gen.apply_mask(x, x_mask, node_axis=-5)

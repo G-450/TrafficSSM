@@ -1,10 +1,30 @@
+"""Deterministic mask generation for experimental observation simulation.
+
+Implements Phase 11 missingness mechanism per ADR-0004 and ADR-0007.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import TYPE_CHECKING
+
 import numpy as np
+
+if TYPE_CHECKING:
+    from st_dssm.result_schema import RunManifest
 
 
 class MaskGenerator:
     """
     Generates and applies deterministic node-level experimental observation masks.
     Implements Phase 11 missingness mechanism per ADR-0004 and ADR-0007.
+
+    Canonical mask counts for 325 sensors:
+    - 10%: 32 sensors masked
+    - 20%: 65 sensors masked
+    - 30%: 98 sensors masked
     """
 
     def __init__(self, num_nodes: int, missing_ratio: float, seed: int):
@@ -16,6 +36,9 @@ class MaskGenerator:
             missing_ratio: Fraction of nodes to withhold (e.g., 0.20 for 20%).
             seed: Random seed for reproducibility (canonical seeds: 2026, 2027, 2028).
         """
+        if num_nodes <= 0:
+            raise ValueError(f"num_nodes must be strictly positive, got {num_nodes}")
+
         if not (0.0 <= missing_ratio < 1.0):
             raise ValueError(
                 f"Missing ratio must be in [0.0, 1.0), got {missing_ratio}"
@@ -27,12 +50,16 @@ class MaskGenerator:
 
         # Generate the deterministic mask
         rng = np.random.default_rng(seed)
-        num_missing = int(round(num_nodes * missing_ratio))
+        num_missing = round(num_nodes * missing_ratio)
 
         self.node_mask = np.ones(num_nodes, dtype=bool)
         if num_missing > 0:
             missing_indices = rng.choice(num_nodes, size=num_missing, replace=False)
             self.node_mask[missing_indices] = False
+
+        self.checksum = hashlib.sha256(self.node_mask.tobytes()).hexdigest()
+        self.mask_condition = f"{round(missing_ratio * 100)}%"
+        self.mask_id = f"node{round(missing_ratio * 100)}-seed{seed}"
 
     def get_masked_sensor_ids(self, sensor_ids: list[str]) -> list[str]:
         """Returns the IDs of the sensors that are masked."""
@@ -46,8 +73,55 @@ class MaskGenerator:
             if not is_observed
         ]
 
+    def save(self, path: str | Path | None = None) -> None:
+        """Saves the mask metadata and content to a JSON file."""
+        if path is None:
+            path = Path("experiments") / "masks" / f"{self.mask_id}.json"
+
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        data = {
+            "mask_id": self.mask_id,
+            "seed": self.seed,
+            "missing_ratio": self.missing_ratio,
+            "num_nodes": self.num_nodes,
+            "masked_indices": np.where(~self.node_mask)[0].tolist(),
+            "checksum": self.checksum,
+        }
+
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+    @classmethod
+    def load(cls, path: str | Path) -> MaskGenerator:
+        """Loads a MaskGenerator from a JSON file and validates its checksum."""
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        instance = cls(
+            num_nodes=data["num_nodes"],
+            missing_ratio=data["missing_ratio"],
+            seed=data["seed"],
+        )
+
+        if instance.checksum != data["checksum"]:
+            raise ValueError(
+                f"Checksum mismatch for mask loaded from {path}. "
+                f"Expected {data['checksum']}, got {instance.checksum}"
+            )
+
+        return instance
+
+    def fill_manifest(self, manifest: RunManifest, sensor_ids: list[str]) -> None:
+        """Fills the mask_* fields of a RunManifest."""
+        manifest.mask_seed = self.seed
+        manifest.mask_condition = self.mask_condition
+        manifest.mask_sensor_ids = self.get_masked_sensor_ids(sensor_ids)
+        manifest.mask_checksum = self.checksum
+
     def apply_mask(
-        self, x: np.ndarray, x_mask_native: np.ndarray
+        self, x: np.ndarray, x_mask_native: np.ndarray, node_axis: int = -2
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Applies the experimental mask to input arrays.
@@ -55,9 +129,9 @@ class MaskGenerator:
         Unobserved numeric inputs are set to 0.0.
 
         Args:
-            x: Input array, typically [S, L, N, C] or similar. The last or second to last axis
-               usually contains nodes. Assuming shape [..., N, C] or [..., N].
+            x: Input array, typically [S, L, N, C] or similar.
             x_mask_native: Native missingness mask, same shape as x.
+            node_axis: Axis corresponding to the nodes. Default is -2.
 
         Returns:
             tuple containing (x_masked, x_mask_combined)
@@ -67,15 +141,13 @@ class MaskGenerator:
                 f"Shape mismatch: x {x.shape} != x_mask_native {x_mask_native.shape}"
             )
 
-        # Find the node axis. Usually it's axis -2 if C=1, or axis -1 if C is missing.
-        if x.shape[-1] == self.num_nodes:
-            node_axis = -1
-        elif len(x.shape) > 1 and x.shape[-2] == self.num_nodes:
-            node_axis = -2
-        else:
-            raise ValueError(
-                f"Cannot find node dimension of size {self.num_nodes} in shape {x.shape}"
-            )
+        try:
+            if x.shape[node_axis] != self.num_nodes:
+                raise ValueError(
+                    f"Expected {self.num_nodes} nodes along axis {node_axis}, got {x.shape[node_axis]}"
+                )
+        except IndexError:
+            raise ValueError(f"Invalid node_axis {node_axis} for shape {x.shape}")
 
         # Broadcast node mask to x's shape
         reshape_dims = [1] * x.ndim
@@ -90,3 +162,22 @@ class MaskGenerator:
         x_masked[~x_mask_combined] = 0.0
 
         return x_masked, x_mask_combined
+
+
+def generate_canonical_masks(
+    sensor_ids: list[str], out_dir: str = "experiments/masks"
+) -> None:
+    """Generates canonical masks (10%, 20%, 30%) for standard seeds (2026, 2027, 2028)."""
+    num_nodes = len(sensor_ids)
+    ratios = [0.1, 0.2, 0.3]
+    seeds = [2026, 2027, 2028]
+
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    for ratio in ratios:
+        for seed in seeds:
+            generator = MaskGenerator(
+                num_nodes=num_nodes, missing_ratio=ratio, seed=seed
+            )
+            generator.save(out_path / f"{generator.mask_id}.json")

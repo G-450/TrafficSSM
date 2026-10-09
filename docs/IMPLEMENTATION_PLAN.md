@@ -23,7 +23,7 @@ The project restarted its implementation on 2026-08-13.
 | 8 | DSSM integration | ✅ Done |
 | 9 | Training operations | ✅ Done |
 | 10 | Normal-condition study | 🔲 Next |
-| 11 | Missingness mechanism | 🔲 Pending |
+| 11 | Missingness mechanism | 🔲 In progress |
 | 12 | Robustness study | 🔲 Pending |
 | 13 | Calibration and robustness review | 🔲 Pending |
 | 14 | Final release | 🔲 Pending |
@@ -152,10 +152,11 @@ TrafficSSM/
     ├── test_encoder.py               # Phase 6 — SpatialTemporalEncoder (14 tests)
     ├── test_forecast_head.py         # Phase 7 — GaussianForecastHead (25 tests)
     ├── test_dssm.py                  # Phase 8 — GaussianDSSM (30 tests)
-    └── test_train_cli.py             # Phase 9 — st-dssm-train CLI (3 tests)
+    ├── test_train_cli.py             # Phase 9 — st-dssm-train CLI (3 tests)
+    └── test_mask_generator.py        # Phase 11 — mask generation (12 tests)
 ```
 
-**Total tests:** 216 collected · 216 pass when `data/processed` is present
+**Total tests:** 228 collected · 228 pass when `data/processed` is present
 (without it, `test_encoder_cli_unrecognized_graph_and_missing_metadata` is skipped)
 
 ---
