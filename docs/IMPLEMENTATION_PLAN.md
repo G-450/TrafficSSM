@@ -153,10 +153,10 @@ TrafficSSM/
     ├── test_forecast_head.py         # Phase 7 — GaussianForecastHead (25 tests)
     ├── test_dssm.py                  # Phase 8 — GaussianDSSM (30 tests)
     ├── test_train_cli.py             # Phase 9 — st-dssm-train CLI (3 tests)
-    └── test_mask_generator.py        # Phase 11 — mask generation (12 tests)
+    └── test_mask_generator.py        # Phase 11 — mask generation (15 tests)
 ```
 
-**Total tests:** 228 collected · 228 pass when `data/processed` is present
+**Total tests:** 231 collected · 231 pass when `data/processed` is present
 (without it, `test_encoder_cli_unrecognized_graph_and_missing_metadata` is skipped)
 
 ---

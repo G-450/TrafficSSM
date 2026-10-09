@@ -13,3 +13,4 @@ Decision records are binding once marked **Accepted**. They capture context, dec
 | [ADR-0007](ADR-0007-model-and-masking-specification.md) | Accepted | Fix the canonical ST-DSSM architecture, objective, and masked-input representation. |
 | [ADR-0008](ADR-0008-baseline-and-final-evaluation-protocol.md) | Accepted | Fix baselines, seeds, compute/stopping rules, calibration, and uncertainty claims. |
 | [ADR-0009](ADR-0009-graph-laplacian-symmetrization.md) | Accepted | Graph Laplacian symmetrization protocol for Chebyshev convolutions. |
+| [ADR-0010](ADR-0010-nested-node-masks.md) | Accepted | Node masks are nested across 10/20/30% for the same seed. |

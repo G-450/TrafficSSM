@@ -54,7 +54,9 @@ class MaskGenerator:
 
         self.node_mask = np.ones(num_nodes, dtype=bool)
         if num_missing > 0:
-            missing_indices = rng.choice(num_nodes, size=num_missing, replace=False)
+            # A prefix of one seeded permutation keeps masks nested across ratios
+            # for the same seed (10% within 20% within 30%), per ADR-0010.
+            missing_indices = rng.permutation(num_nodes)[:num_missing]
             self.node_mask[missing_indices] = False
 
         self.checksum = hashlib.sha256(self.node_mask.tobytes()).hexdigest()
@@ -73,7 +75,9 @@ class MaskGenerator:
             if not is_observed
         ]
 
-    def save(self, path: str | Path | None = None) -> None:
+    def save(
+        self, path: str | Path | None = None, sensor_ids: list[str] | None = None
+    ) -> None:
         """Saves the mask metadata and content to a JSON file."""
         if path is None:
             path = Path("experiments") / "masks" / f"{self.mask_id}.json"
@@ -89,6 +93,9 @@ class MaskGenerator:
             "masked_indices": np.where(~self.node_mask)[0].tolist(),
             "checksum": self.checksum,
         }
+
+        if sensor_ids is not None:
+            data["masked_sensor_ids"] = self.get_masked_sensor_ids(sensor_ids)
 
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -109,6 +116,14 @@ class MaskGenerator:
             raise ValueError(
                 f"Checksum mismatch for mask loaded from {path}. "
                 f"Expected {data['checksum']}, got {instance.checksum}"
+            )
+
+        stored_indices = sorted(data["masked_indices"])
+        actual_indices = np.flatnonzero(~instance.node_mask).tolist()
+        if stored_indices != actual_indices:
+            raise ValueError(
+                f"Masked indices in {path} do not match the mask regenerated "
+                f"from seed {data['seed']}"
             )
 
         return instance
@@ -180,4 +195,6 @@ def generate_canonical_masks(
             generator = MaskGenerator(
                 num_nodes=num_nodes, missing_ratio=ratio, seed=seed
             )
-            generator.save(out_path / f"{generator.mask_id}.json")
+            generator.save(
+                out_path / f"{generator.mask_id}.json", sensor_ids=sensor_ids
+            )

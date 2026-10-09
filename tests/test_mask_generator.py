@@ -3,7 +3,8 @@ import json
 import numpy as np
 import pytest
 
-from st_dssm.mask_generator import MaskGenerator
+from st_dssm.mask_generator import MaskGenerator, generate_canonical_masks
+from st_dssm.result_schema import RunManifest
 
 
 def test_mask_generator_initialization():
@@ -116,21 +117,6 @@ def test_leakage_probe():
     assert np.array_equal(x, x_original)
 
 
-def test_targets_untouched():
-    gen = MaskGenerator(num_nodes=5, missing_ratio=0.4, seed=42)
-    x = np.ones((2, 5, 1), dtype=np.float32)
-    x_mask_native = np.ones((2, 5, 1), dtype=bool)
-    y = np.ones((2, 5, 1), dtype=np.float32) * 5.0
-    y_mask = np.ones((2, 5, 1), dtype=bool)
-    y_orig = y.copy()
-    y_mask_orig = y_mask.copy()
-
-    gen.apply_mask(x, x_mask_native, node_axis=-2)
-
-    assert np.array_equal(y, y_orig)
-    assert np.array_equal(y_mask, y_mask_orig)
-
-
 def test_save_load_round_trip(tmp_path):
     gen = MaskGenerator(num_nodes=325, missing_ratio=0.2, seed=2026)
     path = tmp_path / "mask.json"
@@ -182,3 +168,56 @@ def test_explicit_node_axis():
     # invalid axis: -5
     with pytest.raises(ValueError, match="Invalid node_axis"):
         gen.apply_mask(x, x_mask, node_axis=-5)
+
+
+def test_masks_are_nested_for_same_seed():
+    masked = {
+        ratio: set(np.flatnonzero(~MaskGenerator(325, ratio, seed=2026).node_mask))
+        for ratio in (0.1, 0.2, 0.3)
+    }
+    assert masked[0.1] < masked[0.2] < masked[0.3]
+
+
+def test_load_rejects_edited_masked_indices(tmp_path):
+    gen = MaskGenerator(num_nodes=325, missing_ratio=0.2, seed=2026)
+    path = tmp_path / "mask.json"
+    gen.save(path)
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    unmasked = int(np.flatnonzero(gen.node_mask)[0])
+    data["masked_indices"][-1] = unmasked
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+    with pytest.raises(ValueError, match="do not match"):
+        MaskGenerator.load(path)
+
+
+def test_fill_manifest():
+    sensor_ids = [f"s{i}" for i in range(325)]
+    gen = MaskGenerator(num_nodes=325, missing_ratio=0.2, seed=2026)
+    manifest = RunManifest()
+
+    gen.fill_manifest(manifest, sensor_ids)
+
+    assert manifest.mask_seed == 2026
+    assert manifest.mask_condition == "20%"
+    assert manifest.mask_sensor_ids == gen.get_masked_sensor_ids(sensor_ids)
+    assert len(manifest.mask_sensor_ids) == 65
+    assert manifest.mask_checksum == gen.checksum
+
+
+def test_generate_canonical_masks(tmp_path):
+    sensor_ids = [f"s{i}" for i in range(325)]
+    generate_canonical_masks(sensor_ids, out_dir=str(tmp_path))
+
+    files = sorted(p.name for p in tmp_path.glob("*.json"))
+    assert len(files) == 9
+    assert "node20-seed2026.json" in files
+
+    for name in files:
+        loaded = MaskGenerator.load(tmp_path / name)
+        with open(tmp_path / name, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        assert data["masked_sensor_ids"] == loaded.get_masked_sensor_ids(sensor_ids)
