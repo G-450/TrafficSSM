@@ -33,12 +33,71 @@ from st_dssm.graph import (
     symmetrize_adjacency,
 )
 from st_dssm.io import load_and_validate_artifact
+from st_dssm.result_schema import save_run_manifest
 from st_dssm.training import (
     EarlyStopping,
     save_checkpoint,
     set_seed,
 )
 from st_dssm.validator import validate_graph
+
+
+def train_step(
+    model: GaussianDSSM,
+    optimizer: optim.Optimizer,
+    batch: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+    cheb_poly: torch.Tensor,
+    device: torch.device,
+    teacher_force_ratio: float,
+    beta: float,
+    micro_batch_size: int | None = None,
+) -> tuple[float, float, float]:
+    """Run one optimizer step on a batch, optionally split into micro-batches.
+
+    Splitting only bounds peak GPU memory: each micro-batch loss is weighted so
+    the accumulated gradient equals the full-batch gradient. The reconstruction
+    NLL is a mean over observed targets, so it is weighted by each micro-batch's
+    share of observed targets; the KL is a mean over all elements, so it is
+    weighted by each micro-batch's share of samples.
+
+    Returns:
+        (elbo, nll, kl) for the full batch.
+    """
+    bx, bxm, by, bym = batch
+    batch_len = bx.shape[0]
+    step = micro_batch_size or batch_len
+    total_obs = float(bym.sum())
+
+    optimizer.zero_grad()
+    batch_nll = 0.0
+    batch_kl = 0.0
+    for start in range(0, batch_len, step):
+        sl = slice(start, start + step)
+        x_in = torch.cat([bx[sl], bxm[sl].float()], dim=-1).to(device)
+        y = by[sl].to(device)
+        y_mask = bym[sl].to(device)
+
+        _mu, _sigma, kl, nll = model.forward_train(
+            x=x_in,
+            cheb_polynomials=cheb_poly,
+            y_target=y,
+            obs_mask_hist=bxm[sl].to(device),
+            obs_mask_fore=y_mask,
+            teacher_force_ratio=teacher_force_ratio,
+            beta=beta,
+        )
+
+        nll_weight = float(bym[sl].sum()) / total_obs if total_obs > 0 else 0.0
+        kl_weight = bx[sl].shape[0] / batch_len
+        loss = nll_weight * nll + beta * kl_weight * kl
+        loss.backward()
+
+        batch_nll += nll_weight * nll.item()
+        batch_kl += kl_weight * kl.item()
+
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+    optimizer.step()
+    return batch_nll + beta * batch_kl, batch_nll, batch_kl
 
 
 def train_st_dssm(
@@ -148,6 +207,14 @@ def train_st_dssm(
     # 4. DataLoaders
     train_cfg = config.get("training", {})
     batch_size = int(train_cfg.get("batch_size", 64))
+    micro_batch_size = train_cfg.get("micro_batch_size")
+    if micro_batch_size is not None:
+        micro_batch_size = int(micro_batch_size)
+        if not 0 < micro_batch_size <= batch_size:
+            raise ValueError(
+                f"training.micro_batch_size must be in [1, batch_size={batch_size}], got {micro_batch_size}"
+            )
+        print(f"Gradient accumulation: batch size {batch_size} in micro-batches of {micro_batch_size}.", flush=True)
     train_dataset = TensorDataset(
         torch.from_numpy(train_x),
         torch.from_numpy(train_x_mask),
@@ -197,7 +264,9 @@ def train_st_dssm(
 
     print(f"Beginning training (Max epochs={max_epochs}, Beta Anneal={beta_anneal_epochs}, TF Decay={tf_decay_epochs})...", flush=True)
 
+    last_epoch = start_epoch - 1
     for epoch in range(start_epoch, max_epochs + 1):
+        last_epoch = epoch
         # Calculate schedules
         beta = min(epoch / max(1, beta_anneal_epochs), 1.0)
         tf_ratio = max(1.0 - (epoch / max(1, tf_decay_epochs)), 0.0)
@@ -208,30 +277,20 @@ def train_st_dssm(
         total_train_kl = 0.0
         batch_count = 0
 
-        for bx, bxm, by, bym in train_loader:
-            bx_in = torch.cat([bx, bxm.float()], dim=-1).to(device)
-            by = by.to(device)
-            bym = bym.to(device)
-
-            optimizer.zero_grad()
-            _mu, _sigma, kl, nll = model.forward_train(
-                x=bx_in,
-                cheb_polynomials=cheb_poly,
-                y_target=by,
-                obs_mask_hist=bxm.to(device),
-                obs_mask_fore=bym,
+        for batch in train_loader:
+            elbo, nll, kl = train_step(
+                model,
+                optimizer,
+                batch,
+                cheb_poly,
+                device,
                 teacher_force_ratio=tf_ratio,
                 beta=beta,
+                micro_batch_size=micro_batch_size,
             )
-            
-            loss = nll + beta * kl
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
-            optimizer.step()
-
-            total_train_elbo += loss.item()
-            total_train_nll += nll.item()
-            total_train_kl += kl.item()
+            total_train_elbo += elbo
+            total_train_nll += nll
+            total_train_kl += kl
             batch_count += 1
 
         avg_train_elbo = total_train_elbo / batch_count
@@ -298,7 +357,9 @@ def train_st_dssm(
     # Save predictions
     os.makedirs(output_dir, exist_ok=True)
     predictions_path = os.path.join(output_dir, f"{run_id}_predictions.npz")
-    np.savez_compressed(predictions_path, predictions=y_pred, sigmas=y_sigma)
+    # Key names must match what run_evaluation reads, or the uncertainty
+    # metrics (NLL, CRPS, PICP, MPIW) are silently skipped.
+    np.savez_compressed(predictions_path, predictions=y_pred, sigma=y_sigma)
     print(f"Predictions saved to: {predictions_path}")
 
     # 7. Run evaluation and create manifest
@@ -311,9 +372,20 @@ def train_st_dssm(
         "split": split,
         "cadence_minutes": int(config.get("cadence_minutes", 5)),
         "output_dir": output_dir,
+        "training_config": config,
     }
 
     manifest, manifest_path = run_evaluation(eval_config, output_dir=output_dir, save_plots=save_plots)
+
+    # Record training provenance so each result traces back to its run settings.
+    manifest.training_seed = seed
+    manifest.checkpoint_path = best_ckpt_path
+    manifest.selection_metric = "val_nll"
+    manifest.best_epoch = int(early_stopping.best_epoch or 0)
+    manifest.total_epochs = last_epoch
+    manifest.trainable_parameters = int(cap_report["total_trainable_parameters"])
+    save_run_manifest(manifest, manifest_path, overwrite=True, atomic=True)
+
     return {
         "run_id": run_id,
         "manifest_path": manifest_path,

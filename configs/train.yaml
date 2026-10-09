@@ -12,6 +12,9 @@ model:
 training:
   max_epochs: 100
   batch_size: 64
+  # Gradient accumulation: each batch of 64 runs as micro-batches of 32 so
+  # training fits in 8 GB of GPU memory. The optimizer step is unchanged.
+  micro_batch_size: 32
   learning_rate: 1.0e-3
   weight_decay: 1.0e-4
 
