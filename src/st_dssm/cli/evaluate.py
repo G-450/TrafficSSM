@@ -48,7 +48,12 @@ def _get_git_commit() -> tuple[str, bool]:
             .strip()
         )
         status = (
-            subprocess.check_output(["git", "status", "--porcelain"], stderr=subprocess.DEVNULL)
+            # Only modified tracked files make the code state dirty; untracked files
+            # (e.g. earlier run outputs in experiments/) do not change the code.
+            subprocess.check_output(
+                ["git", "status", "--porcelain", "--untracked-files=no"],
+                stderr=subprocess.DEVNULL,
+            )
             .decode("utf-8")
             .strip()
         )
