@@ -21,9 +21,9 @@ The project restarted its implementation on 2026-08-13.
 | 6 | Spatial-temporal encoder | ✅ Done |
 | 7 | Probabilistic forecast head | ✅ Done |
 | 8 | DSSM integration | ✅ Done |
-| 9 | Training operations | ✅ Done |
-| 10 | Normal-condition study | ✅ Done |
-| 11 | Missingness mechanism | 🔲 Next |
+| 9 | Training operations | 🔲 Next |
+| 10 | Normal-condition study | 🔲 Pending |
+| 11 | Missingness mechanism | 🔲 Pending |
 | 12 | Robustness study | 🔲 Pending |
 | 13 | Calibration and robustness review | 🔲 Pending |
 | 14 | Final release | 🔲 Pending |
@@ -281,7 +281,7 @@ capacity report, CLI.
 
 ---
 
-### ✅ Phase 9 — Training operations
+### 🔲 Phase 9 — Training operations (next)
 
 Planned deliverables:
 - `configs/` — YAML training configuration (lr, batch size, epochs, seed schedule)
@@ -299,7 +299,7 @@ Planned deliverables:
 
 ---
 
-### ✅ Phase 10 — Normal-condition study
+### 🔲 Phase 10 — Normal-condition study
 
 - Tune ST-DSSM hyperparameters against validation NLL only, with predefined search record
 - Lock configuration, evaluate test set once per seed (2026, 2027, 2028)
