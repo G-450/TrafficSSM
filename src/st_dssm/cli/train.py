@@ -259,7 +259,7 @@ def train_st_dssm(
         avg_val_nll = total_val_nll / max(1, val_batch_count)
 
         should_stop = early_stopping.step(avg_val_nll, model, epoch)
-        print(f"Epoch {epoch:03d} | β: {beta:.2f} | TF: {tf_ratio:.2f} | Train ELBO: {avg_train_elbo:.4f} (NLL {avg_train_nll:.4f}, KL {avg_train_kl:.4f}) | Val NLL: {avg_val_nll:.4f} | Best Val NLL: {early_stopping.best_score:.4f}", flush=True)
+        print(f"Epoch {epoch:03d} | beta: {beta:.2f} | TF: {tf_ratio:.2f} | Train ELBO: {avg_train_elbo:.4f} (NLL {avg_train_nll:.4f}, KL {avg_train_kl:.4f}) | Val NLL: {avg_val_nll:.4f} | Best Val NLL: {early_stopping.best_score:.4f}", flush=True)
 
         if should_stop:
             print(f"Early stopping triggered at epoch {epoch}. Restoring best weights from epoch {early_stopping.best_epoch}.", flush=True)
@@ -405,14 +405,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="ST-DSSM Phase 9 Training operations.")
     parser.add_argument("--config", type=str, default=None, help="Path to YAML configuration file.")
     parser.add_argument("--synthetic-smoke", action="store_true", help="Run synthetic smoke test.")
-    parser.add_argument("--artifact-dir", type=str, default="data/processed", help="Path to Phase 3 processed artifact directory.")
-    parser.add_argument("--output-dir", type=str, default="artifacts/results", help="Directory to save predictions, run manifests, and plots.")
-    parser.add_argument("--checkpoint-dir", type=str, default="artifacts/checkpoints", help="Directory to save trained model checkpoints.")
-    parser.add_argument("--split", type=str, default="test", help="Split to evaluate ('test', 'val', 'train').")
-    parser.add_argument("--seed", type=int, default=2026, help="Random seed for reproducibility.")
+    parser.add_argument("--artifact-dir", type=str, default=None, help="Path to Phase 3 processed artifact directory. [default: data/processed]")
+    parser.add_argument("--output-dir", type=str, default=None, help="Directory to save predictions, run manifests, and plots. [default: artifacts/results]")
+    parser.add_argument("--checkpoint-dir", type=str, default=None, help="Directory to save trained model checkpoints. [default: artifacts/checkpoints]")
+    parser.add_argument("--split", type=str, default=None, help="Split to evaluate ('test', 'val', 'train'). [default: test]")
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility. [default: 2026]")
     parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume training from.")
     parser.add_argument("--adj-mx-path", type=str, default=None, help="Path to graph adjacency pickle file.")
-    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--device", type=str, default=None, help="Compute device. [default: cuda if available, else cpu]")
     parser.add_argument("--save-plots", action="store_true", default=True, help="Generate evaluation plots.")
     parser.add_argument("--no-plots", dest="save_plots", action="store_false", help="Disable evaluation plot generation.")
 
@@ -420,7 +420,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.synthetic_smoke:
-            run_synthetic_train_smoke(output_dir=args.output_dir)
+            run_synthetic_train_smoke(output_dir=args.output_dir or "artifacts/results")
             return 0
 
         config: dict[str, Any] = {}
@@ -428,30 +428,24 @@ def main(argv: list[str] | None = None) -> int:
             with open(args.config, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
 
-        # Merge CLI arguments into config, giving CLI precedence over YAML
-        if args.artifact_dir != "data/processed" or "artifact_dir" not in config:
-            config["artifact_dir"] = args.artifact_dir
-
-        if args.output_dir != "artifacts/results" or "output_dir" not in config:
-            config["output_dir"] = args.output_dir
-
-        if args.checkpoint_dir != "artifacts/checkpoints" or "checkpoint_dir" not in config:
-            config["checkpoint_dir"] = args.checkpoint_dir
-
-        if args.split != "test" or "split" not in config:
-            config["split"] = args.split
-
-        if args.seed != 2026 or "seed" not in config:
-            config["seed"] = args.seed
+        # Merge CLI arguments into config: an explicitly-passed CLI flag always
+        # wins, falling back to the YAML config value, then a hardcoded default.
+        # Using `None` argparse defaults (rather than comparing against the
+        # hardcoded default value) lets a CLI flag override a config value even
+        # when the CLI value happens to equal the hardcoded default.
+        config["artifact_dir"] = args.artifact_dir if args.artifact_dir is not None else config.get("artifact_dir", "data/processed")
+        config["output_dir"] = args.output_dir if args.output_dir is not None else config.get("output_dir", "artifacts/results")
+        config["checkpoint_dir"] = args.checkpoint_dir if args.checkpoint_dir is not None else config.get("checkpoint_dir", "artifacts/checkpoints")
+        config["split"] = args.split if args.split is not None else config.get("split", "test")
+        config["seed"] = args.seed if args.seed is not None else config.get("seed", 2026)
 
         default_device = "cuda" if torch.cuda.is_available() else "cpu"
-        if args.device != default_device or "device" not in config:
-            config["device"] = args.device
+        config["device"] = args.device if args.device is not None else config.get("device", default_device)
         if args.adj_mx_path:
             config["adj_mx_path"] = args.adj_mx_path
 
-        out_dir = config.get("output_dir", args.output_dir)
-        ckpt_dir = config.get("checkpoint_dir", args.checkpoint_dir)
+        out_dir = config["output_dir"]
+        ckpt_dir = config["checkpoint_dir"]
 
         train_st_dssm(
             config=config,
