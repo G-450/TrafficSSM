@@ -151,11 +151,12 @@ TrafficSSM/
     ├── test_graph.py                 # Phase 6 — ChebConv, graph operators
     ├── test_encoder.py               # Phase 6 — SpatialTemporalEncoder (14 tests)
     ├── test_forecast_head.py         # Phase 7 — GaussianForecastHead (25 tests)
-    └── test_dssm.py                  # Phase 8 — GaussianDSSM (30 tests)
+    ├── test_dssm.py                  # Phase 8 — GaussianDSSM (30 tests)
+    └── test_train_cli.py             # Phase 9 — st-dssm-train CLI (3 tests)
 ```
 
-**Total tests:** 213 collected · 212 pass · 1 pre-existing skip
-(the skip requires `data/processed` on disk and is unrelated to Phases 7–8)
+**Total tests:** 216 collected · 216 pass when `data/processed` is present
+(without it, `test_encoder_cli_unrecognized_graph_and_missing_metadata` is skipped)
 
 ---
 
