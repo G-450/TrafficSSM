@@ -1,28 +1,28 @@
 {
   "arrays": {
     "repair_fallback_stats": {
-      "checksum": "ebf552f1fe8a4eec2a5501647527a06c",
+      "checksum": "6f322d57795b6d507060aece83aab83d",
       "dtype": "float32",
       "shape": [
         325
       ]
     },
     "scaler_means": {
-      "checksum": "5a6e97a17e760051d9db21455a4fe039",
+      "checksum": "e722037ed353404e9760c2f8ccd2e07b",
       "dtype": "float32",
       "shape": [
         325
       ]
     },
     "scaler_stds": {
-      "checksum": "57e5976e7cc808313ed6fee87d061bf0",
+      "checksum": "1e784214ad2907f9189dfe2f9d93dcfc",
       "dtype": "float32",
       "shape": [
         325
       ]
     },
     "test_X": {
-      "checksum": "9cfec2f460b40b6dcd79d4baa59bb414",
+      "checksum": "a1b42d99d7f0f2dfd21e592012e82f2a",
       "dtype": "float32",
       "shape": [
         10403,
@@ -42,7 +42,7 @@
       ]
     },
     "test_Y": {
-      "checksum": "6ee4f22bc7c5a657089bd113aad82e17",
+      "checksum": "0136020ff1ee21e069b1b315357796ec",
       "dtype": "float32",
       "shape": [
         10403,
@@ -62,7 +62,7 @@
       ]
     },
     "train_X": {
-      "checksum": "67155555d6e34be638da8faa730a307a",
+      "checksum": "cf0d2612467d832ad4857a652512e62c",
       "dtype": "float32",
       "shape": [
         36466,
@@ -82,7 +82,7 @@
       ]
     },
     "train_Y": {
-      "checksum": "0094c8fc03746b0b207d42204ba37c27",
+      "checksum": "2394fe0e8509e4136770e0e882eb8bbd",
       "dtype": "float32",
       "shape": [
         36466,
@@ -102,7 +102,7 @@
       ]
     },
     "val_X": {
-      "checksum": "a605d8acf1cda0b312fc476da19eeb40",
+      "checksum": "6403e7ba959b5c4aec960a05191e2344",
       "dtype": "float32",
       "shape": [
         5190,
@@ -122,7 +122,7 @@
       ]
     },
     "val_Y": {
-      "checksum": "d2432a0825fc0bf824c6305f5f8f2b78",
+      "checksum": "b71fe537e5875c162cc349eeda531444",
       "dtype": "float32",
       "shape": [
         5190,
@@ -146,12 +146,12 @@
     "forecast_horizon": 12,
     "input_length": 12
   },
-  "creation_timestamp_utc": "2026-08-15T11:26:55.737073+00:00",
+  "creation_timestamp_utc": "2026-10-09T23:02:27.243227+00:00",
   "environment": {
-    "platform": "Windows-10-10.0.26200-SP0",
-    "python_version": "3.10.0"
+    "platform": "Windows-11-10.0.26300-SP0",
+    "python_version": "3.12.10"
   },
-  "git_revision": "934e97a3704cb2a817536598b9452503982f31b9",
+  "git_revision": "5435325858e0fa839fced13d302b69c72ce4e6e5",
   "preprocessing": {
     "feature_names": [
       "speed"
@@ -528,8 +528,8 @@
   ],
   "source_dataset_manifest": {
     "environment": {
-      "platform": "Windows-10-10.0.26200-SP0",
-      "python_version": "3.10.0"
+      "platform": "Windows-11-10.0.26300-SP0",
+      "python_version": "3.12.10"
     },
     "files": {
       "adj_mx_bay.pkl": {
@@ -583,7 +583,7 @@
         325
       ]
     },
-    "timestamp_utc": "2026-08-15T11:26:53.795412+00:00",
+    "timestamp_utc": "2026-10-09T23:02:25.952672+00:00",
     "verification_status": "PASSED"
   }
 }
