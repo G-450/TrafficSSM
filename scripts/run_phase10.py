@@ -41,8 +41,12 @@ def main():
         print(f"Executing ST-DSSM training for seed {seed}")
         print(f"{'='*60}")
 
+        # Run the trainer with this interpreter so the runs use the same
+        # environment (and CUDA-enabled torch) as the script itself.
         cmd = [
-            "st-dssm-train",
+            sys.executable,
+            "-m",
+            "st_dssm.cli.train",
             "--config", args.config,
             "--seed", str(seed),
             "--output-dir", args.output_dir,

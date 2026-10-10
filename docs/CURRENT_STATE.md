@@ -10,7 +10,7 @@
 - Professional directory contract, packaging metadata, Git workflow, and GitHub review templates.
 - **Phase 1 Data provenance:** Script to download and verify pinned PEMS-BAY dataset, with strict checksum and structural integrity checks.
 - **Phase 2 Data-contract hardening:** `st-dssm-validate` command, `st_dssm.validator` for structural checks, `st_dssm.missingness` separating values and masks, and `st_dssm.imputation` for causal forward-filling. Exact missingness statistics (521 zeros, 0 NaNs) were verified against the canonical dataset.
-- **Phase 3 Reproducible preprocessing:** `st-dssm-preprocess` command with chronologically disjoint splits, training-only scalar fitting, safe NPZ serialization, and exact deterministic validation.
+- **Phase 3 Reproducible preprocessing:** `st-dssm-preprocess` command with chronologically disjoint splits, training-only scalar fitting, safe NPZ serialization, and exact deterministic validation. The canonical artifact was regenerated on 2026-10-10 in the environment used for all Phase 10+ experiments (Python 3.12.10, Windows 11); `data/processed/processed_metadata.json` records its checksums. Values differ from the 2026-08-15 artifact by at most 1.5e-5 (float32 rounding across Python/NumPy versions), but checksums are environment-specific, so regenerate with `st-dssm-preprocess generate --force` on a new machine.
 - **Phase 4 Evaluation foundation:** Model-independent evaluation metrics (`mae`, `rmse`, `gaussian_nll`, `gaussian_crps`, `picp`, `mpiw`), `inverse_transform_predictions` utility, machine-readable JSON result and run-manifest schemas (`MetricRecord`, `RunManifest`), and plotting utilities. Validated with comprehensive synthetic test suites.
 - **Phase 5 Deterministic baseline:** Non-parametric `HistoricalPersistence` baseline, capacity-controlled `DeterministicSTGCN` baseline with 2 causal ST-blocks (Gated TCN + ChebConv $K=3$ + LayerNorm/Dropout/Residual), graph Laplacian and Chebyshev polynomial operators (`st_dssm.graph`), `MaskedMAELoss`, `EarlyStopping` (15 epochs, $10^{-4}$ threshold), and `st-dssm-baseline` CLI runner with automated evaluation and checkpointing.
 - **Phase 6 Spatial-temporal encoder:** Canonical 2-block ST-GCN encoder (`st_dssm.encoder.SpatialTemporalEncoder`), `CausalGatedTemporalConv` with strict causal left-padding, `SpatialTemporalBlock` with Chebyshev graph convolutions ($K=3$, BLAS-accelerated), channel-only LayerNorm, Dropout ($0.1$), residual projections, and 64-dimensional context projection (`[B, 12, 325, 64]`). Validated with mathematical causality probes (zero future leakage), node-permutation equivariance tests, single-batch optimization tests, capacity reports (104,320 parameters), and the `st-dssm-encoder` CLI runner on the canonical PEMS-BAY test partition (`experiments/encoder/encoder_pems_bay_canonical_manifest.json`).
@@ -38,13 +38,13 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 
 | Phase | Tests | Status |
 | :--- | :--- | :--- |
-| Phase 1–5 (data, baselines, evaluation) | 134 | ✅ Passing |
+| Phase 1–5 (data, baselines, evaluation) | 136 | ✅ Passing |
 | Phase 6 (encoder + graph) | 24 | ✅ Passing |
 | Phase 7 (forecast head) | 25 | ✅ Passing |
 | Phase 8 (DSSM) | 30 | ✅ Passing |
 | Phase 9 (training CLI) | 7 | ✅ Passing |
 | Phase 11 (missingness mechanism) | 15 | ✅ Passing |
-| **Total** | **235** | **✅ All passing** |
+| **Total** | **237** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 

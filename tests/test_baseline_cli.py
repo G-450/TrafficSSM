@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import pickle
+from unittest.mock import patch
 
 import numpy as np
 import yaml
@@ -154,3 +155,32 @@ class TestBaselineCLI:
             }, f)
         exit_code = main(["--config", config_path])
         assert exit_code == 1
+
+
+def test_baseline_cli_flags_override_config_values(tmp_path) -> None:
+    """Explicit CLI flags must win over YAML values (regression test: the YAML
+    value always won, so --seed/--epochs/--output-dir were silently ignored and
+    every "seed" run of a config with seed: 2026 trained with seed 2026)."""
+    config_path = tmp_path / "st_gcn.yaml"
+    config_path.write_text(
+        yaml.safe_dump(
+            {"model": "st_gcn", "seed": 2026, "max_epochs": 100, "output_dir": "cfg_out", "split": "test"}
+        ),
+        encoding="utf-8",
+    )
+
+    with patch("st_dssm.cli.baseline.train_and_eval_st_gcn") as mock_train:
+        exit_code = main(
+            ["--config", str(config_path), "--seed", "2027", "--epochs", "2", "--output-dir", str(tmp_path / "cli_out")]
+        )
+    assert exit_code == 0
+    called = mock_train.call_args.kwargs
+    assert called["config"]["seed"] == 2027
+    assert called["config"]["max_epochs"] == 2
+    assert called["output_dir"] == str(tmp_path / "cli_out")
+    # Values not passed on the CLI still come from the config.
+    assert called["config"]["split"] == "test"
+
+    with patch("st_dssm.cli.baseline.run_persistence_baseline") as mock_persist:
+        assert main(["--model", "persistence", "--config", str(config_path)]) == 0
+    mock_persist.assert_called_once()

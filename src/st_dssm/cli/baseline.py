@@ -395,8 +395,8 @@ def main(argv: list[str] | None = None) -> int:
         "--model",
         type=str,
         choices=["persistence", "st_gcn"],
-        default="persistence",
-        help="Baseline model architecture to run.",
+        default=None,
+        help="Baseline model architecture to run. [default: persistence]",
     )
     parser.add_argument(
         "--config",
@@ -412,32 +412,32 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--artifact-dir",
         type=str,
-        default="data/processed",
-        help="Path to Phase 3 processed artifact directory.",
+        default=None,
+        help="Path to Phase 3 processed artifact directory. [default: data/processed]",
     )
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="artifacts/results",
-        help="Directory to save predictions, run manifests, and plots.",
+        default=None,
+        help="Directory to save predictions, run manifests, and plots. [default: artifacts/results]",
     )
     parser.add_argument(
         "--checkpoint-dir",
         type=str,
-        default="artifacts/checkpoints",
-        help="Directory to save trained model checkpoints.",
+        default=None,
+        help="Directory to save trained model checkpoints. [default: artifacts/checkpoints]",
     )
     parser.add_argument(
         "--split",
         type=str,
-        default="test",
-        help="Split to evaluate ('test', 'val', 'train').",
+        default=None,
+        help="Split to evaluate ('test', 'val', 'train'). [default: test]",
     )
     parser.add_argument(
         "--seed",
         type=int,
-        default=2026,
-        help="Random seed for reproducibility.",
+        default=None,
+        help="Random seed for reproducibility. [default: 2026]",
     )
     parser.add_argument(
         "--adj-mx-path",
@@ -448,8 +448,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--epochs",
         type=int,
-        default=100,
-        help="Maximum training epochs for learned models.",
+        default=None,
+        help="Maximum training epochs for learned models. [default: 100]",
     )
     parser.add_argument(
         "--save-plots",
@@ -468,7 +468,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.synthetic_smoke:
-            run_synthetic_baseline_smoke(output_dir=args.output_dir)
+            run_synthetic_baseline_smoke(output_dir=args.output_dir or "artifacts/results")
             return 0
 
         config: dict[str, Any] = {}
@@ -476,20 +476,30 @@ def main(argv: list[str] | None = None) -> int:
             with open(args.config, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
 
-        # Merge CLI arguments into config
-        config.setdefault("artifact_dir", args.artifact_dir)
-        config.setdefault("output_dir", args.output_dir)
-        config.setdefault("checkpoint_dir", args.checkpoint_dir)
-        config.setdefault("split", args.split)
-        config.setdefault("seed", args.seed)
-        config.setdefault("max_epochs", args.epochs)
+        # Merge CLI arguments into config: an explicitly passed flag always wins,
+        # then the YAML value, then the hardcoded default. (Previously the YAML
+        # value always won, so e.g. --seed was ignored whenever the config set one.)
+        defaults: dict[str, Any] = {
+            "model": ("model", "persistence"),
+            "artifact_dir": ("artifact_dir", "data/processed"),
+            "output_dir": ("output_dir", "artifacts/results"),
+            "checkpoint_dir": ("checkpoint_dir", "artifacts/checkpoints"),
+            "split": ("split", "test"),
+            "seed": ("seed", 2026),
+            "epochs": ("max_epochs", 100),
+        }
+        for arg_name, (config_key, default) in defaults.items():
+            cli_value = getattr(args, arg_name)
+            if cli_value is not None:
+                config[config_key] = cli_value
+            else:
+                config.setdefault(config_key, default)
         if args.adj_mx_path:
             config["adj_mx_path"] = args.adj_mx_path
 
-        model_type = config.get("model", args.model)
-
-        out_dir = config.get("output_dir", args.output_dir)
-        ckpt_dir = config.get("checkpoint_dir", args.checkpoint_dir)
+        model_type = config["model"]
+        out_dir = config["output_dir"]
+        ckpt_dir = config["checkpoint_dir"]
 
         if model_type == "persistence":
             run_persistence_baseline(

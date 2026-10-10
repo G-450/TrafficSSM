@@ -156,7 +156,7 @@ TrafficSSM/
     └── test_mask_generator.py        # Phase 11 — mask generation (15 tests)
 ```
 
-**Total tests:** 235 collected · 235 pass when `data/processed` is present
+**Total tests:** 237 collected · 237 pass when `data/processed` is present
 (without it, `test_encoder_cli_unrecognized_graph_and_missing_metadata` is skipped)
 
 ---

@@ -112,3 +112,26 @@ class TestEvaluateCLI:
         assert "MAE" in loaded.overall_metrics
         assert "NLL" in loaded.overall_metrics
         assert len(loaded.per_horizon_metrics) == H
+
+
+def test_git_dirty_ignores_untracked_files(tmp_path, monkeypatch) -> None:
+    """Untracked files (such as earlier run outputs) must not mark a run's code as dirty."""
+    import subprocess
+
+    from st_dssm.cli.evaluate import _get_git_commit
+
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "config", "user.email", "t@example.com"], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "config", "user.name", "t"], check=True)
+    (tmp_path / "code.py").write_text("x = 1\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "code.py"], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "commit", "-q", "-m", "init"], check=True)
+    monkeypatch.chdir(tmp_path)
+
+    (tmp_path / "run_output.json").write_text("{}", encoding="utf-8")
+    _, dirty = _get_git_commit()
+    assert dirty is False
+
+    (tmp_path / "code.py").write_text("x = 2\n", encoding="utf-8")
+    _, dirty = _get_git_commit()
+    assert dirty is True
