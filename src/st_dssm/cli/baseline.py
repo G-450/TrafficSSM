@@ -9,6 +9,7 @@ Adheres to ADR-0007 and ADR-0008.
 from __future__ import annotations
 
 import argparse
+import glob
 import os
 import pickle
 import sys
@@ -32,10 +33,13 @@ from st_dssm.graph import (
     symmetrize_adjacency,
 )
 from st_dssm.io import load_and_validate_artifact
+from st_dssm.result_schema import save_run_manifest
 from st_dssm.training import (
     EarlyStopping,
     MaskedMAELoss,
+    load_training_state,
     save_checkpoint,
+    save_training_state,
     set_seed,
 )
 from st_dssm.validator import validate_graph
@@ -88,8 +92,13 @@ def train_and_eval_st_gcn(
     output_dir: str = "artifacts/results",
     checkpoint_dir: str = "artifacts/checkpoints",
     save_plots: bool = True,
+    resume_path: str | None = None,
 ) -> dict[str, Any]:
-    """Train and evaluate the deterministic ST-GCN baseline."""
+    """Train and evaluate the deterministic ST-GCN baseline.
+
+    ``resume_path`` may be a training state saved by an interrupted run, or
+    "auto" to continue the newest unfinished run for this split and seed.
+    """
     print("Executing Deterministic ST-GCN Baseline Pipeline...")
 
     seed = int(config.get("seed", 2026))
@@ -215,12 +224,30 @@ def train_and_eval_st_gcn(
     early_stopping = EarlyStopping(patience=patience, min_delta=min_delta, mode="min")
 
     run_id = f"baseline-st_gcn-{split}-seed{seed}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    start_epoch = 1
+    if resume_path == "auto":
+        # A run's _last.pt state is deleted once the run completes.
+        candidates = sorted(glob.glob(os.path.join(checkpoint_dir, f"baseline-st_gcn-{split}-seed{seed}-*_last.pt")))
+        resume_path = candidates[-1] if candidates else None
+        if resume_path is None:
+            print("No unfinished run to resume; starting a new run.", flush=True)
+    if resume_path:
+        print(f"Resuming from training state: {resume_path}", flush=True)
+        state = load_training_state(resume_path, model, optimizer, early_stopping, map_location=device)
+        run_id = state["run_id"]
+        start_epoch = state["epoch"] + 1
+        print(f"Resumed at epoch {state['epoch']} with best val MAE: {early_stopping.best_score}", flush=True)
+
     os.makedirs(checkpoint_dir, exist_ok=True)
     best_ckpt_path = os.path.join(checkpoint_dir, f"{run_id}_best.pt")
+    last_state_path = os.path.join(checkpoint_dir, f"{run_id}_last.pt")
 
     print(f"Beginning training (Max epochs={max_epochs}, Patience={patience}, Min delta={min_delta})...", flush=True)
 
-    for epoch in range(1, max_epochs + 1):
+    last_epoch = start_epoch - 1
+    epochs_to_run = range(start_epoch, max_epochs + 1) if not early_stopping.early_stop else range(0)
+    for epoch in epochs_to_run:
+        last_epoch = epoch
         model.train()
         total_train_abs_err = 0.0
         total_train_valid_count = 0.0
@@ -263,6 +290,8 @@ def train_and_eval_st_gcn(
 
         should_stop = early_stopping.step(avg_val_loss, model, epoch)
         print(f"Epoch {epoch:03d} | Train MAE (norm): {avg_train_loss:.4f} | Val MAE (norm): {avg_val_loss:.4f} | Best Val: {early_stopping.best_score:.4f} (Ep {early_stopping.best_epoch})", flush=True)
+
+        save_training_state(last_state_path, model, optimizer, epoch, early_stopping, run_id, config)
 
         if should_stop:
             print(f"Early stopping triggered at epoch {epoch}. Restoring best weights from epoch {early_stopping.best_epoch}.", flush=True)
@@ -313,6 +342,21 @@ def train_and_eval_st_gcn(
     }
 
     manifest, manifest_path = run_evaluation(eval_config, output_dir=output_dir, save_plots=save_plots)
+
+    # Record training provenance so each result traces back to its run settings.
+    manifest.training_seed = seed
+    manifest.checkpoint_path = best_ckpt_path
+    manifest.selection_metric = "val_mae"
+    manifest.best_epoch = int(early_stopping.best_epoch or 0)
+    manifest.total_epochs = last_epoch
+    manifest.trainable_parameters = int(capacity_report["trainable_parameters"])
+    manifest.resolved_config["training_config"] = config
+    save_run_manifest(manifest, manifest_path, overwrite=True, atomic=True)
+
+    # The run is complete; drop its resume state so "--resume auto" won't pick it up.
+    if os.path.exists(last_state_path):
+        os.remove(last_state_path)
+
     return {
         "run_id": run_id,
         "manifest_path": manifest_path,
@@ -452,6 +496,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Maximum training epochs for learned models. [default: 100]",
     )
     parser.add_argument(
+        "--resume",
+        type=str,
+        default=None,
+        help="Training state to resume from, or 'auto' to continue the newest unfinished run for this split and seed.",
+    )
+    parser.add_argument(
         "--save-plots",
         action="store_true",
         default=True,
@@ -513,6 +563,7 @@ def main(argv: list[str] | None = None) -> int:
                 output_dir=out_dir,
                 checkpoint_dir=ckpt_dir,
                 save_plots=args.save_plots,
+                resume_path=args.resume,
             )
         else:
             print(f"Unknown baseline model: {model_type}", file=sys.stderr)

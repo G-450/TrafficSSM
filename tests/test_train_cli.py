@@ -190,3 +190,62 @@ def test_train_st_dssm_rejects_micro_batch_larger_than_batch(tmp_path) -> None:
             checkpoint_dir=str(tmp_path / "ckpt"),
             save_plots=False,
         )
+
+
+def test_interrupted_run_resumes_to_identical_result(tmp_path) -> None:
+    """A run killed mid-training and continued with resume_path="auto" must end
+    with exactly the weights and metrics of an uninterrupted run."""
+    import st_dssm.cli.train as train_module
+
+    def run(out: str, resume_path: str | None = None) -> dict:
+        config = _tiny_training_config(tmp_path / out, micro_batch_size=4)
+        config["training"]["max_epochs"] = 3
+        return train_st_dssm(
+            config=config,
+            output_dir=str(tmp_path / out / "results"),
+            checkpoint_dir=str(tmp_path / out / "ckpt"),
+            save_plots=False,
+            resume_path=resume_path,
+        )
+
+    reference = run("straight")
+
+    real_save = train_module.save_training_state
+
+    def save_then_crash(path, model, optimizer, epoch, *args, **kwargs):
+        real_save(path, model, optimizer, epoch, *args, **kwargs)
+        if epoch == 2:
+            raise KeyboardInterrupt  # simulate the laptop being unplugged
+
+    with (
+        patch.object(train_module, "save_training_state", side_effect=save_then_crash),
+        pytest.raises(KeyboardInterrupt),
+    ):
+        run("resumed")
+    last_states = list((tmp_path / "resumed" / "ckpt").glob("*_last.pt"))
+    assert len(last_states) == 1
+
+    resumed = run("resumed", resume_path="auto")
+
+    assert resumed["run_id"] == last_states[0].name.removesuffix("_last.pt")
+    assert not last_states[0].exists()  # cleaned up after completion
+    ref_weights = torch.load(reference["checkpoint_path"], weights_only=False)["model_state_dict"]
+    res_weights = torch.load(resumed["checkpoint_path"], weights_only=False)["model_state_dict"]
+    for name, tensor in ref_weights.items():
+        torch.testing.assert_close(res_weights[name], tensor, rtol=0, atol=0)
+    assert resumed["manifest"].overall_metrics == reference["manifest"].overall_metrics
+    assert resumed["manifest"].total_epochs == 3
+
+
+def test_resume_auto_without_unfinished_run_starts_fresh(tmp_path) -> None:
+    config = _tiny_training_config(tmp_path, micro_batch_size=4)
+    config["training"]["max_epochs"] = 1
+    result = train_st_dssm(
+        config=config,
+        output_dir=str(tmp_path / "results"),
+        checkpoint_dir=str(tmp_path / "ckpt"),
+        save_plots=False,
+        resume_path="auto",
+    )
+    assert result["manifest"].total_epochs == 1
+    assert not list((tmp_path / "ckpt").glob("*_last.pt"))

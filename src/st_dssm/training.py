@@ -185,3 +185,90 @@ def load_checkpoint(
     if optimizer is not None and checkpoint.get("optimizer_state_dict"):
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     return checkpoint
+
+
+def save_training_state(
+    path: str,
+    model: nn.Module,
+    optimizer: optim.Optimizer,
+    epoch: int,
+    early_stopping: EarlyStopping,
+    run_id: str,
+    config: dict[str, Any] | None = None,
+) -> None:
+    """Atomically save everything needed to resume training after ``epoch``.
+
+    Besides weights and optimizer state this stores the early-stopping state and
+    the Python, NumPy and torch RNG states, so a resumed run continues exactly as
+    an uninterrupted run would (same shuffling, teacher forcing and sampling).
+    """
+    dir_name = os.path.dirname(path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+
+    payload = {
+        "run_id": run_id,
+        "epoch": epoch,
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "early_stopping": {
+            "counter": early_stopping.counter,
+            "best_score": early_stopping.best_score,
+            "best_epoch": early_stopping.best_epoch,
+            "early_stop": early_stopping.early_stop,
+            "best_state": early_stopping.best_state,
+        },
+        "rng_state": {
+            "python": random.getstate(),
+            "numpy": np.random.get_state(),
+            "torch": torch.get_rng_state(),
+            "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+        },
+        "config": config or {},
+    }
+
+    fd, tmp_path = tempfile.mkstemp(dir=dir_name or None, suffix=".pt.tmp")
+    os.close(fd)
+    try:
+        torch.save(payload, tmp_path)
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def load_training_state(
+    path: str,
+    model: nn.Module,
+    optimizer: optim.Optimizer,
+    early_stopping: EarlyStopping,
+    map_location: str | torch.device = "cpu",
+) -> dict[str, Any]:
+    """Restore a state written by :func:`save_training_state`.
+
+    Returns the payload; training continues at ``payload["epoch"] + 1``.
+    """
+    state = torch.load(path, map_location=map_location, weights_only=False)
+    model.load_state_dict(state["model_state_dict"])
+    optimizer.load_state_dict(state["optimizer_state_dict"])
+
+    es = state["early_stopping"]
+    early_stopping.counter = es["counter"]
+    early_stopping.best_score = es["best_score"]
+    early_stopping.best_epoch = es["best_epoch"]
+    early_stopping.early_stop = es["early_stop"]
+    early_stopping.best_state = es["best_state"]
+
+    rng = state["rng_state"]
+    random.setstate(rng["python"])
+    np.random.set_state(rng["numpy"])
+    torch.set_rng_state(rng["torch"].cpu())
+    if rng["cuda"] is not None and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all([s.cpu() for s in rng["cuda"]])
+    return state
+
+
+def is_training_state(path: str) -> bool:
+    """True if ``path`` holds a full resumable training state (not just weights)."""
+    state = torch.load(path, map_location="cpu", weights_only=False)
+    return isinstance(state, dict) and "early_stopping" in state and "rng_state" in state

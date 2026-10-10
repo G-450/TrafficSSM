@@ -38,13 +38,13 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 
 | Phase | Tests | Status |
 | :--- | :--- | :--- |
-| Phase 1–5 (data, baselines, evaluation) | 136 | ✅ Passing |
+| Phase 1–5 (data, baselines, evaluation) | 137 | ✅ Passing |
 | Phase 6 (encoder + graph) | 24 | ✅ Passing |
 | Phase 7 (forecast head) | 25 | ✅ Passing |
 | Phase 8 (DSSM) | 30 | ✅ Passing |
-| Phase 9 (training CLI) | 7 | ✅ Passing |
+| Phase 9 (training CLI) | 9 | ✅ Passing |
 | Phase 11 (missingness mechanism) | 15 | ✅ Passing |
-| **Total** | **237** | **✅ All passing** |
+| **Total** | **240** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 
@@ -71,4 +71,10 @@ Laptop GPU with real PEMS-BAY data: one epoch including validation takes ~5 min,
 sigmas under a key the evaluator did not read, which had silently dropped NLL, CRPS, PICP
 and MPIW from every ST-DSSM run manifest. Run manifests now also record the training seed,
 checkpoint, best epoch, epochs run and the full training config.*
+
+*Resumable training (2026-10-10): `st-dssm-train` and `st-dssm-baseline --model st_gcn` save a
+`<run_id>_last.pt` training state after every epoch (weights, optimizer, early-stopping state
+and all RNG states) and delete it when the run completes. `--resume auto` continues the newest
+unfinished run for the same split and seed; a resumed run ends with bit-identical weights and
+metrics to an uninterrupted one (tested).*
 
