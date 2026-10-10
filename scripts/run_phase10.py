@@ -1,12 +1,14 @@
 """Automation script for Phase 10 Normal-condition study.
 
 This script executes the ST-DSSM training pipeline over the canonical
-seeds (2026, 2027, 2028), using the YAML configuration in configs/train.yaml.
+seeds (2026, 2027, 2028), using the locked configuration in configs/tuned.yaml.
 It automatically triggers evaluations on the test split for each run and saves
-the resulting manifests to experiments/normal/.
+the resulting manifests to experiments/normal/. Re-running it skips seeds that
+already have a manifest and resumes an interrupted seed from its last epoch.
 """
 
 import argparse
+import glob
 import os
 import subprocess
 import sys
@@ -37,6 +39,11 @@ def main():
     os.makedirs(args.checkpoint_dir, exist_ok=True)
 
     for seed in seeds:
+        finished = glob.glob(os.path.join(args.output_dir, f"st_dssm-test-seed{seed}-*_manifest.json"))
+        if finished:
+            print(f"Seed {seed} already complete: {max(finished)}")
+            continue
+
         print(f"\n{'='*60}")
         print(f"Executing ST-DSSM training for seed {seed}")
         print(f"{'='*60}")
@@ -51,7 +58,8 @@ def main():
             "--seed", str(seed),
             "--output-dir", args.output_dir,
             "--checkpoint-dir", args.checkpoint_dir,
-            "--split", "test"
+            "--split", "test",
+            "--resume", "auto",
         ]
 
         try:

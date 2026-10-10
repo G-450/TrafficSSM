@@ -6,12 +6,14 @@ Outputs the best configuration to be used for the normal-condition study.
 
 import argparse
 import copy
+import glob
 import os
 import sys
 
 import yaml
 
 from st_dssm.cli.train import train_st_dssm
+from st_dssm.result_schema import load_run_manifest
 
 # Predefined search grid (validation-NLL selection only; never tuned against test).
 GRID = [
@@ -66,13 +68,21 @@ def main() -> None:
         run_checkpoint_dir = os.path.join(args.output_dir, f"checkpoints_{i}")
 
         try:
-            result = train_st_dssm(
-                config=cfg,
-                output_dir=run_output_dir,
-                checkpoint_dir=run_checkpoint_dir,
-                save_plots=False,
-            )
-            val_nll = result["manifest"].overall_metrics["NLL"]
+            # Re-running the script skips finished grid points and resumes an
+            # interrupted one from its last saved epoch.
+            finished = sorted(glob.glob(os.path.join(run_output_dir, "*_manifest.json")))
+            if finished:
+                print(f"Run {i} already complete: {finished[-1]}")
+                val_nll = load_run_manifest(finished[-1]).overall_metrics["NLL"]
+            else:
+                result = train_st_dssm(
+                    config=cfg,
+                    output_dir=run_output_dir,
+                    checkpoint_dir=run_checkpoint_dir,
+                    save_plots=False,
+                    resume_path="auto",
+                )
+                val_nll = result["manifest"].overall_metrics["NLL"]
             print(f"Run {i} Val NLL: {val_nll}")
             if val_nll < best_nll:
                 best_nll = val_nll
