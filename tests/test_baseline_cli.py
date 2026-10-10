@@ -7,6 +7,8 @@ import pickle
 from unittest.mock import patch
 
 import numpy as np
+import pytest
+import torch
 import yaml
 
 from st_dssm.cli.baseline import main
@@ -184,3 +186,79 @@ def test_baseline_cli_flags_override_config_values(tmp_path) -> None:
     with patch("st_dssm.cli.baseline.run_persistence_baseline") as mock_persist:
         assert main(["--model", "persistence", "--config", str(config_path)]) == 0
     mock_persist.assert_called_once()
+
+
+def _tiny_st_gcn_config(root, max_epochs: int = 3) -> dict:
+    """Write a 4-sensor artifact and graph under root and return an ST-GCN config."""
+    rng = np.random.default_rng(0)
+    n = 4
+    arrays = {}
+    for split, count in [("train", 12), ("val", 4), ("test", 4)]:
+        arrays[f"{split}_X"] = rng.normal(size=(count, 12, n, 1)).astype(np.float32)
+        arrays[f"{split}_X_mask"] = np.ones((count, 12, n, 1), dtype=np.float32)
+        arrays[f"{split}_Y"] = rng.normal(size=(count, 12, n, 1)).astype(np.float32)
+        arrays[f"{split}_Y_mask"] = np.ones((count, 12, n, 1), dtype=np.float32)
+    arrays["scaler_means"] = np.full(n, 60.0, dtype=np.float32)
+    arrays["scaler_stds"] = np.full(n, 5.0, dtype=np.float32)
+    sensor_ids = [f"s{i}" for i in range(n)]
+    artifact_dir = str(root / "artifact")
+    save_processed_artifact(artifact_dir, arrays, {"schema_version": "1.0", "sensor_ids": sensor_ids})
+    adj_path = str(root / "adj.pkl")
+    with open(adj_path, "wb") as f:
+        pickle.dump((sensor_ids, {}, np.eye(n, dtype=np.float32)), f)
+    return {
+        "artifact_dir": artifact_dir,
+        "adj_mx_path": adj_path,
+        "allow_unverified_graph": True,
+        "split": "test",
+        "seed": 2026,
+        "device": "cpu",
+        "hidden_channels": 8,
+        "dropout": 0.1,  # exercises RNG restoration on resume
+        "batch_size": 4,
+        "lr": 0.01,
+        "max_epochs": max_epochs,
+        "patience": 10,
+    }
+
+
+def test_st_gcn_interrupted_run_resumes_to_identical_result(tmp_path) -> None:
+    import st_dssm.cli.baseline as baseline_module
+
+    def run(out: str, resume_path: str | None = None) -> dict:
+        return baseline_module.train_and_eval_st_gcn(
+            config=_tiny_st_gcn_config(tmp_path / out),
+            output_dir=str(tmp_path / out / "results"),
+            checkpoint_dir=str(tmp_path / out / "ckpt"),
+            save_plots=False,
+            resume_path=resume_path,
+        )
+
+    (tmp_path / "straight").mkdir()
+    (tmp_path / "resumed").mkdir()
+    reference = run("straight")
+
+    real_save = baseline_module.save_training_state
+
+    def save_then_crash(path, model, optimizer, epoch, *args, **kwargs):
+        real_save(path, model, optimizer, epoch, *args, **kwargs)
+        if epoch == 2:
+            raise KeyboardInterrupt
+
+    with (
+        patch.object(baseline_module, "save_training_state", side_effect=save_then_crash),
+        pytest.raises(KeyboardInterrupt),
+    ):
+        run("resumed")
+
+    resumed = run("resumed", resume_path="auto")
+
+    assert not list((tmp_path / "resumed" / "ckpt").glob("*_last.pt"))
+    ref_w = torch.load(reference["checkpoint_path"], weights_only=False)["model_state_dict"]
+    res_w = torch.load(resumed["checkpoint_path"], weights_only=False)["model_state_dict"]
+    for name, tensor in ref_w.items():
+        torch.testing.assert_close(res_w[name], tensor, rtol=0, atol=0)
+    assert resumed["manifest"].overall_metrics == reference["manifest"].overall_metrics
+    assert resumed["manifest"].training_seed == 2026
+    assert resumed["manifest"].selection_metric == "val_mae"
+    assert resumed["manifest"].total_epochs == 3

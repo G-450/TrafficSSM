@@ -11,6 +11,7 @@ Implements Phase 9 Training operations, including:
 from __future__ import annotations
 
 import argparse
+import glob
 import os
 import pickle
 import sys
@@ -36,7 +37,10 @@ from st_dssm.io import load_and_validate_artifact
 from st_dssm.result_schema import save_run_manifest
 from st_dssm.training import (
     EarlyStopping,
+    is_training_state,
+    load_training_state,
     save_checkpoint,
+    save_training_state,
     set_seed,
 )
 from st_dssm.validator import validate_graph
@@ -248,24 +252,40 @@ def train_st_dssm(
     early_stopping = EarlyStopping(patience=patience, min_delta=min_delta, mode="min")
 
     start_epoch = 1
+    run_id = f"st_dssm-{split}-seed{seed}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    if resume_path == "auto":
+        # Pick up the newest unfinished run for this split and seed, if any.
+        # A run's _last.pt state is deleted once the run completes.
+        candidates = sorted(glob.glob(os.path.join(checkpoint_dir, f"st_dssm-{split}-seed{seed}-*_last.pt")))
+        resume_path = candidates[-1] if candidates else None
+        if resume_path is None:
+            print("No unfinished run to resume; starting a new run.", flush=True)
+
     if resume_path and os.path.exists(resume_path):
-        from st_dssm.training import load_checkpoint
         print(f"Resuming from checkpoint: {resume_path}")
-        ckpt = load_checkpoint(resume_path, model, optimizer, map_location=device)
-        start_epoch = ckpt.get("epoch", 0) + 1
-        early_stopping.best_score = ckpt.get("val_loss", None)
-        early_stopping.best_epoch = ckpt.get("epoch", 0)
-        early_stopping.best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+        if is_training_state(resume_path):
+            state = load_training_state(resume_path, model, optimizer, early_stopping, map_location=device)
+            run_id = state["run_id"]
+        else:
+            # Weights-only checkpoint: early-stopping and RNG state are not restored.
+            from st_dssm.training import load_checkpoint
+            state = load_checkpoint(resume_path, model, optimizer, map_location=device)
+            early_stopping.best_score = state.get("val_loss", None)
+            early_stopping.best_epoch = state.get("epoch", 0)
+            early_stopping.best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+        start_epoch = state.get("epoch", 0) + 1
         print(f"Resumed at epoch {start_epoch-1} with best val NLL: {early_stopping.best_score}")
 
-    run_id = f"st_dssm-{split}-seed{seed}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
     os.makedirs(checkpoint_dir, exist_ok=True)
     best_ckpt_path = os.path.join(checkpoint_dir, f"{run_id}_best.pt")
+    last_state_path = os.path.join(checkpoint_dir, f"{run_id}_last.pt")
 
     print(f"Beginning training (Max epochs={max_epochs}, Beta Anneal={beta_anneal_epochs}, TF Decay={tf_decay_epochs})...", flush=True)
 
     last_epoch = start_epoch - 1
-    for epoch in range(start_epoch, max_epochs + 1):
+    # A run interrupted after early stopping triggered goes straight to evaluation.
+    epochs_to_run = range(start_epoch, max_epochs + 1) if not early_stopping.early_stop else range(0)
+    for epoch in epochs_to_run:
         last_epoch = epoch
         # Calculate schedules
         beta = min(epoch / max(1, beta_anneal_epochs), 1.0)
@@ -319,6 +339,8 @@ def train_st_dssm(
 
         should_stop = early_stopping.step(avg_val_nll, model, epoch)
         print(f"Epoch {epoch:03d} | beta: {beta:.2f} | TF: {tf_ratio:.2f} | Train ELBO: {avg_train_elbo:.4f} (NLL {avg_train_nll:.4f}, KL {avg_train_kl:.4f}) | Val NLL: {avg_val_nll:.4f} | Best Val NLL: {early_stopping.best_score:.4f}", flush=True)
+
+        save_training_state(last_state_path, model, optimizer, epoch, early_stopping, run_id, config)
 
         if should_stop:
             print(f"Early stopping triggered at epoch {epoch}. Restoring best weights from epoch {early_stopping.best_epoch}.", flush=True)
@@ -385,6 +407,10 @@ def train_st_dssm(
     manifest.total_epochs = last_epoch
     manifest.trainable_parameters = int(cap_report["total_trainable_parameters"])
     save_run_manifest(manifest, manifest_path, overwrite=True, atomic=True)
+
+    # The run is complete; drop its resume state so "--resume auto" won't pick it up.
+    if os.path.exists(last_state_path):
+        os.remove(last_state_path)
 
     return {
         "run_id": run_id,
@@ -482,7 +508,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--checkpoint-dir", type=str, default=None, help="Directory to save trained model checkpoints. [default: artifacts/checkpoints]")
     parser.add_argument("--split", type=str, default=None, help="Split to evaluate ('test', 'val', 'train'). [default: test]")
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility. [default: 2026]")
-    parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume training from.")
+    parser.add_argument(
+        "--resume",
+        type=str,
+        default=None,
+        help="Checkpoint to resume from, or 'auto' to continue the newest unfinished run for this split and seed.",
+    )
     parser.add_argument("--adj-mx-path", type=str, default=None, help="Path to graph adjacency pickle file.")
     parser.add_argument("--device", type=str, default=None, help="Compute device. [default: cuda if available, else cpu]")
     parser.add_argument("--save-plots", action="store_true", default=True, help="Generate evaluation plots.")

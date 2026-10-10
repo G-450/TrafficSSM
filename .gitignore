@@ -14,6 +14,7 @@ artifacts/checkpoints/
 artifacts/results/
 experiments/phase1/logs/
 experiments/**/*.npz
+experiments/**/*.pt
 
 # Large Datasets and Processed NPZ Tensors (prevent Github upload limit rejection)
 data/raw/pems-bay.*
