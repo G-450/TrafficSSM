@@ -43,8 +43,9 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 | Phase 7 (forecast head) | 25 | ✅ Passing |
 | Phase 8 (DSSM) | 30 | ✅ Passing |
 | Phase 9 (training CLI) | 9 | ✅ Passing |
+| Phase 10 (run scripts) | 2 | ✅ Passing |
 | Phase 11 (missingness mechanism) | 15 | ✅ Passing |
-| **Total** | **240** | **✅ All passing** |
+| **Total** | **242** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 
