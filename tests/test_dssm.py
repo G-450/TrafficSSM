@@ -147,7 +147,7 @@ class TestLossHelpers:
 
 class TestForwardTrain:
     def test_output_shapes(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, y, mh, mf, cheb, B, _L, N, H = standard_inputs
         small_dssm.train()
         mu, sigma, kl, nll = small_dssm.forward_train(
             x, cheb, y, mh, mf, teacher_force_ratio=0.0, beta=1.0
@@ -158,19 +158,19 @@ class TestForwardTrain:
         assert nll.dim() == 0   # scalar
 
     def test_sigma_strictly_positive(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, y, mh, mf, cheb, _B, _L, _N, _H = standard_inputs
         small_dssm.train()
         _, sigma, _, _ = small_dssm.forward_train(x, cheb, y, mh, mf)
         assert (sigma > 0).all(), f"sigma min={sigma.min().item()}"
 
     def test_kl_non_negative(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, y, mh, mf, cheb, _B, _L, _N, _H = standard_inputs
         small_dssm.train()
         _, _, kl, _ = small_dssm.forward_train(x, cheb, y, mh, mf)
         assert kl.item() >= -1e-5, f"KL is negative: {kl.item()}"
 
     def test_elbo_components_finite(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, y, mh, mf, cheb, _B, _L, _N, _H = standard_inputs
         small_dssm.train()
         mu, sigma, kl, nll = small_dssm.forward_train(x, cheb, y, mh, mf, beta=1.0)
         assert torch.isfinite(kl), f"KL non-finite: {kl.item()}"
@@ -181,9 +181,9 @@ class TestForwardTrain:
     def test_beta_zero_kl_term_is_zero(self, small_dssm, standard_inputs):
         """With beta=0, the KL value itself should still be computed but
         the ELBO equals recon_nll (KL not checked to be zero, only ELBO holds)."""
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, y, mh, mf, cheb, _B, _L, _N, _H = standard_inputs
         small_dssm.train()
-        _, _, kl, nll = small_dssm.forward_train(
+        _, _, kl, _nll = small_dssm.forward_train(
             x, cheb, y, mh, mf, beta=0.0
         )
         # With beta=0, caller's ELBO = nll + 0*kl = nll
@@ -192,7 +192,7 @@ class TestForwardTrain:
 
     def test_teacher_forcing_ratio_one(self, small_dssm, standard_inputs):
         """teacher_force_ratio=1.0 must not raise and must produce valid outputs."""
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, y, mh, mf, cheb, B, _L, N, H = standard_inputs
         small_dssm.train()
         mu, sigma, kl, nll = small_dssm.forward_train(
             x, cheb, y, mh, mf, teacher_force_ratio=1.0, beta=1.0
@@ -209,7 +209,7 @@ class TestForwardTrain:
 
 class TestForwardPredict:
     def test_output_shapes(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, _y, _mh, _mf, cheb, B, _L, N, H = standard_inputs
         small_dssm.eval()
         with torch.no_grad():
             mu, sigma = small_dssm.forward_predict(x, cheb)
@@ -217,14 +217,14 @@ class TestForwardPredict:
         assert sigma.shape == (B, H, N, 1)
 
     def test_sigma_strictly_positive(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, _y, _mh, _mf, cheb, _B, _L, _N, _H = standard_inputs
         small_dssm.eval()
         with torch.no_grad():
             _, sigma = small_dssm.forward_predict(x, cheb)
         assert (sigma > 0).all()
 
     def test_outputs_finite(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, _y, _mh, _mf, cheb, _B, _L, _N, _H = standard_inputs
         small_dssm.eval()
         with torch.no_grad():
             mu, sigma = small_dssm.forward_predict(x, cheb)
@@ -234,7 +234,7 @@ class TestForwardPredict:
     def test_predict_does_not_use_targets(self, small_dssm, standard_inputs):
         """forward_predict must produce identical results regardless of what
         y_target would be — targets must never be accessed in this path."""
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, _y, _mh, _mf, cheb, _B, _L, _N, _H = standard_inputs
         small_dssm.eval()
 
         torch.manual_seed(10)
@@ -256,10 +256,10 @@ class TestForwardPredict:
 class TestGradientFlow:
     def test_gradient_flow_all_parameters(self, small_dssm, standard_inputs):
         """All trainable parameters must receive finite gradients."""
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, y, mh, mf, cheb, _B, _L, _N, _H = standard_inputs
         small_dssm.train()
 
-        mu, sigma, kl, nll = small_dssm.forward_train(
+        _mu, _sigma, kl, nll = small_dssm.forward_train(
             x, cheb, y, mh, mf, teacher_force_ratio=0.0, beta=1.0
         )
         elbo = nll + kl
@@ -335,7 +335,7 @@ class TestPriorPosteriorDiffer:
         If recognition net is having no effect the model collapses to prior-only,
         which defeats the point of amortized inference.
         """
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, _y, mh, _mf, cheb, B, _L, N, _H = standard_inputs
         small_dssm.train()
 
         # Access internal components by running them independently
@@ -343,9 +343,9 @@ class TestPriorPosteriorDiffer:
             context = small_dssm.encoder(x, cheb)
             x_speed = x[:, :, :, 0:1]
 
-            mu_q, sigma_q = small_dssm.recognition(context, x_speed, mh)
+            mu_q, _sigma_q = small_dssm.recognition(context, x_speed, mh)
             z0 = torch.zeros(B, N, small_dssm.latent_dim)
-            mu_p, sigma_p, _ = small_dssm.transition(context, z0)
+            mu_p, _sigma_p, _ = small_dssm.transition(context, z0)
 
         # In general, with random weights, q and p parameters should differ
         assert not torch.allclose(mu_q, mu_p, atol=1e-4), (
@@ -359,39 +359,39 @@ class TestPriorPosteriorDiffer:
 
 class TestInputValidation:
     def test_nonfinite_x_raises(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, y, mh, mf, cheb, _B, _L, _N, _H = standard_inputs
         bad_x = x.clone()
         bad_x[0, 0, 0, 0] = float("nan")
         with pytest.raises(ValueError, match="non-finite"):
             small_dssm.forward_train(bad_x, cheb, y, mh, mf)
 
     def test_nonfinite_x_predict_raises(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, _y, _mh, _mf, cheb, _B, _L, _N, _H = standard_inputs
         bad_x = x.clone()
         bad_x[0, 0, 0, 0] = float("inf")
         with pytest.raises(ValueError, match="non-finite"):
             small_dssm.forward_predict(bad_x, cheb)
 
     def test_wrong_input_length(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        _x, y, mh, mf, cheb, B, L, N, _H = standard_inputs
         bad_x = torch.randn(B, L + 2, N, 2)
         with pytest.raises(ValueError, match="Input length mismatch"):
             small_dssm.forward_train(bad_x, cheb, y, mh, mf)
 
     def test_wrong_num_nodes(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        _x, y, mh, mf, cheb, B, L, N, _H = standard_inputs
         bad_x = torch.randn(B, L, N + 1, 2)
         with pytest.raises(ValueError, match="Node count mismatch"):
             small_dssm.forward_train(bad_x, cheb, y, mh, mf)
 
     def test_wrong_y_target_shape(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, _y, mh, mf, cheb, B, _L, N, H = standard_inputs
         bad_y = torch.randn(B, H + 1, N, 1)
         with pytest.raises(ValueError, match="y_target shape mismatch"):
             small_dssm.forward_train(x, cheb, bad_y, mh, mf)
 
     def test_wrong_obs_mask_hist_shape(self, small_dssm, standard_inputs):
-        x, y, mh, mf, cheb, B, L, N, H = standard_inputs
+        x, y, _mh, mf, cheb, B, L, N, _H = standard_inputs
         bad_mh = torch.ones(B, L + 1, N, 1)
         with pytest.raises(ValueError, match="obs_mask_hist shape mismatch"):
             small_dssm.forward_train(x, cheb, y, bad_mh, mf)
