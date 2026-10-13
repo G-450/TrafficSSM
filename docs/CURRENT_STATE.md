@@ -1,7 +1,10 @@
 # Current project state
 
-**Status date:** 2026-10-07
-**Delivery state:** Phase 9 training operations is implemented and tested (synthetic smoke + unit tests; real-data run starts in Phase 10). Phase 10 normal-condition study is next.
+**Status date:** 2026-10-13
+**Delivery state:** Phase 10 normal-condition study is complete: tuning, three seeded
+test runs per model, and locked tables, figures and a machine-readable aggregate in
+`experiments/normal/`. Phase 11 missingness mechanism is next (the mask generator is
+implemented and tested; masks are not yet wired through training and evaluation).
 
 ## Implemented foundation
 
@@ -15,16 +18,34 @@
 - **Phase 5 Deterministic baseline:** Non-parametric `HistoricalPersistence` baseline, capacity-controlled `DeterministicSTGCN` baseline with 2 causal ST-blocks (Gated TCN + ChebConv $K=3$ + LayerNorm/Dropout/Residual), graph Laplacian and Chebyshev polynomial operators (`st_dssm.graph`), `MaskedMAELoss`, `EarlyStopping` (15 epochs, $10^{-4}$ threshold), and `st-dssm-baseline` CLI runner with automated evaluation and checkpointing.
 - **Phase 6 Spatial-temporal encoder:** Canonical 2-block ST-GCN encoder (`st_dssm.encoder.SpatialTemporalEncoder`), `CausalGatedTemporalConv` with strict causal left-padding, `SpatialTemporalBlock` with Chebyshev graph convolutions ($K=3$, BLAS-accelerated), channel-only LayerNorm, Dropout ($0.1$), residual projections, and 64-dimensional context projection (`[B, 12, 325, 64]`). Validated with mathematical causality probes (zero future leakage), node-permutation equivariance tests, single-batch optimization tests, capacity reports (104,320 parameters), and the `st-dssm-encoder` CLI runner on the canonical PEMS-BAY test partition (`experiments/encoder/encoder_pems_bay_canonical_manifest.json`).
 - **Phase 7 Probabilistic forecast head:** Autoregressive 12-step Gaussian decoder (`st_dssm.forecast_head.GaussianForecastHead`). Per ADR-0007: $\sigma = \text{softplus}(\text{clamp}(\log\sigma_{\text{raw}}, -8, 5)) + 10^{-4}$ strictly positive variance; learned per-horizon position embeddings; MLP decoder over $[z, c, h_{\text{emb}}, \mu_{\text{prev}}]$; stochastic teacher forcing (ratio decays $1.0 \to 0.0$ over first 50\% of training epochs); reparameterized sample prediction. Validated with sigma-positivity probes, log-sigma clamp boundary tests, teacher-forcing vs.\ autoregressive path tests, gradient flow checks, single-batch overfit convergence, and sampling distribution mean convergence.
+- **Phase 9 Training operations:** `st-dssm-train` CLI with YAML configuration, validation-NLL
+  checkpoint selection, beta annealing, teacher-forcing decay, micro-batched gradient
+  accumulation and per-epoch resumable state (`--resume auto`).
+- **Phase 10 Normal-condition study:** hyperparameters tuned against validation NLL only
+  (`scripts/tune_phase10.py`, search recorded in `experiments/tuning/`, best val NLL 2.118),
+  configuration locked in `configs/tuned.yaml`, and the test set evaluated once per canonical
+  seed (2026, 2027, 2028) for ST-DSSM and for the Phase 5 baselines under the same protocol.
+  `scripts/aggregate_phase10.py` writes the locked deliverable from the run manifests and
+  `--check` re-derives it to prove the tables are reproducible.
+
 - **Phase 8 DSSM integration:** Full `st_dssm.dssm.GaussianDSSM` wrapping Phase 6 encoder + Phase 7 forecast head. Per ADR-0007: 32-dimensional diagonal Gaussian latent state per sensor; causal GRU prior transition $p(z_t \mid z_{t-1}, c_t)$; bidirectional GRU recognition (posterior) network $q(z_t \mid \text{context}_{1:L}, x, m)$ used only during training; closed-form KL divergence; masked Gaussian reconstruction NLL; ELBO $= \text{NLL} + \beta \cdot \text{KL}$ with $\beta$ annealing from 0 to 1 over first 20 epochs (caller-managed); hard non-finite ELBO guard; `forward_predict` samples exclusively from prior with no target access. `st-dssm-dssm` CLI with synthetic smoke test. Capacity report breaks down parameters per sub-module.
 
 ## Canonical Baseline Results (PEMS-BAY Test Set, Physical Units `mph`)
 
-The canonical deterministic baseline evaluations were executed on the validated PEMS-BAY test partition ($S=10,403$ windows, $N=325$ sensors, $H=12$ horizons) and recorded in machine-readable JSON run manifests under `experiments/baselines/`:
+The canonical deterministic baseline evaluations were executed on the validated PEMS-BAY
+test partition ($S=10,403$ windows, $N=325$ sensors, $H=12$ horizons). The Phase 10 runs
+under `experiments/normal/baselines/` are the current record; the locked, manifest-derived
+tables live in [`experiments/normal/phase10_results.md`](../experiments/normal/phase10_results.md).
 
-| Model Architecture | 15 min (MAE / RMSE / MAPE) | 30 min (MAE / RMSE / MAPE) | 60 min (MAE / RMSE / MAPE) | Overall Aggregate (MAE / RMSE / MAPE) | Status & Manifest |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Historical Persistence** | 1.64 / 3.98 / 3.39% | 2.22 / 5.28 / 4.79% | 3.01 / 6.95 / 6.78% | **2.17 mph** / **5.12 mph** / **4.67%** | `experiments/baselines/baseline-persistence-test-*_manifest.json` |
-| **Deterministic ST-GCN** (Capacity: 109,260 params) | Benchmark baseline | Benchmark baseline | Benchmark baseline | Verified causal architecture | `experiments/baselines/` |
+| Model Architecture | 15 min (MAE / RMSE / MAPE) | 30 min (MAE / RMSE / MAPE) | 60 min (MAE / RMSE / MAPE) | Overall Aggregate (MAE / RMSE / MAPE) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Historical Persistence** | 1.59 / 3.39 / 3.23% | 2.17 / 4.95 / 4.64% | 3.04 / 6.98 / 6.82% | **2.17 mph** / **5.12 mph** / **4.67%** |
+| **Deterministic ST-GCN** (109,260 params, 3 seeds) | 1.39 / 2.92 / 2.92% | 1.82 / 4.05 / 4.15% | 2.33 / 5.25 / 5.64% | **1.78 mph** / **4.06 mph** / **4.06%** |
+
+*Correction (2026-10-13): the per-horizon persistence figures previously recorded here
+(1.64 / 2.22 / 3.01 mph MAE) were not reproducible from any run manifest. The values above
+are generated by `scripts/aggregate_phase10.py` from the manifests and verifiable with
+`--check`; do not hand-edit them.*
 
 ## Canonical Encoder Evidence (PEMS-BAY Test Set)
 
@@ -43,21 +64,41 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 | Phase 7 (forecast head) | 25 | ✅ Passing |
 | Phase 8 (DSSM) | 30 | ✅ Passing |
 | Phase 9 (training CLI) | 9 | ✅ Passing |
-| Phase 10 (run scripts) | 2 | ✅ Passing |
+| Phase 10 (run scripts, aggregation, provenance, plots) | 18 | ✅ Passing |
 | Phase 11 (missingness mechanism) | 15 | ✅ Passing |
-| **Total** | **242** | **✅ All passing** |
+| **Total** | **258** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 
 ## Next authorized work
 
-Phase 9 Training operations is complete, with the `st-dssm-train` CLI and its tests merged. Once approved, proceed to [Phase 10 — Normal-condition study](IMPLEMENTATION_PLAN.md):
-- Tune ST-DSSM hyperparameters against validation NLL only, with predefined search record
-- Lock configuration, evaluate test set once per seed (2026, 2027, 2028)
-- Compare with Phase 5 deterministic baseline at 0% masking
-- Produce locked test tables and figures in `experiments/normal/`
+Phase 10 is complete and locked. Once approved, proceed to
+[Phase 11 — Missingness mechanism](IMPLEMENTATION_PLAN.md):
+- Wire `st_dssm.mask_generator` masks through training and evaluation
+- Prove no masked ground truth reaches model inputs (leakage gate)
+- Record mask seeds, sensor IDs and checksums in each run manifest
+  (`mask_seed`, `mask_condition`, `mask_sensor_ids`, `mask_checksum` are already
+  carried by the manifest schema and settable through the evaluator's provenance)
 
-*Note: `scripts/tune_phase10.py` and `scripts/run_phase10.py` are scaffolded but have not been executed end-to-end.*
+**Known environment issue (2026-10-13):** the installed PyTorch is `2.12.1+cpu`, so
+`torch.cuda.is_available()` is `False` and any new training run would fall back to CPU.
+The Phase 10 runs were trained on CUDA (an RTX 4060 Laptop GPU) before this change.
+Reinstall a CUDA build of torch before starting the Phase 12 runs, or the ~5 min/epoch
+figure below no longer holds.
+
+## Reproducing the Phase 10 results
+
+```bash
+python scripts/aggregate_phase10.py --check    # verify the locked tables
+python scripts/aggregate_phase10.py            # regenerate tables and figures
+```
+
+Metrics are bit-identical when recomputed from the same predictions in the same
+environment. Values recomputed in a different process can differ by ~1e-7 relative
+(float32 summation order over ~4e7 targets), which is six significant figures below
+the reported precision.
+
+
 
 *Phase 9 hardening (#12): fixed a Windows console crash in `st-dssm-train` and CLI/config
 precedence, and `tune_phase10.py` now reads val NLL from the run manifest.*
@@ -79,3 +120,14 @@ and all RNG states) and delete it when the run completes. `--resume auto` contin
 unfinished run for the same split and seed; a resumed run ends with bit-identical weights and
 metrics to an uninterrupted one (tested).*
 
+*Run-provenance fix (2026-10-13): training provenance used to be patched into a run
+manifest after the evaluator had already saved it. The Phase 10 seed-2028 ST-DSSM run was
+killed inside that window, while rendering its calibration curve, and its manifest reported
+seed `null`, `0` epochs and `0` parameters for an otherwise valid result. `run_evaluation`
+now takes the provenance and writes it in the single atomic save, and `st-dssm-train` and
+`st-dssm-baseline` pass it in instead of patching. The same write now also fills
+`config_hash`, `package_versions`, `dataset_manifest_checksum` and
+`split_artifact_checksum`, which the schema carried but nothing had ever populated.
+All seven Phase 10 manifests were regenerated from their saved predictions with
+`st-dssm-evaluate --provenance-checkpoint ...`, which leaves metrics unchanged to six
+significant figures, and the seed-2028 calibration plot is no longer missing.*
