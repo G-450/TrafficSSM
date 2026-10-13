@@ -1,11 +1,11 @@
 # Current project state
 
-**Status date:** 2026-10-13
-**Delivery state:** Phase 11 missingness mechanism is complete: the canonical masks are
-published under `experiments/masks/`, masks are wired through every predictor's input
-boundary and reported as `all`/`masked`/`unmasked` target groups, and the leakage gate is
-tested end to end. Phase 12 robustness study is next (execute the nine conditions and the
-ablations). The Phase 10 normal-condition results remain locked in `experiments/normal/`.
+**Status date:** 2026-10-14
+**Delivery state:** Phase 12 robustness study is complete: all nine conditions
+(10/20/30% × seeds 2026/2027/2028) were executed for ST-DSSM, deterministic ST-GCN and
+historical persistence, and the locked tables live in `experiments/missingness/`.
+Phase 13 calibration and robustness review is next. The Phase 10 and Phase 11/12
+results remain locked and verifiable from manifests alone.
 
 ## Implemented foundation
 
@@ -35,6 +35,17 @@ ablations). The Phase 10 normal-condition results remain locked in `experiments/
   `mask_checksum`. The leakage gate is an invariance test: two artifacts differing only in
   the withheld sensors' input values produce bit-identical predictions and metrics through
   the real pipeline.
+- **Phase 12 Robustness study:** all nine missingness conditions (10/20/30% × seeds 2026/
+  2027/2028) executed for ST-DSSM, deterministic ST-GCN and historical persistence using
+  locked Phase 10 checkpoints via `--predict-from` (forward passes only, no retraining).
+  `scripts/run_phase12.py` automates the 27 runs; `scripts/aggregate_phase12.py` writes
+  the locked tables and `--check` re-derives them. Key finding: all models degrade under
+  missingness; ST-DSSM shows higher seed variance at 20/30% (MAE 2.6–3.5 mph at 20%)
+  than ST-GCN (2.7–3.0 mph). Masked-sensor MAE is 2–3× the unmasked-sensor MAE across
+  all models and conditions. The masking-representation ablation
+  (`apply_to_training: true`) is deferred pending a CUDA torch build.
+  See `experiments/missingness/phase12_results.md` for locked tables.
+
 - **Phase 10 Normal-condition study:** hyperparameters tuned against validation NLL only
   (`scripts/tune_phase10.py`, search recorded in `experiments/tuning/`, best val NLL 2.118),
   configuration locked in `configs/tuned.yaml`, and the test set evaluated once per canonical
@@ -81,21 +92,21 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 | Phase 10 (run scripts, aggregation, provenance, plots) | 18 | ✅ Passing |
 | Phase 11 (mask generation) | 15 | ✅ Passing |
 | Phase 11 (masking wiring, leakage gate, target groups) | 21 | ✅ Passing |
-| **Total** | **279** | **✅ All passing** |
+| Phase 12 (condition aggregator and run script) | 10 | ✅ Passing |
+| **Total** | **289** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 
 ## Next authorized work
 
-Phase 11 is complete. Once approved, proceed to
-[Phase 12 — Robustness study](IMPLEMENTATION_PLAN.md):
-- Execute the nine conditions (10/20/30% x mask seeds 2026/2027/2028) for ST-DSSM,
-  deterministic ST-GCN and historical persistence, pairing each mask seed with the
-  matching training seed and reusing the locked Phase 10 checkpoints via `--predict-from`
-- Aggregate the conditions into locked tables, by target group and horizon, the way
-  `scripts/aggregate_phase10.py` locks the normal condition
-- Run the ablations isolating graph context, state-space inference and the masking
-  representation (the last one via `--mask-training`, labelled as an ablation per ADR-0011)
+Phase 12 is complete. Proceed to
+[Phase 13 — Calibration and robustness review](IMPLEMENTATION_PLAN.md):
+- Calibration diagnostics: reliability diagrams, expected calibration error, temperature
+  scaling analysis (secondary, per ADR-0008)
+- Error analysis: per-horizon degradation curves under each condition, masked vs unmasked
+  sensor breakdown
+- Latency records and claims reconciled with evidence from `experiments/missingness/`
+- Limitations statement (seed variance at 20/30%, masking-representation ablation deferred)
 
 **Compute note (2026-10-13):** the installed PyTorch is `2.12.1+cpu`, so
 `torch.cuda.is_available()` is `False`. Per ADR-0011 a condition is a forward pass over

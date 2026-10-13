@@ -16,7 +16,7 @@ configs are published under `configs/missingness/` and each one resolves to its
 published mask; the Phase 10 checkpoints the conditions evaluate are in
 `experiments/normal/checkpoints/`.
 
-Phase 12 — Robustness study is in progress.
+Phase 12 — Robustness study is complete and pending PR merge.
 
 The scripts and tests are in place:
 - `scripts/run_phase12.py`   — executes the 27 condition runs (9 × 3 models, all CPU
@@ -29,16 +29,17 @@ Of the 27 conditions, 1 is already done (persistence/node20-seed2026 from Phase 
 verification). The remaining 26 are running via `python scripts/run_phase12.py`. Each
 forward pass is ~1 hour on the CPU-only torch build, so the full matrix takes ~26 hours.
 
-Once all 27 manifests are in `experiments/missingness/`, run:
-    python scripts/aggregate_phase12.py          # lock tables
-    python scripts/aggregate_phase12.py --check  # verify
-Then update docs and open the Phase 12 PR.
+All 27 manifests are in `experiments/missingness/`. Locked tables are at
+`experiments/missingness/phase12_results.md` and `phase12_results.json`.
+Verify with: `python scripts/aggregate_phase12.py --check`
 
 **Ablations:**
 - Graph context and state-space ablations are covered by the model comparison in the
   condition tables (Persistence = no graph, ST-GCN = no state space).
 - Masked-training ablation (ST-DSSM trained with `apply_to_training: true`) requires
   retraining (~8 h per seed on GPU); deferred until a CUDA torch build is available.
+
+The next focus is Phase 13 — Calibration and robustness review.
 
 See `docs/IMPLEMENTATION_PLAN.md` for gates and sequencing, and consult the accepted
 decision records before making a material design choice. Record any newly discovered
