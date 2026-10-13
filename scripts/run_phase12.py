@@ -42,6 +42,11 @@ SEEDS = [2026, 2027, 2028]
 CHECKPOINT_DIR = "experiments/normal/checkpoints"
 CONFIG_DIR = "configs/missingness"
 OUTPUT_DIR = "experiments/missingness"
+# The ablation is the only Phase 12 arm that fits a model, so it is the only one
+# that writes checkpoints. They belong with the study, not in the CLI's default
+# artifacts/checkpoints, which is ignored scratch: a 60-epoch run's resume state
+# and best checkpoint must not sit somewhere a cleanup would sweep.
+ABLATION_CHECKPOINT_DIR = "experiments/missingness/checkpoints"
 
 
 def _find_checkpoint(prefix_glob: str) -> str:
@@ -103,6 +108,7 @@ def build_ablation_run_list(
                             "--model", "st_gcn",
                             "--config", config,
                             "--output-dir", OUTPUT_DIR,
+                            "--checkpoint-dir", ABLATION_CHECKPOINT_DIR,
                             "--split", "test",
                             "--mask-training",
                             "--resume", "auto",
@@ -121,6 +127,7 @@ def build_ablation_run_list(
                             sys.executable, "-m", "st_dssm.cli.train",
                             "--config", config,
                             "--output-dir", OUTPUT_DIR,
+                            "--checkpoint-dir", ABLATION_CHECKPOINT_DIR,
                             "--split", "test",
                             "--mask-training",
                             "--resume", "auto",
@@ -269,6 +276,8 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    if args.ablation:
+        os.makedirs(ABLATION_CHECKPOINT_DIR, exist_ok=True)
 
     if args.ablation:
         runs = build_ablation_run_list(ratios, seeds, models)
