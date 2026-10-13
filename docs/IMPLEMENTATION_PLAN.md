@@ -156,12 +156,12 @@ TrafficSSM/
     ├── test_dssm.py                  # Phase 8 — GaussianDSSM (30 tests)
     ├── test_train_cli.py             # Phase 9 — st-dssm-train CLI (9 tests)
     ├── test_mask_generator.py        # Phase 11 — mask generation (15 tests)
-    ├── test_phase11_masking.py       # Phase 11 — leakage gate + conditions (20 tests)
+    ├── test_phase11_masking.py       # Phase 11 — leakage gate + conditions (21 tests)
     ├── test_phase10_scripts.py       # Phase 10 — tuning/seed-run scripts resume (2 tests)
     └── test_phase10_aggregate.py     # Phase 10 — locked tables + comparability (7 tests)
 ```
 
-**Total tests:** 278 collected · 278 pass when `data/processed` is present
+**Total tests:** 279 collected · 279 pass when `data/processed` is present
 (without it, `test_encoder_cli_unrecognized_graph_and_missing_metadata` is skipped)
 
 ---
@@ -353,7 +353,7 @@ historical persistence (2.169 mph). See `experiments/normal/phase10_results.md`.
   and records `mask_seed`, `mask_condition`, `mask_sensor_ids` and `mask_checksum` in the
   run manifest.
 
-**Gate met:** `tests/test_phase11_masking.py` (20 tests). The leakage gate is an
+**Gate met:** `tests/test_phase11_masking.py` (21 tests). The leakage gate is an
 invariance test: two data artifacts differing only in the withheld sensors' input values
 (genuine speeds vs. `999.0`) produce bit-identical predictions and identical metrics
 through the real training/evaluation pipeline, which can only hold if no withheld value
