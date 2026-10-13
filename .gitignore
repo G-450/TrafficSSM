@@ -37,3 +37,9 @@ ENV/
 .env
 .DS_Store
 Thumbs.db
+
+# Local-only scratch: data backups, crash dumps and review patches
+data/processed_backup_*/
+*.stackdump
+/pr*.patch
+/pr*_diff*.txt

@@ -1,0 +1,47 @@
+# Phase 12 condition: 30% node masking, mask seed 2028.
+#
+# Generated from configs/missingness/node20-seed2026.yaml, which documents the
+# protocol. The model block is the locked Phase 10 configuration; only the
+# masking block and the paired run seed differ. Per ADR-0004 and ADR-0011 the
+# condition applies at inference:
+#
+#   st-dssm-train --config configs/missingness/node30-seed2028.yaml #     --predict-from experiments/normal/checkpoints/st_dssm-test-seed2028-..._best.pt #     --output-dir experiments/missingness
+
+seed: 2028
+split: test
+artifact_dir: data/processed
+adj_mx_path: data/raw/adj_mx_bay.pkl
+cadence_minutes: 5
+
+masking:
+  # The published mask artifact pins the withheld sensors; its checksum is
+  # verified on load, and ratio/seed below must agree with it.
+  mask_path: experiments/masks/node30-seed2028.json
+  missing_ratio: 0.3
+  seed: 2028
+  # Training under the condition is the separate "masking representation"
+  # ablation (Phase 12), not the primary protocol.
+  apply_to_training: false
+
+model:
+  cheb_k: 3
+  context_dim: 64
+  dropout: 0.1
+  hidden_dim: 128
+  horizon: 12
+  in_channels: 2
+  input_length: 12
+  latent_dim: 32
+  num_nodes: 325
+
+schedules:
+  beta_anneal_epochs: 20
+  teacher_force_decay_epochs: 50
+
+training:
+  batch_size: 64
+  learning_rate: 0.001
+  max_epochs: 60
+  patience: 10
+  micro_batch_size: 32
+  weight_decay: 0.0001

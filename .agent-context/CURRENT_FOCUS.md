@@ -11,6 +11,11 @@ condition is run against a finished checkpoint with `--predict-from`, and every 
 reported over `all`/`masked`/`unmasked` target groups with the mask recorded in the run
 manifest. The leakage gate is `tests/test_phase11_masking.py`.
 
+Phases 10 and 11 are merged into `main` (PRs #20-#22). The nine ST-DSSM condition
+configs are published under `configs/missingness/` and each one resolves to its
+published mask; the Phase 10 checkpoints the conditions evaluate are in
+`experiments/normal/checkpoints/`.
+
 The next focus is Phase 12 — Robustness study: execute the nine conditions (10/20/30% x
 mask seeds 2026/2027/2028) for ST-DSSM, deterministic ST-GCN and historical persistence,
 lock the condition tables the way Phase 10 locked the normal condition, and run the
