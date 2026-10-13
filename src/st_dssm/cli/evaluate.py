@@ -21,6 +21,7 @@ import yaml
 
 from st_dssm.data import compute_md5
 from st_dssm.io import load_and_validate_artifact
+from st_dssm.mask_generator import MaskGenerator, resolve_mask_generator
 from st_dssm.metrics import (
     MetricError,
     calibration_curve,
@@ -114,10 +115,17 @@ def _populate_manifest_metrics(
     manifest: RunManifest,
     overall: dict[str, float | int],
     per_horizon: list[dict[str, float | int]],
+    target_group: str = "all",
 ) -> None:
-    """Helper to convert evaluation metrics dicts into validated MetricRecords."""
-    manifest.overall_metrics = overall
-    manifest.per_horizon_metrics = per_horizon
+    """Helper to convert evaluation metrics dicts into validated MetricRecords.
+
+    ``overall_metrics`` and ``per_horizon_metrics`` are the headline tables and
+    are only written for the ``all`` group; the per-group values are recorded as
+    ``MetricRecord`` entries, which carry their own ``target_group``.
+    """
+    if target_group == "all":
+        manifest.overall_metrics = overall
+        manifest.per_horizon_metrics = per_horizon
 
     metric_names = ["MAE", "RMSE", "MAPE", "NLL", "CRPS", "PICP", "MPIW"]
     for name in metric_names:
@@ -139,7 +147,7 @@ def _populate_manifest_metrics(
                     value=float(overall[name]),
                     unit=unit,
                     horizon="aggregate",
-                    target_group="all",
+                    target_group=target_group,
                     valid_count=int(overall.get("valid_count", 0)),
                 )
             )
@@ -167,10 +175,65 @@ def _populate_manifest_metrics(
                         unit=unit,
                         horizon=h_step,
                         horizon_minutes=h_min,
-                        target_group="all",
+                        target_group=target_group,
                         valid_count=int(h_data.get("valid_count", 0)),
                     )
                 )
+
+
+def _record_mask_provenance(
+    manifest: RunManifest, generator: MaskGenerator, sensor_ids: list[str]
+) -> None:
+    """Record which sensors a run withheld, so a condition is auditable.
+
+    Sensor IDs come from the data artifact's metadata. When they are absent (an
+    evaluation driven by raw target/scaler paths), the seed, condition and mask
+    checksum are still recorded: the checksum pins the mask exactly, and the IDs
+    can be recovered from the published mask artifact.
+    """
+    if len(sensor_ids) == generator.num_nodes:
+        generator.fill_manifest(manifest, sensor_ids)
+        return
+
+    manifest.mask_seed = generator.seed
+    manifest.mask_condition = generator.mask_condition
+    manifest.mask_checksum = generator.checksum
+
+
+def _evaluate_target_groups(
+    manifest: RunManifest,
+    generator: MaskGenerator,
+    raw_true: np.ndarray,
+    raw_pred: np.ndarray,
+    raw_sigma: np.ndarray | None,
+    native_mask: np.ndarray | None,
+    nominal_pi: float,
+    cadence_minutes: int,
+) -> None:
+    """Score the same predictions over the withheld and the observed sensors.
+
+    The experimental mask withholds model *inputs*; every target remains
+    available to the evaluator (ADR-0004), so a masked condition is reported as
+    three groups over one set of predictions: all, masked and unmasked targets.
+    """
+    groups = generator.node_group_masks(native_mask, raw_true.shape)
+    for group, group_mask in groups.items():
+        if not group_mask.any():
+            print(
+                f"Warning: target group '{group}' has no observed targets; skipped.",
+                file=sys.stderr,
+                flush=True,
+            )
+            continue
+        g_overall, g_per_horizon = evaluate_metrics_by_horizon(
+            raw_true,
+            raw_pred,
+            sigma=raw_sigma,
+            mask=group_mask,
+            nominal_pi=nominal_pi,
+            cadence_minutes=cadence_minutes,
+        )
+        _populate_manifest_metrics(manifest, g_overall, g_per_horizon, target_group=group)
 
 
 def provenance_from_checkpoint(checkpoint_path: str) -> dict[str, Any]:
@@ -463,6 +526,13 @@ def run_evaluation(
         raw_pred = res_pred["mu"] if isinstance(res_pred, dict) else res_pred
         raw_sigma = None
 
+    # The evaluator never masks anything itself: predictions arrive already
+    # produced under a condition. It resolves the run's mask only to report the
+    # masked and unmasked target groups and to record which sensors were withheld.
+    mask_generator = resolve_mask_generator(
+        config.get("masking"), raw_true.shape[2], config.get("seed")
+    )
+
     # Evaluate metrics
     overall, per_horizon = evaluate_metrics_by_horizon(
         raw_true,
@@ -502,6 +572,18 @@ def run_evaluation(
     )
 
     _populate_manifest_metrics(manifest, overall, per_horizon)
+    if mask_generator is not None:
+        _record_mask_provenance(manifest, mask_generator, sensor_ids)
+        _evaluate_target_groups(
+            manifest,
+            mask_generator,
+            raw_true,
+            raw_pred,
+            raw_sigma,
+            mask,
+            nominal_pi,
+            cadence_minutes,
+        )
     _apply_provenance(manifest, provenance)
     manifest.mark_complete()
 
@@ -643,6 +725,25 @@ def main(argv: list[str] | None = None) -> int:
         help="Model name recorded in the manifest (e.g. 'st_dssm').",
     )
     parser.add_argument(
+        "--mask-ratio",
+        type=float,
+        default=None,
+        help="Experimental node-masking ratio the predictions were produced under "
+        "(e.g. 0.2). Enables masked/unmasked target-group metrics.",
+    )
+    parser.add_argument(
+        "--mask-seed",
+        type=int,
+        default=None,
+        help="Seed of the experimental mask (canonical: 2026, 2027, 2028).",
+    )
+    parser.add_argument(
+        "--mask-path",
+        type=str,
+        default=None,
+        help="Published mask artifact to load instead of regenerating from ratio and seed.",
+    )
+    parser.add_argument(
         "--provenance-checkpoint",
         type=str,
         default=None,
@@ -656,6 +757,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--trainable-parameters", type=int, default=None, help="Trainable parameter count to record.")
 
     args = parser.parse_args(argv)
+
+    masking: dict[str, Any] = {}
+    if args.mask_ratio is not None:
+        masking["missing_ratio"] = args.mask_ratio
+    if args.mask_seed is not None:
+        masking["seed"] = args.mask_seed
+    if args.mask_path is not None:
+        masking["mask_path"] = args.mask_path
 
     provenance: dict[str, Any] = {}
     if args.provenance_checkpoint:
@@ -694,6 +803,8 @@ def main(argv: list[str] | None = None) -> int:
                     config["run_id"] = args.run_id
                 if args.model_name:
                     config["model_name"] = args.model_name
+                if masking:
+                    config["masking"] = {**config.get("masking", {}), **masking}
                 run_evaluation(
                     config=config,
                     output_dir=args.output_dir,
@@ -714,6 +825,8 @@ def main(argv: list[str] | None = None) -> int:
                 config["run_id"] = args.run_id
             if args.model_name:
                 config["model_name"] = args.model_name
+            if masking:
+                config["masking"] = masking
             run_evaluation(
                 config=config,
                 output_dir=args.output_dir,

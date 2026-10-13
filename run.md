@@ -59,6 +59,60 @@ python scripts/aggregate_phase10.py             # -> phase10_results.md / .json 
 python scripts/aggregate_phase10.py --check     # fails if the tables drifted
 ```
 
+---
+**Step 6: Phase 11 — Missingness mechanism**
+
+Publish (or verify) the canonical masks. They are a deterministic function of the sensor
+count and the seed, so `--check` re-derives them rather than redrawing:
+
+```bash
+python scripts/generate_masks.py                # -> experiments/masks/node{10,20,30}-seed{2026,2027,2028}.json
+python scripts/generate_masks.py --check        # fails if a published mask drifted
+```
+
+A condition withholds whole sensors from the model's input history at inference, so it
+evaluates the normal-condition checkpoint rather than training a new model (ADR-0004,
+ADR-0011). Pair the mask seed with the run's training seed:
+
+```bash
+# ST-DSSM under the primary 20% condition, seed 2026
+st-dssm-train --config configs/missingness/node20-seed2026.yaml \
+  --predict-from experiments/normal/checkpoints/<st_dssm run_id>_best.pt \
+  --output-dir experiments/missingness
+
+# Deterministic ST-GCN baseline under the same mask
+st-dssm-baseline --model st_gcn --config configs/baselines/st_gcn.yaml \
+  --artifact-dir data/processed --seed 2026 \
+  --predict-from experiments/normal/checkpoints/<st_gcn run_id>_best.pt \
+  --mask-path experiments/masks/node20-seed2026.json \
+  --output-dir experiments/missingness --checkpoint-dir experiments/missingness/checkpoints
+
+# Historical persistence under the same mask (it fits no parameters, so nothing is loaded)
+st-dssm-baseline --model persistence --artifact-dir data/processed --seed 2026 \
+  --mask-path experiments/masks/node20-seed2026.json \
+  --output-dir experiments/missingness
+```
+
+`--mask-ratio 0.2 --mask-seed 2026` regenerates the same mask without the artifact file.
+`--mask-training` additionally withholds the sensors during training, which is the Phase 12
+masking-representation ablation and must be labelled as such.
+
+Each run's manifest records `mask_seed`, `mask_condition`, `mask_sensor_ids` and
+`mask_checksum`, and carries every metric three times over: `all`, `masked` (withheld
+sensors) and `unmasked`. Targets are never masked, so the `all` group scores exactly the
+same targets as the normal condition.
+
+To add the target-group breakdown to predictions that are already saved:
+
+```bash
+st-dssm-evaluate --artifact-dir data/processed \
+  --predictions-path experiments/missingness/<run_id>_predictions.npz \
+  --split test --run-id <run_id> --model-name st_dssm \
+  --mask-path experiments/masks/node20-seed2026.json \
+  --output-dir experiments/missingness
+```
+
+---
 **Regenerating a single run's manifest**
 
 Evaluation is deterministic given a run's saved `*_predictions.npz`, so a manifest can be
