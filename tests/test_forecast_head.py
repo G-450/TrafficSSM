@@ -63,7 +63,7 @@ def canonical_inputs(small_head: GaussianForecastHead):
 
 class TestForecastHeadShapes:
     def test_output_shapes_no_teacher_forcing(self, small_head, canonical_inputs):
-        z, ctx, y, B, N, H = canonical_inputs
+        z, ctx, _y, B, N, H = canonical_inputs
         mu, sigma = small_head(z, ctx)
         assert mu.shape == (B, H, N, 1)
         assert sigma.shape == (B, H, N, 1)
@@ -75,7 +75,7 @@ class TestForecastHeadShapes:
         assert sigma.shape == (B, H, N, 1)
 
     def test_sigma_strictly_positive(self, small_head, canonical_inputs):
-        z, ctx, y, B, N, H = canonical_inputs
+        z, ctx, _y, _B, _N, _H = canonical_inputs
         _, sigma = small_head(z, ctx)
         assert (sigma > 0).all(), "sigma contains non-positive values."
         assert (sigma >= _SIGMA_FLOOR).all(), (
@@ -83,7 +83,7 @@ class TestForecastHeadShapes:
         )
 
     def test_outputs_finite(self, small_head, canonical_inputs):
-        z, ctx, _, B, N, H = canonical_inputs
+        z, ctx, _, _B, _N, _H = canonical_inputs
         mu, sigma = small_head(z, ctx)
         assert torch.isfinite(mu).all(), "mu contains non-finite values."
         assert torch.isfinite(sigma).all(), "sigma contains non-finite values."
@@ -137,7 +137,7 @@ class TestLogSigmaClamping:
 class TestTeacherForcing:
     def test_teacher_forcing_full_differs_from_autoregressive(self, small_head, canonical_inputs):
         """With teacher_force_ratio=1.0 and ratio=0.0 outputs must differ (in general)."""
-        z, ctx, y, B, N, H = canonical_inputs
+        z, ctx, y, _B, _N, _H = canonical_inputs
         small_head.eval()
 
         torch.manual_seed(1)
@@ -154,14 +154,14 @@ class TestTeacherForcing:
 
     def test_teacher_forcing_zero_is_fully_autoregressive(self, small_head, canonical_inputs):
         """With ratio=0.0, y_target is never used; same output regardless of y_target."""
-        z, ctx, y, B, N, H = canonical_inputs
+        z, ctx, y, _B, _N, _H = canonical_inputs
         small_head.eval()
 
         torch.manual_seed(2)
-        mu1, sig1 = small_head(z, ctx, y_target=y, teacher_force_ratio=0.0)
+        mu1, _sig1 = small_head(z, ctx, y_target=y, teacher_force_ratio=0.0)
 
         torch.manual_seed(2)
-        mu2, sig2 = small_head(z, ctx, y_target=None, teacher_force_ratio=0.0)
+        mu2, _sig2 = small_head(z, ctx, y_target=None, teacher_force_ratio=0.0)
 
         assert torch.allclose(mu1, mu2, atol=1e-6), (
             "Autoregressive outputs differ when y_target is and is not provided with ratio=0."
@@ -175,7 +175,7 @@ class TestTeacherForcing:
 class TestGradientFlow:
     def test_gradient_flow_all_parameters(self, small_head, canonical_inputs):
         """All trainable parameters must receive finite gradients."""
-        z, ctx, y, B, N, H = canonical_inputs
+        z, ctx, _y, _B, _N, _H = canonical_inputs
         small_head.train()
 
         mu, sigma = small_head(z, ctx)
@@ -250,14 +250,14 @@ class TestSamplePrediction:
         assert samples.shape == (1, B, H, N, 1)
 
     def test_samples_finite(self, small_head, canonical_inputs):
-        z, ctx, _, B, N, H = canonical_inputs
+        z, ctx, _, _B, _N, _H = canonical_inputs
         mu, sigma = small_head(z, ctx)
         samples = small_head.sample_prediction(mu, sigma, n_samples=3)
         assert torch.isfinite(samples).all()
 
     def test_sample_distribution_mean(self, small_head, canonical_inputs):
         """Large-sample mean should converge toward mu."""
-        z, ctx, _, B, N, H = canonical_inputs
+        z, ctx, _, _B, _N, _H = canonical_inputs
         mu, sigma = small_head(z, ctx)
 
         samples = small_head.sample_prediction(mu, sigma, n_samples=2000)
@@ -338,7 +338,7 @@ class TestInputValidation:
             )
 
     def test_sample_non_positive_sigma(self, small_head, canonical_inputs):
-        z, ctx, _, B, N, H = canonical_inputs
+        z, ctx, _, _B, _N, _H = canonical_inputs
         mu, sigma = small_head(z, ctx)
         bad_sigma = sigma.clone()
         bad_sigma[0, 0, 0, 0] = -0.1
@@ -346,7 +346,7 @@ class TestInputValidation:
             small_head.sample_prediction(mu, bad_sigma)
 
     def test_sample_shape_mismatch(self, small_head, canonical_inputs):
-        z, ctx, _, B, N, H = canonical_inputs
+        z, ctx, _, _B, _N, _H = canonical_inputs
         mu, sigma = small_head(z, ctx)
         with pytest.raises(ValueError, match="same shape"):
             small_head.sample_prediction(mu, sigma[:, :1, :, :])

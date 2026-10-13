@@ -9,8 +9,9 @@
 #     --predict-from experiments/normal/checkpoints/st_dssm-test-seed2026-...-_best.pt \
 #     --output-dir experiments/missingness
 #
-# The other eight conditions differ only in `masking.mask_path` (node10/node20/
-# node30 x seed 2026/2027/2028) and in the paired training seed.
+# All nine conditions are published in this directory (node10/node20/node30 x
+# seed 2026/2027/2028); they differ only in `masking.mask_path`,
+# `masking.missing_ratio`, `masking.seed` and the paired run seed.
 
 seed: 2026
 split: test

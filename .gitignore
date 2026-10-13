@@ -37,3 +37,16 @@ ENV/
 .env
 .DS_Store
 Thumbs.db
+
+# Local-only scratch: data backups, crash dumps and review patches
+data/processed_backup_*/
+*.stackdump
+/pr*.patch
+/pr*_diff*.txt
+
+# Stale pre-Phase-10 local baseline runs: kept on disk, but not admissible
+# evidence (git_dirty, no data-artifact MD5, no split digest). Locked study
+# figures and manifests live under experiments/<study>/ instead.
+experiments/baselines/baseline-persistence-test-20260819-062508_*
+experiments/baselines/baseline-st_gcn-test-seed2026-20260819-062543_*
+experiments/baselines/plots/

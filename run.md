@@ -72,7 +72,8 @@ python scripts/generate_masks.py --check        # fails if a published mask drif
 
 A condition withholds whole sensors from the model's input history at inference, so it
 evaluates the normal-condition checkpoint rather than training a new model (ADR-0004,
-ADR-0011). Pair the mask seed with the run's training seed:
+ADR-0011). Pair the mask seed with the run's training seed; all nine ST-DSSM condition
+configs are published under `configs/missingness/`:
 
 ```bash
 # ST-DSSM under the primary 20% condition, seed 2026
