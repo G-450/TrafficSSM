@@ -8,6 +8,8 @@ verifies the runs are mutually comparable, and writes the locked deliverable:
   per-group values and a checksum of every source manifest.
 - ``phase12_results.md``    locked tables (mean ± std across seeds, all/masked/unmasked
   groups, point and uncertainty metrics per condition level).
+- ``plots/phase12_*.png``   model-comparison figures, one per metric per condition
+  level, with the across-seed spread shaded.
 
 Per ADR-0011 a condition applies at inference, so the primary tables hold only
 runs whose inputs were masked at inference. A masked-training ablation run
@@ -36,6 +38,7 @@ from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 
+from st_dssm.plots import plot_horizon_curves
 from st_dssm.result_schema import load_run_manifest
 
 # ---------------------------------------------------------------------------
@@ -65,6 +68,7 @@ METRIC_UNITS: dict[str, str] = {
 }
 
 CANONICAL_SEEDS = [2026, 2027, 2028]
+NOMINAL_COVERAGE = 0.95
 RESULTS_DIR = "experiments/missingness"
 CHECK_RTOL = 1e-12
 
@@ -581,6 +585,67 @@ def render_markdown(agg: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def render_figures(agg: dict[str, Any], output_dir: str) -> list[str]:
+    """Write one model-comparison figure per metric per condition level.
+
+    Mirrors the Phase 10 figures so the two studies can be read together: the
+    same metric, the same models, the across-seed spread shaded. Only the
+    primary arm is plotted; the ablation is a different model and belongs with
+    its own table, not on a model-comparison axis (ADR-0011).
+    """
+    plots_dir = os.path.join(output_dir, "plots")
+    os.makedirs(plots_dir, exist_ok=True)
+    models = agg["models"]
+    written: list[str] = []
+
+    for level in CONDITION_LEVELS:
+        level_models = {
+            name: data["conditions"][level]
+            for name, data in models.items()
+            if level in data["conditions"]
+        }
+        if not level_models:
+            continue
+        minutes = [
+            e["horizon_minutes"]
+            for e in next(iter(level_models.values()))["per_horizon"]
+        ]
+
+        for metric in ALL_METRICS:
+            series: dict[str, tuple[list[float], list[float]]] = {}
+            for name, cond in level_models.items():
+                entries = [e for e in cond["per_horizon"] if metric in e]
+                if len(entries) == len(minutes):
+                    series[MODEL_LABELS[name]] = (
+                        [e[metric]["mean"] for e in entries],
+                        [e[metric]["std"] for e in entries],
+                    )
+            if not series:
+                continue
+
+            ratio = level.replace("%", "")
+            filename = f"phase12_node{ratio}_{metric.lower()}_by_horizon.png"
+            path = os.path.join(plots_dir, filename)
+            reference = NOMINAL_COVERAGE if metric == "PICP" else None
+            plot_horizon_curves(
+                minutes,
+                series,
+                metric,
+                path,
+                unit=METRIC_UNITS[metric],
+                title=(
+                    f"Phase 12 {level} missingness: {metric} by horizon (test split)"
+                ),
+                reference_level=reference,
+                reference_label=(
+                    f"nominal {NOMINAL_COVERAGE:.0%}" if reference else None
+                ),
+            )
+            written.append(os.path.relpath(path).replace("\\", "/"))
+
+    return written
+
+
 # ---------------------------------------------------------------------------
 # Check mode
 # ---------------------------------------------------------------------------
@@ -668,6 +733,7 @@ def main(argv: list[str] | None = None) -> int:
         f.write("\n")
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(render_markdown(agg))
+    figures = render_figures(agg, args.results_dir)
 
     print(f"Aggregated {len(agg['sources'])} condition run manifests:")
     for model_name, model_data in agg["models"].items():
@@ -692,6 +758,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
     print(f"Locked tables: {md_path}")
     print(f"Locked data:   {json_path}")
+    print(f"Locked figures: {len(figures)} under {os.path.join(args.results_dir, 'plots')}")
     return 0
 
 

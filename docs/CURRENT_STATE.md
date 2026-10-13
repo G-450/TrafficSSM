@@ -46,7 +46,8 @@ results remain locked and verifiable from manifests alone.
   (`apply_to_training: true`) retrains under the mask, so it is a different model from a
   primary condition run: its run identity carries `-masktrain`, and the aggregator reports
   it in its own labelled section rather than in a primary cell (ADR-0011).
-  See `experiments/missingness/phase12_results.md` for locked tables.
+  See `experiments/missingness/phase12_results.md` for locked tables and
+  `experiments/missingness/plots/phase12_*.png` for the per-condition comparison figures.
 
 - **Phase 10 Normal-condition study:** hyperparameters tuned against validation NLL only
   (`scripts/tune_phase10.py`, search recorded in `experiments/tuning/`, best val NLL 2.118),

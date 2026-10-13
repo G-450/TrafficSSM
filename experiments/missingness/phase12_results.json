@@ -1,7 +1,7 @@
 {
   "dataset_manifest_checksum": "ad5a3a8254a02c2da2df261f6c2fb305",
   "forecast_horizon": 12,
-  "generated_at": "2026-10-13T19:24:55.055384+00:00",
+  "generated_at": "2026-10-13T20:21:06.410842+00:00",
   "models": {
     "deterministic_st_gcn": {
       "conditions": {
@@ -4130,6 +4130,7 @@
       "manifest_checksum": "c99db9d349066a0133a610adc518b12ca3f492da6ec5d6196e1120cfe300f260",
       "mask_condition": "10%",
       "mask_seed": 2026,
+      "masked_training": false,
       "model_name": "deterministic_st_gcn",
       "path": "experiments/missingness/baseline-st_gcn-test-seed2026-node10-seed2026-predict-20261013-190308_manifest.json",
       "run_id": "baseline-st_gcn-test-seed2026-node10-seed2026-predict-20261013-190308"
@@ -4140,6 +4141,7 @@
       "manifest_checksum": "3919d016b8241f52ed1a5cba22c7e0bb6d24773bcefc6bf822b4b2aee9158a6a",
       "mask_condition": "10%",
       "mask_seed": 2027,
+      "masked_training": false,
       "model_name": "deterministic_st_gcn",
       "path": "experiments/missingness/baseline-st_gcn-test-seed2027-node10-seed2027-predict-20261013-191028_manifest.json",
       "run_id": "baseline-st_gcn-test-seed2027-node10-seed2027-predict-20261013-191028"
@@ -4150,6 +4152,7 @@
       "manifest_checksum": "4d4c0e926543f7ccfbfebdff1f432900cf9fdcb467b5ccecceaaf5425be85028",
       "mask_condition": "10%",
       "mask_seed": 2028,
+      "masked_training": false,
       "model_name": "deterministic_st_gcn",
       "path": "experiments/missingness/baseline-st_gcn-test-seed2028-node10-seed2028-predict-20261013-191752_manifest.json",
       "run_id": "baseline-st_gcn-test-seed2028-node10-seed2028-predict-20261013-191752"
@@ -4160,6 +4163,7 @@
       "manifest_checksum": "347c154f473f5484ffae4850e1c6735c5739865d5393a979eea24c7f75d3b2dd",
       "mask_condition": "20%",
       "mask_seed": 2026,
+      "masked_training": false,
       "model_name": "deterministic_st_gcn",
       "path": "experiments/missingness/baseline-st_gcn-test-seed2026-node20-seed2026-predict-20261013-190519_manifest.json",
       "run_id": "baseline-st_gcn-test-seed2026-node20-seed2026-predict-20261013-190519"
@@ -4170,6 +4174,7 @@
       "manifest_checksum": "e6eee5be2d18202b8fc510e1c9a26437288be6de1491353016c38bc1156798c7",
       "mask_condition": "20%",
       "mask_seed": 2027,
+      "masked_training": false,
       "model_name": "deterministic_st_gcn",
       "path": "experiments/missingness/baseline-st_gcn-test-seed2027-node20-seed2027-predict-20261013-191301_manifest.json",
       "run_id": "baseline-st_gcn-test-seed2027-node20-seed2027-predict-20261013-191301"
@@ -4180,6 +4185,7 @@
       "manifest_checksum": "91144e39150d8af1dca0079c9c5151dbcc2edd2a8e668cb0090fce58836641eb",
       "mask_condition": "20%",
       "mask_seed": 2028,
+      "masked_training": false,
       "model_name": "deterministic_st_gcn",
       "path": "experiments/missingness/baseline-st_gcn-test-seed2028-node20-seed2028-predict-20261013-192019_manifest.json",
       "run_id": "baseline-st_gcn-test-seed2028-node20-seed2028-predict-20261013-192019"
@@ -4190,6 +4196,7 @@
       "manifest_checksum": "0db94b8603e3ac9e89739e53bead023b57e58ca1ebaf07bda0706dabbd0caa1b",
       "mask_condition": "30%",
       "mask_seed": 2026,
+      "masked_training": false,
       "model_name": "deterministic_st_gcn",
       "path": "experiments/missingness/baseline-st_gcn-test-seed2026-node30-seed2026-predict-20261013-190756_manifest.json",
       "run_id": "baseline-st_gcn-test-seed2026-node30-seed2026-predict-20261013-190756"
@@ -4200,6 +4207,7 @@
       "manifest_checksum": "c0922fce73b13c829718e12a3d39b79423a954700a7613054b75cdfada005f36",
       "mask_condition": "30%",
       "mask_seed": 2027,
+      "masked_training": false,
       "model_name": "deterministic_st_gcn",
       "path": "experiments/missingness/baseline-st_gcn-test-seed2027-node30-seed2027-predict-20261013-191534_manifest.json",
       "run_id": "baseline-st_gcn-test-seed2027-node30-seed2027-predict-20261013-191534"
@@ -4210,6 +4218,7 @@
       "manifest_checksum": "394272ba2011c7eaea39367519e34a1e5d77cf0c9b2e9bbefa83b2c81a03bc5f",
       "mask_condition": "30%",
       "mask_seed": 2028,
+      "masked_training": false,
       "model_name": "deterministic_st_gcn",
       "path": "experiments/missingness/baseline-st_gcn-test-seed2028-node30-seed2028-predict-20261013-192248_manifest.json",
       "run_id": "baseline-st_gcn-test-seed2028-node30-seed2028-predict-20261013-192248"
@@ -4220,6 +4229,7 @@
       "manifest_checksum": "91f2651ecab86d37034181be1f962f45de6c18aec14f5239f1fb612573e721d4",
       "mask_condition": "10%",
       "mask_seed": 2026,
+      "masked_training": false,
       "model_name": "historical_persistence",
       "path": "experiments/missingness/baseline-persistence-test-node10-seed2026-20261013-190241_manifest.json",
       "run_id": "baseline-persistence-test-node10-seed2026-20261013-190241"
@@ -4230,6 +4240,7 @@
       "manifest_checksum": "32e21f51d1fa22253b881dfa0e0e8940ac7e5efdac1ee4f66b84fd113b48b23b",
       "mask_condition": "10%",
       "mask_seed": 2027,
+      "masked_training": false,
       "model_name": "historical_persistence",
       "path": "experiments/missingness/baseline-persistence-test-node10-seed2027-20261013-191003_manifest.json",
       "run_id": "baseline-persistence-test-node10-seed2027-20261013-191003"
@@ -4240,19 +4251,21 @@
       "manifest_checksum": "c1a13ab46522b6553df8b352a399046f6d6e139ff089eeee52ec5b86804dffc5",
       "mask_condition": "10%",
       "mask_seed": 2028,
+      "masked_training": false,
       "model_name": "historical_persistence",
       "path": "experiments/missingness/baseline-persistence-test-node10-seed2028-20261013-191733_manifest.json",
       "run_id": "baseline-persistence-test-node10-seed2028-20261013-191733"
     },
     {
-      "git_commit": "17df01d4492aa3dd220ab790b3770032efdcf347",
-      "git_dirty": true,
-      "manifest_checksum": "bdaff1c268f31ac60568f80acf97d40d0048ff5c851a8e2cd47cbffc09ad30fe",
+      "git_commit": "16895ef8bdc5bd8b2ef7de82671c27d700ab2221",
+      "git_dirty": false,
+      "manifest_checksum": "4331c07c07e1da21c9b03546424443d8ecda2caf3ef333dab824a4a3948ccc11",
       "mask_condition": "20%",
       "mask_seed": 2026,
+      "masked_training": false,
       "model_name": "historical_persistence",
-      "path": "experiments/missingness/baseline-persistence-test-node20-seed2026-20261013-110858_manifest.json",
-      "run_id": "baseline-persistence-test-node20-seed2026-20261013-110858"
+      "path": "experiments/missingness/baseline-persistence-test-node20-seed2026-20261013-201920_manifest.json",
+      "run_id": "baseline-persistence-test-node20-seed2026-20261013-201920"
     },
     {
       "git_commit": "6620418ba880b9f60630e94a42066566ee0609d5",
@@ -4260,6 +4273,7 @@
       "manifest_checksum": "1aa67ad1701d5a32d9f2518b56c7bd375a18a9b62bad34183d36ea48941ec323",
       "mask_condition": "20%",
       "mask_seed": 2027,
+      "masked_training": false,
       "model_name": "historical_persistence",
       "path": "experiments/missingness/baseline-persistence-test-node20-seed2027-20261013-191234_manifest.json",
       "run_id": "baseline-persistence-test-node20-seed2027-20261013-191234"
@@ -4270,6 +4284,7 @@
       "manifest_checksum": "e6840f740010c089821847e795347220f7131e32f33f941ab11c83e57b483688",
       "mask_condition": "20%",
       "mask_seed": 2028,
+      "masked_training": false,
       "model_name": "historical_persistence",
       "path": "experiments/missingness/baseline-persistence-test-node20-seed2028-20261013-191955_manifest.json",
       "run_id": "baseline-persistence-test-node20-seed2028-20261013-191955"
@@ -4280,6 +4295,7 @@
       "manifest_checksum": "b24b614f2de840c6f6847eebf3d11a4b4ed953b7cd947f6aa1d3f0ce35b3ffb2",
       "mask_condition": "30%",
       "mask_seed": 2026,
+      "masked_training": false,
       "model_name": "historical_persistence",
       "path": "experiments/missingness/baseline-persistence-test-node30-seed2026-20261013-190731_manifest.json",
       "run_id": "baseline-persistence-test-node30-seed2026-20261013-190731"
@@ -4290,6 +4306,7 @@
       "manifest_checksum": "a344b4fd18f9604b513d9d0598c88c802a5322053477e4b7da9f30ffe232df51",
       "mask_condition": "30%",
       "mask_seed": 2027,
+      "masked_training": false,
       "model_name": "historical_persistence",
       "path": "experiments/missingness/baseline-persistence-test-node30-seed2027-20261013-191508_manifest.json",
       "run_id": "baseline-persistence-test-node30-seed2027-20261013-191508"
@@ -4300,6 +4317,7 @@
       "manifest_checksum": "8abde10895fb76ba3b107fc4c1cfdcf7059388a3658f72186368dd19177cc3db",
       "mask_condition": "30%",
       "mask_seed": 2028,
+      "masked_training": false,
       "model_name": "historical_persistence",
       "path": "experiments/missingness/baseline-persistence-test-node30-seed2028-20261013-192223_manifest.json",
       "run_id": "baseline-persistence-test-node30-seed2028-20261013-192223"
@@ -4310,6 +4328,7 @@
       "manifest_checksum": "4e6d7db88ad5f7bc2d286d44fb3be14929de7cc94c5dd485099441599bab455a",
       "mask_condition": "10%",
       "mask_seed": 2026,
+      "masked_training": false,
       "model_name": "st_dssm",
       "path": "experiments/missingness/st_dssm-test-seed2026-node10-seed2026-predict-20261013-190353_manifest.json",
       "run_id": "st_dssm-test-seed2026-node10-seed2026-predict-20261013-190353"
@@ -4320,6 +4339,7 @@
       "manifest_checksum": "d98444de0e7d9c9394201ee23739ca9b8818c20c8b8f3e0e5aea18f02ce6990c",
       "mask_condition": "10%",
       "mask_seed": 2027,
+      "masked_training": false,
       "model_name": "st_dssm",
       "path": "experiments/missingness/st_dssm-test-seed2027-node10-seed2027-predict-20261013-191112_manifest.json",
       "run_id": "st_dssm-test-seed2027-node10-seed2027-predict-20261013-191112"
@@ -4330,6 +4350,7 @@
       "manifest_checksum": "11d8edd885339d11877ac77134ed425c32094ba0713ad56f5e5eda3c3b308964",
       "mask_condition": "10%",
       "mask_seed": 2028,
+      "masked_training": false,
       "model_name": "st_dssm",
       "path": "experiments/missingness/st_dssm-test-seed2028-node10-seed2028-predict-20261013-191836_manifest.json",
       "run_id": "st_dssm-test-seed2028-node10-seed2028-predict-20261013-191836"
@@ -4340,6 +4361,7 @@
       "manifest_checksum": "7a4cdbdbe5893d6db70fbd4288dd75fbf8c43562a6427a6fd8fccfd3cb6f8e32",
       "mask_condition": "20%",
       "mask_seed": 2026,
+      "masked_training": false,
       "model_name": "st_dssm",
       "path": "experiments/missingness/st_dssm-test-seed2026-node20-seed2026-predict-20261013-190606_manifest.json",
       "run_id": "st_dssm-test-seed2026-node20-seed2026-predict-20261013-190606"
@@ -4350,6 +4372,7 @@
       "manifest_checksum": "fa184dbacd58abee6d96125802c35f5efc6d517031ef38c5eff8ddbc1f0f81e7",
       "mask_condition": "20%",
       "mask_seed": 2027,
+      "masked_training": false,
       "model_name": "st_dssm",
       "path": "experiments/missingness/st_dssm-test-seed2027-node20-seed2027-predict-20261013-191345_manifest.json",
       "run_id": "st_dssm-test-seed2027-node20-seed2027-predict-20261013-191345"
@@ -4360,6 +4383,7 @@
       "manifest_checksum": "62216438c157df5b4291bdab14b4d0b560292e2bed9c21cd8cdfad7fb028d59c",
       "mask_condition": "20%",
       "mask_seed": 2028,
+      "masked_training": false,
       "model_name": "st_dssm",
       "path": "experiments/missingness/st_dssm-test-seed2028-node20-seed2028-predict-20261013-192103_manifest.json",
       "run_id": "st_dssm-test-seed2028-node20-seed2028-predict-20261013-192103"
@@ -4370,6 +4394,7 @@
       "manifest_checksum": "3aaa9c35eae9a431826b1bf02352851830157fbfa21bfc353daa9b8bce23c393",
       "mask_condition": "30%",
       "mask_seed": 2026,
+      "masked_training": false,
       "model_name": "st_dssm",
       "path": "experiments/missingness/st_dssm-test-seed2026-node30-seed2026-predict-20261013-190840_manifest.json",
       "run_id": "st_dssm-test-seed2026-node30-seed2026-predict-20261013-190840"
@@ -4380,6 +4405,7 @@
       "manifest_checksum": "3e1cee17f1997c056249933536f3cd06b2c062e9b23bf321fc7e1bf01901178b",
       "mask_condition": "30%",
       "mask_seed": 2027,
+      "masked_training": false,
       "model_name": "st_dssm",
       "path": "experiments/missingness/st_dssm-test-seed2027-node30-seed2027-predict-20261013-191618_manifest.json",
       "run_id": "st_dssm-test-seed2027-node30-seed2027-predict-20261013-191618"
@@ -4390,6 +4416,7 @@
       "manifest_checksum": "d00904a2fe052b9952883e1f183b616c12e9da94c4f87cda7f70a661cfed39b7",
       "mask_condition": "30%",
       "mask_seed": 2028,
+      "masked_training": false,
       "model_name": "st_dssm",
       "path": "experiments/missingness/st_dssm-test-seed2028-node30-seed2028-predict-20261013-192331_manifest.json",
       "run_id": "st_dssm-test-seed2028-node30-seed2028-predict-20261013-192331"

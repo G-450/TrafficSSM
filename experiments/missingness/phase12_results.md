@@ -1,6 +1,6 @@
 # Phase 12 — Robustness condition study (locked results)
 
-**Generated:** 2026-10-13T19:24:55.055384+00:00
+**Generated:** 2026-10-13T20:21:06.410842+00:00
 
 Locked test-set results across 10/20/30% sensor-node missingness conditions.
 Every number is read from the run manifests listed under [Provenance](#provenance).
@@ -15,7 +15,7 @@ Values are **mean +/- sample standard deviation across the three canonical seeds
 - Data artifact: `processed_metadata.json` MD5 `ad5a3a8254a02c2da2df261f6c2fb305`
 - Split tensors digest: `3d4a62c1ed05f0b9d2555f53ef592cc6690866729f92e29d67cf404c6087490f`
 
-## Table — 10% masking condition (all sensors)
+## Table — 10% masking condition (all sensors, primary arm)
 
 | Model | MAE (mph) | RMSE (mph) | MAPE (%) | NLL (nats) | CRPS (mph) | PICP | MPIW (mph) |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -23,7 +23,7 @@ Values are **mean +/- sample standard deviation across the three canonical seeds
 | Deterministic ST-GCN | 2.267 +/- 0.043 | 5.080 +/- 0.152 | 5.368 +/- 0.224 | -- | -- | -- | -- |
 | ST-DSSM (ours) | 2.444 +/- 0.179 | 5.092 +/- 0.144 | 5.609 +/- 0.166 | 4.431 +/- 2.433 | 1.833 +/- 0.102 | 0.9337 +/- 0.0272 | 12.309 +/- 1.857 |
 
-## Table — 20% masking condition (all sensors)
+## Table — 20% masking condition (all sensors, primary arm)
 
 | Model | MAE (mph) | RMSE (mph) | MAPE (%) | NLL (nats) | CRPS (mph) | PICP | MPIW (mph) |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -31,7 +31,7 @@ Values are **mean +/- sample standard deviation across the three canonical seeds
 | Deterministic ST-GCN | 2.830 +/- 0.141 | 5.953 +/- 0.031 | 6.678 +/- 0.054 | -- | -- | -- | -- |
 | ST-DSSM (ours) | 2.945 +/- 0.471 | 5.904 +/- 0.410 | 6.720 +/- 0.564 | 6.675 +/- 4.931 | 2.216 +/- 0.250 | 0.9035 +/- 0.0491 | 13.125 +/- 3.296 |
 
-## Table — 30% masking condition (all sensors)
+## Table — 30% masking condition (all sensors, primary arm)
 
 | Model | MAE (mph) | RMSE (mph) | MAPE (%) | NLL (nats) | CRPS (mph) | PICP | MPIW (mph) |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -87,34 +87,34 @@ Values are **mean +/- sample standard deviation across the three canonical seeds
 
 ## Provenance
 
-| Model | Condition | Seed | Run manifest | Manifest SHA256 | Code commit |
-| :--- | :--- | ---: | :--- | :--- | :--- |
-| Deterministic ST-GCN | 10% | 2026 | `experiments/missingness/baseline-st_gcn-test-seed2026-node10-seed2026-predict-20261013-190308_manifest.json` | `c99db9d349066a01...` | `6620418ba880` |
-| Deterministic ST-GCN | 10% | 2027 | `experiments/missingness/baseline-st_gcn-test-seed2027-node10-seed2027-predict-20261013-191028_manifest.json` | `3919d016b8241f52...` | `6620418ba880` |
-| Deterministic ST-GCN | 10% | 2028 | `experiments/missingness/baseline-st_gcn-test-seed2028-node10-seed2028-predict-20261013-191752_manifest.json` | `4d4c0e926543f7cc...` | `6620418ba880` |
-| Deterministic ST-GCN | 20% | 2026 | `experiments/missingness/baseline-st_gcn-test-seed2026-node20-seed2026-predict-20261013-190519_manifest.json` | `347c154f473f5484...` | `6620418ba880` |
-| Deterministic ST-GCN | 20% | 2027 | `experiments/missingness/baseline-st_gcn-test-seed2027-node20-seed2027-predict-20261013-191301_manifest.json` | `e6eee5be2d18202b...` | `6620418ba880` |
-| Deterministic ST-GCN | 20% | 2028 | `experiments/missingness/baseline-st_gcn-test-seed2028-node20-seed2028-predict-20261013-192019_manifest.json` | `91144e39150d8af1...` | `6620418ba880` |
-| Deterministic ST-GCN | 30% | 2026 | `experiments/missingness/baseline-st_gcn-test-seed2026-node30-seed2026-predict-20261013-190756_manifest.json` | `0db94b8603e3ac9e...` | `6620418ba880` |
-| Deterministic ST-GCN | 30% | 2027 | `experiments/missingness/baseline-st_gcn-test-seed2027-node30-seed2027-predict-20261013-191534_manifest.json` | `c0922fce73b13c82...` | `6620418ba880` |
-| Deterministic ST-GCN | 30% | 2028 | `experiments/missingness/baseline-st_gcn-test-seed2028-node30-seed2028-predict-20261013-192248_manifest.json` | `394272ba2011c7ea...` | `6620418ba880` |
-| Historical Persistence | 10% | 2026 | `experiments/missingness/baseline-persistence-test-node10-seed2026-20261013-190241_manifest.json` | `91f2651ecab86d37...` | `6620418ba880` |
-| Historical Persistence | 10% | 2027 | `experiments/missingness/baseline-persistence-test-node10-seed2027-20261013-191003_manifest.json` | `32e21f51d1fa2225...` | `6620418ba880` |
-| Historical Persistence | 10% | 2028 | `experiments/missingness/baseline-persistence-test-node10-seed2028-20261013-191733_manifest.json` | `c1a13ab46522b655...` | `6620418ba880` |
-| Historical Persistence | 20% | 2026 | `experiments/missingness/baseline-persistence-test-node20-seed2026-20261013-110858_manifest.json` | `bdaff1c268f31ac6...` | `17df01d4492a` (dirty) |
-| Historical Persistence | 20% | 2027 | `experiments/missingness/baseline-persistence-test-node20-seed2027-20261013-191234_manifest.json` | `1aa67ad1701d5a32...` | `6620418ba880` |
-| Historical Persistence | 20% | 2028 | `experiments/missingness/baseline-persistence-test-node20-seed2028-20261013-191955_manifest.json` | `e6840f740010c089...` | `6620418ba880` |
-| Historical Persistence | 30% | 2026 | `experiments/missingness/baseline-persistence-test-node30-seed2026-20261013-190731_manifest.json` | `b24b614f2de840c6...` | `6620418ba880` |
-| Historical Persistence | 30% | 2027 | `experiments/missingness/baseline-persistence-test-node30-seed2027-20261013-191508_manifest.json` | `a344b4fd18f9604b...` | `6620418ba880` |
-| Historical Persistence | 30% | 2028 | `experiments/missingness/baseline-persistence-test-node30-seed2028-20261013-192223_manifest.json` | `8abde10895fb76ba...` | `6620418ba880` |
-| ST-DSSM (ours) | 10% | 2026 | `experiments/missingness/st_dssm-test-seed2026-node10-seed2026-predict-20261013-190353_manifest.json` | `4e6d7db88ad5f7bc...` | `6620418ba880` |
-| ST-DSSM (ours) | 10% | 2027 | `experiments/missingness/st_dssm-test-seed2027-node10-seed2027-predict-20261013-191112_manifest.json` | `d98444de0e7d9c93...` | `6620418ba880` |
-| ST-DSSM (ours) | 10% | 2028 | `experiments/missingness/st_dssm-test-seed2028-node10-seed2028-predict-20261013-191836_manifest.json` | `11d8edd885339d11...` | `6620418ba880` |
-| ST-DSSM (ours) | 20% | 2026 | `experiments/missingness/st_dssm-test-seed2026-node20-seed2026-predict-20261013-190606_manifest.json` | `7a4cdbdbe5893d6d...` | `6620418ba880` |
-| ST-DSSM (ours) | 20% | 2027 | `experiments/missingness/st_dssm-test-seed2027-node20-seed2027-predict-20261013-191345_manifest.json` | `fa184dbacd58abee...` | `6620418ba880` |
-| ST-DSSM (ours) | 20% | 2028 | `experiments/missingness/st_dssm-test-seed2028-node20-seed2028-predict-20261013-192103_manifest.json` | `62216438c157df5b...` | `6620418ba880` |
-| ST-DSSM (ours) | 30% | 2026 | `experiments/missingness/st_dssm-test-seed2026-node30-seed2026-predict-20261013-190840_manifest.json` | `3aaa9c35eae9a431...` | `6620418ba880` |
-| ST-DSSM (ours) | 30% | 2027 | `experiments/missingness/st_dssm-test-seed2027-node30-seed2027-predict-20261013-191618_manifest.json` | `3e1cee17f1997c05...` | `6620418ba880` |
-| ST-DSSM (ours) | 30% | 2028 | `experiments/missingness/st_dssm-test-seed2028-node30-seed2028-predict-20261013-192331_manifest.json` | `d00904a2fe052b99...` | `6620418ba880` |
+| Model | Arm | Condition | Seed | Run manifest | Manifest SHA256 | Code commit |
+| :--- | :--- | :--- | ---: | :--- | :--- | :--- |
+| Deterministic ST-GCN | primary | 10% | 2026 | `experiments/missingness/baseline-st_gcn-test-seed2026-node10-seed2026-predict-20261013-190308_manifest.json` | `c99db9d349066a01...` | `6620418ba880` |
+| Deterministic ST-GCN | primary | 10% | 2027 | `experiments/missingness/baseline-st_gcn-test-seed2027-node10-seed2027-predict-20261013-191028_manifest.json` | `3919d016b8241f52...` | `6620418ba880` |
+| Deterministic ST-GCN | primary | 10% | 2028 | `experiments/missingness/baseline-st_gcn-test-seed2028-node10-seed2028-predict-20261013-191752_manifest.json` | `4d4c0e926543f7cc...` | `6620418ba880` |
+| Deterministic ST-GCN | primary | 20% | 2026 | `experiments/missingness/baseline-st_gcn-test-seed2026-node20-seed2026-predict-20261013-190519_manifest.json` | `347c154f473f5484...` | `6620418ba880` |
+| Deterministic ST-GCN | primary | 20% | 2027 | `experiments/missingness/baseline-st_gcn-test-seed2027-node20-seed2027-predict-20261013-191301_manifest.json` | `e6eee5be2d18202b...` | `6620418ba880` |
+| Deterministic ST-GCN | primary | 20% | 2028 | `experiments/missingness/baseline-st_gcn-test-seed2028-node20-seed2028-predict-20261013-192019_manifest.json` | `91144e39150d8af1...` | `6620418ba880` |
+| Deterministic ST-GCN | primary | 30% | 2026 | `experiments/missingness/baseline-st_gcn-test-seed2026-node30-seed2026-predict-20261013-190756_manifest.json` | `0db94b8603e3ac9e...` | `6620418ba880` |
+| Deterministic ST-GCN | primary | 30% | 2027 | `experiments/missingness/baseline-st_gcn-test-seed2027-node30-seed2027-predict-20261013-191534_manifest.json` | `c0922fce73b13c82...` | `6620418ba880` |
+| Deterministic ST-GCN | primary | 30% | 2028 | `experiments/missingness/baseline-st_gcn-test-seed2028-node30-seed2028-predict-20261013-192248_manifest.json` | `394272ba2011c7ea...` | `6620418ba880` |
+| Historical Persistence | primary | 10% | 2026 | `experiments/missingness/baseline-persistence-test-node10-seed2026-20261013-190241_manifest.json` | `91f2651ecab86d37...` | `6620418ba880` |
+| Historical Persistence | primary | 10% | 2027 | `experiments/missingness/baseline-persistence-test-node10-seed2027-20261013-191003_manifest.json` | `32e21f51d1fa2225...` | `6620418ba880` |
+| Historical Persistence | primary | 10% | 2028 | `experiments/missingness/baseline-persistence-test-node10-seed2028-20261013-191733_manifest.json` | `c1a13ab46522b655...` | `6620418ba880` |
+| Historical Persistence | primary | 20% | 2026 | `experiments/missingness/baseline-persistence-test-node20-seed2026-20261013-201920_manifest.json` | `4331c07c07e1da21...` | `16895ef8bdc5` |
+| Historical Persistence | primary | 20% | 2027 | `experiments/missingness/baseline-persistence-test-node20-seed2027-20261013-191234_manifest.json` | `1aa67ad1701d5a32...` | `6620418ba880` |
+| Historical Persistence | primary | 20% | 2028 | `experiments/missingness/baseline-persistence-test-node20-seed2028-20261013-191955_manifest.json` | `e6840f740010c089...` | `6620418ba880` |
+| Historical Persistence | primary | 30% | 2026 | `experiments/missingness/baseline-persistence-test-node30-seed2026-20261013-190731_manifest.json` | `b24b614f2de840c6...` | `6620418ba880` |
+| Historical Persistence | primary | 30% | 2027 | `experiments/missingness/baseline-persistence-test-node30-seed2027-20261013-191508_manifest.json` | `a344b4fd18f9604b...` | `6620418ba880` |
+| Historical Persistence | primary | 30% | 2028 | `experiments/missingness/baseline-persistence-test-node30-seed2028-20261013-192223_manifest.json` | `8abde10895fb76ba...` | `6620418ba880` |
+| ST-DSSM (ours) | primary | 10% | 2026 | `experiments/missingness/st_dssm-test-seed2026-node10-seed2026-predict-20261013-190353_manifest.json` | `4e6d7db88ad5f7bc...` | `6620418ba880` |
+| ST-DSSM (ours) | primary | 10% | 2027 | `experiments/missingness/st_dssm-test-seed2027-node10-seed2027-predict-20261013-191112_manifest.json` | `d98444de0e7d9c93...` | `6620418ba880` |
+| ST-DSSM (ours) | primary | 10% | 2028 | `experiments/missingness/st_dssm-test-seed2028-node10-seed2028-predict-20261013-191836_manifest.json` | `11d8edd885339d11...` | `6620418ba880` |
+| ST-DSSM (ours) | primary | 20% | 2026 | `experiments/missingness/st_dssm-test-seed2026-node20-seed2026-predict-20261013-190606_manifest.json` | `7a4cdbdbe5893d6d...` | `6620418ba880` |
+| ST-DSSM (ours) | primary | 20% | 2027 | `experiments/missingness/st_dssm-test-seed2027-node20-seed2027-predict-20261013-191345_manifest.json` | `fa184dbacd58abee...` | `6620418ba880` |
+| ST-DSSM (ours) | primary | 20% | 2028 | `experiments/missingness/st_dssm-test-seed2028-node20-seed2028-predict-20261013-192103_manifest.json` | `62216438c157df5b...` | `6620418ba880` |
+| ST-DSSM (ours) | primary | 30% | 2026 | `experiments/missingness/st_dssm-test-seed2026-node30-seed2026-predict-20261013-190840_manifest.json` | `3aaa9c35eae9a431...` | `6620418ba880` |
+| ST-DSSM (ours) | primary | 30% | 2027 | `experiments/missingness/st_dssm-test-seed2027-node30-seed2027-predict-20261013-191618_manifest.json` | `3e1cee17f1997c05...` | `6620418ba880` |
+| ST-DSSM (ours) | primary | 30% | 2028 | `experiments/missingness/st_dssm-test-seed2028-node30-seed2028-predict-20261013-192331_manifest.json` | `d00904a2fe052b99...` | `6620418ba880` |
 
 **Environment:** matplotlib 3.11.1, numpy 2.5.2, python 3.12.10, scipy 1.18.0, torch 2.6.0+cu124

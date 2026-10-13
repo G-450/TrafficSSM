@@ -363,7 +363,9 @@ exactly. Mask fairness is pinned by one mask for all models at a given ratio and
 checksum-verified mask artifacts, and nesting across levels (ADR-0010).
 
 **Verified on PEMS-BAY (2026-10-13):** the 20%/seed-2026 persistence condition run
-(`experiments/missingness/baseline-persistence-test-node20-seed2026-20261013-110858_manifest.json`)
+(`experiments/missingness/baseline-persistence-test-node20-seed2026-20261013-201920_manifest.json`;
+the original 110858 run reached the same 117 metrics but came from an uncommitted tree, so it
+was re-run from a committed one and archived under `experiments/missingness/superseded/`)
 withholds exactly 65 of 325 sensors and partitions the 40,569,096 evaluated targets into
 8,113,800 masked and 32,455,296 unmasked, with an unmasked-group MAE of 2.166 mph against
 the locked all-sensor figure of 2.169 mph. This is a mechanism check, not a study result;
