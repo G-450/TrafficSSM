@@ -154,10 +154,11 @@ TrafficSSM/
     ├── test_dssm.py                  # Phase 8 — GaussianDSSM (30 tests)
     ├── test_train_cli.py             # Phase 9 — st-dssm-train CLI (9 tests)
     ├── test_mask_generator.py        # Phase 11 — mask generation (15 tests)
-    └── test_phase10_scripts.py       # Phase 10 — tuning/seed-run scripts resume (2 tests)
+    ├── test_phase10_scripts.py       # Phase 10 — tuning/seed-run scripts resume (2 tests)
+    └── test_phase10_aggregate.py     # Phase 10 — locked tables + comparability (7 tests)
 ```
 
-**Total tests:** 242 collected · 242 pass when `data/processed` is present
+**Total tests:** 258 collected · 258 pass when `data/processed` is present
 (without it, `test_encoder_cli_unrecognized_graph_and_missing_metadata` is skipped)
 
 ---
