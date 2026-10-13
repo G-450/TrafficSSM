@@ -43,7 +43,9 @@ results remain locked and verifiable from manifests alone.
   missingness; ST-DSSM shows higher seed variance at 20/30% (MAE 2.6–3.5 mph at 20%)
   than ST-GCN (2.7–3.0 mph). Masked-sensor MAE is 2–3× the unmasked-sensor MAE across
   all models and conditions. The masking-representation ablation
-  (`apply_to_training: true`) is deferred pending a CUDA torch build.
+  (`apply_to_training: true`) retrains under the mask, so it is a different model from a
+  primary condition run: its run identity carries `-masktrain`, and the aggregator reports
+  it in its own labelled section rather than in a primary cell (ADR-0011).
   See `experiments/missingness/phase12_results.md` for locked tables.
 
 - **Phase 10 Normal-condition study:** hyperparameters tuned against validation NLL only
@@ -92,8 +94,8 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 | Phase 10 (run scripts, aggregation, provenance, plots) | 18 | ✅ Passing |
 | Phase 11 (mask generation) | 15 | ✅ Passing |
 | Phase 11 (masking wiring, leakage gate, target groups) | 21 | ✅ Passing |
-| Phase 12 (condition aggregator and run script) | 10 | ✅ Passing |
-| **Total** | **289** | **✅ All passing** |
+| Phase 12 (condition aggregator, ablation arm, run script) | 18 | ✅ Passing |
+| **Total** | **297** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 

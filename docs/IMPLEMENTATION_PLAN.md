@@ -367,9 +367,8 @@ checksum-verified mask artifacts, and nesting across levels (ADR-0010).
 withholds exactly 65 of 325 sensors and partitions the 40,569,096 evaluated targets into
 8,113,800 masked and 32,455,296 unmasked, with an unmasked-group MAE of 2.166 mph against
 the locked all-sensor figure of 2.169 mph. This is a mechanism check, not a study result;
-the condition matrix is Phase 12. The learned models' condition runs are forward passes of
-about an hour each on the current CPU-only torch build, so they are executed in Phase 12
-rather than as a Phase 11 check; `--predict-from` itself is covered by the tests.
+the condition matrix is Phase 12. The learned models' condition runs are executed in
+Phase 12 rather than as a Phase 11 check; `--predict-from` itself is covered by the tests.
 
 ---
 
@@ -383,7 +382,12 @@ rather than as a Phase 11 check; `--predict-from` itself is covered by the tests
   them from the 27 run manifests (the Phase 12 gate).
 - Ablations: graph context and state-space inference are covered by model comparison
   in the condition tables (Persistence = no graph; ST-GCN = no state space). The
-  masked-training ablation (`apply_to_training: true`) is deferred pending CUDA torch.
+  masked-training ablation (`apply_to_training: true`) retrains under the mask and is
+  reported separately from the primary cells (ADR-0011): run it with
+  `python scripts/run_phase12.py --ablation --ratio 20 --models st_dssm`, which carries
+  a `-masktrain` run identity and `--resume auto` so an interrupted run continues from
+  its last completed epoch. Budget ~4.5 GPU-hours per ST-DSSM run at 60 epochs
+  (measured on an RTX 4060 Laptop, 8 GB, `micro_batch_size: 32`).
 
 **Headline:** All models degrade under missingness. ST-DSSM shows higher seed variance
 at 20%/30% conditions (MAE range 2.6–3.5 mph at 20%) than ST-GCN (2.7–3.0 mph),

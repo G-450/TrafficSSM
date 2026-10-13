@@ -36,11 +36,15 @@ def _write_condition_run(
     mae_unmasked: float,
     *,
     with_uncertainty: bool = False,
+    masked_training: bool = False,
+    git_dirty: bool = False,
 ) -> Path:
     """Write a minimal schema-valid condition run manifest."""
     results_dir.mkdir(parents=True, exist_ok=True)
     ratio_label = mask_condition.replace("%", "")
     run_id = f"{model_name}-test-seed{training_seed}-node{ratio_label}-seed{mask_seed}"
+    if masked_training:
+        run_id += "-masktrain"
     manifest = RunManifest(
         run_id=run_id,
         model_name=model_name,
@@ -54,6 +58,14 @@ def _write_condition_run(
         split_artifact_checksum="split-digest",
         dataset_manifest_checksum="dataset-digest",
         package_versions={"python": "3.12.10", "numpy": "1.26.4"},
+        git_dirty=git_dirty,
+        resolved_config={
+            "masking": {
+                "missing_ratio": int(ratio_label) / 100.0,
+                "seed": mask_seed,
+                "apply_to_training": masked_training,
+            }
+        },
     )
 
     # Add aggregate metrics for each target group.
@@ -226,7 +238,9 @@ def test_aggregate_rejects_duplicate_run_for_same_condition_and_seed(tmp_path: P
     results = _complete_condition_study(tmp_path)
     # Write a second manifest for the same (model, condition, seed) combination but
     # under a different filename (simulating a re-run that produces a new timestamp).
-    import json as _json, dataclasses
+    import dataclasses
+    import json as _json
+
     from st_dssm.result_schema import RunManifest
     dup = RunManifest(
         run_id="st_dssm-test-seed2026-node20-seed2026-predict-99999999-999999",
@@ -280,7 +294,8 @@ def test_aggregate_rejects_incomplete_run(tmp_path: Path) -> None:
     # Do not call mark_complete() — leave run_status as 'incomplete'.
     path = results / "st_dssm-test-seed2026-node20-seed2026-incomplete_manifest.json"
     # Force-write by patching run_status after construction.
-    import json as _json, dataclasses
+    import dataclasses
+    import json as _json
     raw = dataclasses.asdict(manifest)
     raw["run_status"] = "incomplete"
     path.write_text(_json.dumps(raw), encoding="utf-8")
@@ -336,3 +351,157 @@ def test_run_phase12_dry_run_lists_all_conditions(tmp_path: Path, monkeypatch) -
     # 9 persistence + 9 st_gcn + 9 st_dssm = 27 planned runs (all shown as [dry] or [skip]).
     dry_lines = [l for l in output.splitlines() if "[dry]" in l]
     assert len(dry_lines) == 27, f"Expected 27 dry-run lines, got {len(dry_lines)}:\n{output}"
+
+
+# ---------------------------------------------------------------------------
+# Provenance and completeness gates
+# ---------------------------------------------------------------------------
+
+
+def test_aggregate_rejects_dirty_provenance(tmp_path: Path) -> None:
+    """A run evaluated from an uncommitted tree is not admissible evidence."""
+    agg = _load_script("aggregate_phase12")
+    results = _complete_condition_study(tmp_path)
+    _write_condition_run(
+        results, "historical_persistence", "20%", 2026, None,
+        mae_all=2.8, mae_masked=3.4, mae_unmasked=2.2, git_dirty=True,
+    )
+
+    with pytest.raises(agg.AggregationError, match="git_dirty"):
+        agg.validate_runs(agg.load_runs(agg.discover_manifests(str(results))))
+
+
+def test_aggregate_rejects_incomplete_seed_coverage(tmp_path: Path) -> None:
+    """A condition cell missing a seed must fail rather than average what is left."""
+    agg = _load_script("aggregate_phase12")
+    results = _complete_condition_study(tmp_path)
+    missing = next(results.glob("st_dssm-test-seed2028-node20-seed2028_manifest.json"))
+    missing.unlink()
+
+    with pytest.raises(agg.AggregationError, match=r"missing seed\(s\) \[2028\]"):
+        agg.validate_runs(agg.load_runs(agg.discover_manifests(str(results))))
+
+
+# ---------------------------------------------------------------------------
+# Masked-training ablation arm (ADR-0011)
+# ---------------------------------------------------------------------------
+
+
+def _add_masktrain_arm(results: Path, level: str = "20%") -> None:
+    """Add a full three-seed ST-DSSM masked-training ablation at one level."""
+    ratio = int(level.replace("%", ""))
+    for seed in (2026, 2027, 2028):
+        _write_condition_run(
+            results, "st_dssm", level, seed, seed,
+            mae_all=2.0 + ratio * 0.01 + seed * 0.0001 - 0.1,
+            mae_masked=2.5 + ratio * 0.02 - 0.2,
+            mae_unmasked=1.9 + ratio * 0.005,
+            with_uncertainty=True,
+            masked_training=True,
+        )
+
+
+def test_ablation_run_is_not_a_duplicate_of_its_primary(tmp_path: Path) -> None:
+    """Same model, condition and seed, different arm: both are admissible."""
+    agg = _load_script("aggregate_phase12")
+    results = _complete_condition_study(tmp_path)
+    _add_masktrain_arm(results)
+
+    runs = agg.load_runs(agg.discover_manifests(str(results)))
+    agg.validate_runs(runs)  # must not raise
+    assert sum(1 for r in runs if r["masked_training"]) == 3
+    assert len(runs) == 30
+
+
+def test_ablation_is_reported_separately_from_primary_cells(tmp_path: Path) -> None:
+    """The ablation must never be averaged into a primary condition cell."""
+    agg = _load_script("aggregate_phase12")
+    results = _complete_condition_study(tmp_path)
+
+    assert agg.main(["--results-dir", str(results)]) == 0
+    before = json.loads((results / "phase12_results.json").read_text(encoding="utf-8"))
+    primary_before = before["models"]["st_dssm"]["conditions"]["20%"]["per_group"]["all"]["MAE"]
+    assert "ablations" not in before
+
+    _add_masktrain_arm(results)
+    assert agg.main(["--results-dir", str(results)]) == 0
+    after = json.loads((results / "phase12_results.json").read_text(encoding="utf-8"))
+
+    primary_after = after["models"]["st_dssm"]["conditions"]["20%"]["per_group"]["all"]["MAE"]
+    assert primary_after == primary_before, "ablation leaked into the primary cell"
+    assert primary_after["n"] == 3
+
+    ablation = after["ablations"]["masked_training"]["models"]["st_dssm"]
+    ablation_mae = ablation["conditions"]["20%"]["per_group"]["all"]["MAE"]
+    assert ablation_mae["n"] == 3
+    assert ablation_mae["mean"] != primary_after["mean"]
+    assert len(after["sources"]) == 30
+    assert sum(1 for s in after["sources"] if s["masked_training"]) == 3
+
+
+def test_ablation_section_renders_with_delta(tmp_path: Path) -> None:
+    agg = _load_script("aggregate_phase12")
+    results = _complete_condition_study(tmp_path)
+    _add_masktrain_arm(results)
+    assert agg.main(["--results-dir", str(results)]) == 0
+
+    tables = (results / "phase12_results.md").read_text(encoding="utf-8")
+    assert "Masked-training ablation" in tables
+    assert "Delta" in tables
+    assert "masked-training" in tables  # provenance arm column
+    assert "primary arm" in tables
+
+
+def test_ablation_requires_a_primary_arm_to_report_against(tmp_path: Path) -> None:
+    agg = _load_script("aggregate_phase12")
+    results = tmp_path / "ablation-only"
+    _add_masktrain_arm(results)
+
+    runs = agg.load_runs(agg.discover_manifests(str(results)))
+    with pytest.raises(agg.AggregationError, match="No primary condition runs"):
+        agg.aggregate(runs)
+
+
+# ---------------------------------------------------------------------------
+# Run-identity separation
+# ---------------------------------------------------------------------------
+
+
+def test_masked_training_run_identity_is_distinct() -> None:
+    """A primary and an ablation run must not share a run-id prefix.
+
+    They would otherwise resume each other through ``--resume auto``, which globs
+    ``{run_prefix}-*_last.pt``, silently mixing masked and unmasked training.
+    """
+    from st_dssm.mask_generator import MaskGenerator, condition_tag
+
+    generator = MaskGenerator(num_nodes=325, missing_ratio=0.2, seed=2026)
+    primary = condition_tag(generator, apply_to_training=False)
+    ablation = condition_tag(generator, apply_to_training=True)
+
+    assert primary == "-node20-seed2026"
+    assert ablation == "-node20-seed2026-masktrain"
+    assert primary != ablation
+    assert not ablation.startswith(primary + "-2")  # no timestamp-only collision
+    assert condition_tag(None) == ""
+    assert condition_tag(None, apply_to_training=True) == ""
+
+
+def test_run_phase12_ablation_arm_is_resumable_and_excludes_persistence(
+    tmp_path: Path, monkeypatch
+) -> None:
+    run12 = _load_script("run_phase12")
+    monkeypatch.setattr(run12, "OUTPUT_DIR", str(tmp_path / "missingness"))
+    monkeypatch.setattr(run12, "CONFIG_DIR", str(tmp_path / "configs"))
+
+    runs = run12.build_ablation_run_list([20], [2026, 2027, 2028], ["st_dssm", "st_gcn"])
+
+    assert len(runs) == 6
+    assert not any("persistence" in r["label"] for r in runs)
+    for run in runs:
+        assert "masktrain" in run["label"]
+        assert "masktrain" in run["done_pattern"]
+        assert "--mask-training" in run["cmd"]
+        # An interrupted training run has to continue, not restart.
+        assert run["cmd"][run["cmd"].index("--resume") + 1] == "auto"
+        assert "--predict-from" not in run["cmd"]

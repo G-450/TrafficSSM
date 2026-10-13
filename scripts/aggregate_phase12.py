@@ -9,6 +9,11 @@ verifies the runs are mutually comparable, and writes the locked deliverable:
 - ``phase12_results.md``    locked tables (mean ± std across seeds, all/masked/unmasked
   groups, point and uncertainty metrics per condition level).
 
+Per ADR-0011 a condition applies at inference, so the primary tables hold only
+runs whose inputs were masked at inference. A masked-training ablation run
+(``masking.apply_to_training: true``) is a different model and is reported in its
+own labelled section, never averaged into a primary cell.
+
 Nothing here recomputes a metric: every number is read from a manifest, so the
 tables are reproducible from the manifests alone. ``--check`` re-derives the
 aggregate and fails if it no longer matches the committed JSON.
@@ -89,6 +94,23 @@ def discover_manifests(results_dir: str) -> list[str]:
     return paths
 
 
+def _field(rec: Any, name: str, default: Any = None) -> Any:
+    """Read a field from a metric record, whether it is a dict or an object."""
+    if isinstance(rec, dict):
+        return rec.get(name, default)
+    return getattr(rec, name, default)
+
+
+def _masked_training(manifest: Any) -> bool:
+    """Whether this run also withheld the sensors during training (ADR-0011).
+
+    False for every primary condition run, so the locked primary tables are
+    unaffected by the field's introduction.
+    """
+    masking = (getattr(manifest, "resolved_config", None) or {}).get("masking") or {}
+    return bool(masking.get("apply_to_training", False))
+
+
 def load_runs(paths: list[str]) -> list[dict[str, Any]]:
     """Load manifests into structured run records."""
     runs = []
@@ -97,33 +119,28 @@ def load_runs(paths: list[str]) -> list[dict[str, Any]]:
         # Extract per-group aggregate metrics from the metrics list.
         group_metrics: dict[str, dict[str, float]] = {}
         for rec in manifest.metrics:
-            if rec.get("horizon") == "aggregate" or rec.get("horizon") == "aggregate":
-                # rec may be a dict (from JSON) or MetricRecord-like
-                horizon = rec.get("horizon") if isinstance(rec, dict) else getattr(rec, "horizon", None)
-                if horizon != "aggregate":
-                    continue
-                grp = rec.get("target_group") if isinstance(rec, dict) else getattr(rec, "target_group", "all")
-                name = rec.get("name") if isinstance(rec, dict) else getattr(rec, "name", "")
-                val = rec.get("value") if isinstance(rec, dict) else getattr(rec, "value", None)
-                if grp not in group_metrics:
-                    group_metrics[grp] = {}
-                group_metrics[grp][name] = float(val)
+            if _field(rec, "horizon") != "aggregate":
+                continue
+            grp = _field(rec, "target_group", "all")
+            group_metrics.setdefault(grp, {})[_field(rec, "name", "")] = float(
+                _field(rec, "value")
+            )
 
         # Per-horizon metrics for the 'all' group.
         per_horizon: list[dict[str, Any]] = []
         horizon_map: dict[int, dict[str, Any]] = {}
         for rec in manifest.metrics:
-            horizon = rec.get("horizon") if isinstance(rec, dict) else getattr(rec, "horizon", None)
-            grp = rec.get("target_group") if isinstance(rec, dict) else getattr(rec, "target_group", "all")
-            if horizon == "aggregate" or grp != "all":
+            horizon = _field(rec, "horizon")
+            if horizon == "aggregate" or _field(rec, "target_group", "all") != "all":
                 continue
-            name = rec.get("name") if isinstance(rec, dict) else getattr(rec, "name", "")
-            val = rec.get("value") if isinstance(rec, dict) else getattr(rec, "value", None)
-            h_min = rec.get("horizon_minutes") if isinstance(rec, dict) else getattr(rec, "horizon_minutes", None)
+            h_min = _field(rec, "horizon_minutes")
             step = int(horizon) if isinstance(horizon, (int, float)) else 0
             if step not in horizon_map:
-                horizon_map[step] = {"horizon_step": step, "horizon_minutes": int(h_min) if h_min else step * 5}
-            horizon_map[step][name] = float(val)
+                horizon_map[step] = {
+                    "horizon_step": step,
+                    "horizon_minutes": int(h_min) if h_min else step * 5,
+                }
+            horizon_map[step][_field(rec, "name", "")] = float(_field(rec, "value"))
         per_horizon = [horizon_map[s] for s in sorted(horizon_map)]
 
         runs.append(
@@ -134,6 +151,7 @@ def load_runs(paths: list[str]) -> list[dict[str, Any]]:
                 "training_seed": manifest.training_seed,
                 "mask_seed": manifest.mask_seed,
                 "mask_condition": manifest.mask_condition,
+                "masked_training": _masked_training(manifest),
                 "split_evaluated": manifest.split_evaluated,
                 "run_status": manifest.run_status,
                 "sample_count": manifest.sample_count,
@@ -180,16 +198,53 @@ def validate_runs(runs: list[dict[str, Any]]) -> None:
         if len(values) > 1:
             problems.append(f"Runs disagree on {field}: {sorted(map(str, values))}")
 
-    # No duplicate (model, condition, seed) tuples.
-    seen: dict[tuple[str, str, int | None], str] = {}
+    # No duplicate (model, condition, seed, arm) tuples. The arm matters: a
+    # masked-training ablation run shares model, condition and seed with its
+    # primary counterpart but is a different model (ADR-0011).
+    seen: dict[tuple[str, str, int | None, bool], str] = {}
     for run in runs:
-        key = (run["model_name"], run["mask_condition"], run["mask_seed"])
+        key = (
+            run["model_name"],
+            run["mask_condition"],
+            run["mask_seed"],
+            run["masked_training"],
+        )
         if key in seen:
+            arm = "masked-training ablation" if key[3] else "primary"
             problems.append(
-                f"Duplicate run for model='{key[0]}' condition='{key[1]}' seed={key[2]}: "
-                f"{seen[key]} and {run['run_id']}. Keep exactly one manifest per combination."
+                f"Duplicate {arm} run for model='{key[0]}' condition='{key[1]}' "
+                f"seed={key[2]}: {seen[key]} and {run['run_id']}. "
+                "Keep exactly one manifest per combination."
             )
         seen[key] = run["run_id"]
+
+    # Dirty provenance. A locked table has to be traceable to a committed tree,
+    # so a run evaluated from uncommitted code is not admissible evidence.
+    dirty = sorted(run["run_id"] for run in runs if run["git_dirty"])
+    if dirty:
+        problems.append(
+            "Runs were produced from an uncommitted working tree (git_dirty): "
+            + ", ".join(dirty)
+            + ". Re-run them from a committed tree."
+        )
+
+    # Every (model, arm, condition) present must cover all three canonical seeds.
+    # Without this a missing run still renders as "mean +/- std" over whatever
+    # seeds survived, which reads as a complete cell.
+    coverage: dict[tuple[str, bool, str], set[int | None]] = {}
+    for run in runs:
+        key = (run["model_name"], run["masked_training"], run["mask_condition"])
+        coverage.setdefault(key, set()).add(run["mask_seed"])
+    for (model_name, masked_training, level), seeds in sorted(
+        coverage.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[0][2])
+    ):
+        missing = sorted(set(CANONICAL_SEEDS) - seeds)
+        if missing:
+            arm = " (masked-training ablation)" if masked_training else ""
+            problems.append(
+                f"{model_name}{arm} at {level} is missing seed(s) "
+                f"{missing}; a condition cell needs all of {CANONICAL_SEEDS}"
+            )
 
     if problems:
         raise AggregationError(
@@ -210,8 +265,8 @@ def _mean_std(values: list[float]) -> dict[str, Any]:
     }
 
 
-def aggregate(runs: list[dict[str, Any]]) -> dict[str, Any]:
-    """Aggregate metrics by (model, condition) across seeds."""
+def _aggregate_arm(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate one arm's runs by (model, condition) across seeds."""
     models_conditions: dict[str, Any] = {}
 
     for model_name, model_label in MODEL_LABELS.items():
@@ -286,8 +341,30 @@ def aggregate(runs: list[dict[str, Any]]) -> dict[str, Any]:
             "conditions": conditions,
         }
 
-    reference = runs[0]
-    return {
+    return models_conditions
+
+
+def aggregate(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate the primary condition runs, with any ablation arm beside them.
+
+    Per ADR-0011 a condition applies at inference. A masked-training ablation run
+    is therefore a different model and never enters a primary cell; it is
+    aggregated into its own ``ablations.masked_training`` block instead.
+    """
+    primary_runs = [r for r in runs if not r["masked_training"]]
+    ablation_runs = [r for r in runs if r["masked_training"]]
+
+    if not primary_runs:
+        raise AggregationError(
+            "No primary condition runs found: every manifest sets "
+            "masking.apply_to_training. The primary tables are the deliverable; "
+            "the ablation is reported against them."
+        )
+
+    models_conditions = _aggregate_arm(primary_runs)
+
+    reference = primary_runs[0]
+    aggregate_out: dict[str, Any] = {
         "study": "Phase 12 robustness condition study",
         "split_evaluated": reference["split_evaluated"],
         "sample_count": reference["sample_count"],
@@ -303,16 +380,41 @@ def aggregate(runs: list[dict[str, Any]]) -> dict[str, Any]:
                 "model_name": r["model_name"],
                 "mask_condition": r["mask_condition"],
                 "mask_seed": r["mask_seed"],
+                "masked_training": r["masked_training"],
                 "path": r["path"],
                 "manifest_checksum": r["manifest_checksum"],
                 "git_commit": r["git_commit"],
                 "git_dirty": r["git_dirty"],
             }
             for r in sorted(
-                runs, key=lambda r: (r["model_name"], r["mask_condition"], str(r["mask_seed"]))
+                runs,
+                key=lambda r: (
+                    r["masked_training"],
+                    r["model_name"],
+                    r["mask_condition"],
+                    str(r["mask_seed"]),
+                ),
             )
         ],
     }
+
+    if ablation_runs:
+        # Reported beside the primary tables, never inside them. The ablation
+        # answers whether training under the mask changes the representation, so
+        # it is only meaningful against the primary cell at the same condition.
+        aggregate_out["ablations"] = {
+            "masked_training": {
+                "label": "Masked-training ablation (apply_to_training: true)",
+                "note": (
+                    "Trained and validated with the same sensors withheld, so these "
+                    "runs are a different model from the primary condition runs and "
+                    "must not be compared head-to-head with other models (ADR-0011)."
+                ),
+                "models": _aggregate_arm(ablation_runs),
+            }
+        }
+
+    return aggregate_out
 
 
 # ---------------------------------------------------------------------------
@@ -343,8 +445,10 @@ def render_markdown(agg: dict[str, Any]) -> str:
         "",
         "## Evaluation scope",
         "",
-        f"- Split: `{agg['split_evaluated']}` ({agg['sample_count']:,} windows, "
-        f"{agg['sensor_count']} sensors, {agg['forecast_horizon']} horizons)",
+        (
+            f"- Split: `{agg['split_evaluated']}` ({agg['sample_count']:,} windows, "
+            f"{agg['sensor_count']} sensors, {agg['forecast_horizon']} horizons)"
+        ),
         f"- Data artifact: `processed_metadata.json` MD5 `{agg['dataset_manifest_checksum']}`",
         f"- Split tensors digest: `{agg['split_artifact_checksum']}`",
         "",
@@ -353,7 +457,7 @@ def render_markdown(agg: dict[str, Any]) -> str:
     # One table per condition level.
     for level in CONDITION_LEVELS:
         lines += [
-            f"## Table — {level} masking condition (all sensors)",
+            f"## Table — {level} masking condition (all sensors, primary arm)",
             "",
             "| Model | MAE (mph) | RMSE (mph) | MAPE (%) | NLL (nats) | CRPS (mph) | PICP | MPIW (mph) |",
             "| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
@@ -413,17 +517,59 @@ def render_markdown(agg: dict[str, Any]) -> str:
                 )
     lines.append("")
 
+    # Masked-training ablation, reported against its primary counterpart.
+    ablation = (agg.get("ablations") or {}).get("masked_training")
+    if ablation:
+        lines += [
+            f"## Ablation — {ablation['label']}",
+            "",
+            ablation["note"],
+            "",
+            "`Primary` repeats the inference-only cell from the tables above so the",
+            "two arms can be read side by side. `Delta` is ablation minus primary:",
+            "negative means training under the mask helped.",
+            "",
+            "| Model | Condition | Group | Primary MAE | Ablation MAE | Delta |",
+            "| :--- | :--- | :--- | ---: | ---: | ---: |",
+        ]
+        for model_name, model_data in ablation["models"].items():
+            primary_model = agg["models"].get(model_name, {}).get("conditions", {})
+            for level in CONDITION_LEVELS:
+                cond = model_data["conditions"].get(level)
+                if cond is None:
+                    continue
+                for grp in TARGET_GROUPS:
+                    abl = cond["per_group"].get(grp, {}).get("MAE")
+                    if abl is None:
+                        continue
+                    pri = (
+                        primary_model.get(level, {})
+                        .get("per_group", {})
+                        .get(grp, {})
+                        .get("MAE")
+                    )
+                    delta = (
+                        f"{abl['mean'] - pri['mean']:+.3f}" if pri is not None else "--"
+                    )
+                    lines.append(
+                        f"| {model_data['label']} | {level} | {grp} | "
+                        f"{_fmt(pri)} | {_fmt(abl)} | {delta} |"
+                    )
+        lines.append("")
+
     # Provenance.
     lines += [
         "## Provenance",
         "",
-        "| Model | Condition | Seed | Run manifest | Manifest SHA256 | Code commit |",
-        "| :--- | :--- | ---: | :--- | :--- | :--- |",
+        "| Model | Arm | Condition | Seed | Run manifest | Manifest SHA256 | Code commit |",
+        "| :--- | :--- | :--- | ---: | :--- | :--- | :--- |",
     ]
     for source in agg["sources"]:
         dirty = " (dirty)" if source["git_dirty"] else ""
+        arm = "masked-training" if source.get("masked_training") else "primary"
         lines.append(
-            f"| {MODEL_LABELS[source['model_name']]} | {source['mask_condition']} | "
+            f"| {MODEL_LABELS[source['model_name']]} | {arm} | "
+            f"{source['mask_condition']} | "
             f"{source['mask_seed']} | `{source['path']}` | "
             f"`{source['manifest_checksum'][:16]}...` | "
             f"`{source['git_commit'][:12]}`{dirty} |"
@@ -531,6 +677,19 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             mae = _fmt(cond["per_group"].get("all", {}).get("MAE"))
             print(f"  {MODEL_LABELS[model_name]:<24} {level}  all MAE {mae} mph  seeds {cond['seeds']}")
+    ablation = (agg.get("ablations") or {}).get("masked_training")
+    if ablation:
+        print("Masked-training ablation (reported separately, ADR-0011):")
+        for model_name, model_data in ablation["models"].items():
+            for level in CONDITION_LEVELS:
+                cond = model_data["conditions"].get(level)
+                if not cond:
+                    continue
+                mae = _fmt(cond["per_group"].get("all", {}).get("MAE"))
+                print(
+                    f"  {MODEL_LABELS[model_name]:<24} {level}  all MAE {mae} mph  "
+                    f"seeds {cond['seeds']}"
+                )
     print(f"Locked tables: {md_path}")
     print(f"Locked data:   {json_path}")
     return 0

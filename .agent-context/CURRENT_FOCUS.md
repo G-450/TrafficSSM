@@ -23,12 +23,10 @@ The scripts and tests are in place:
   forward passes); skips completed runs; `--dry-run` previews the plan.
 - `scripts/aggregate_phase12.py` — locks the condition tables once all runs are done;
   `--check` re-derives them.
-- `tests/test_phase12.py`    — 10 gate tests for the aggregator and run script (all pass).
+- `tests/test_phase12.py`    — 18 gate tests for the aggregator, the masked-training
+  ablation arm and the run script (all pass).
 
-Of the 27 conditions, 1 is already done (persistence/node20-seed2026 from Phase 11
-verification). The remaining 26 are running via `python scripts/run_phase12.py`. Each
-forward pass is ~1 hour on the CPU-only torch build, so the full matrix takes ~26 hours.
-
+All 27 conditions are complete and were executed via `python scripts/run_phase12.py`.
 All 27 manifests are in `experiments/missingness/`. Locked tables are at
 `experiments/missingness/phase12_results.md` and `phase12_results.json`.
 Verify with: `python scripts/aggregate_phase12.py --check`
@@ -37,7 +35,13 @@ Verify with: `python scripts/aggregate_phase12.py --check`
 - Graph context and state-space ablations are covered by the model comparison in the
   condition tables (Persistence = no graph, ST-GCN = no state space).
 - Masked-training ablation (ST-DSSM trained with `apply_to_training: true`) requires
-  retraining (~8 h per seed on GPU); deferred until a CUDA torch build is available.
+  retraining: ~4.5 GPU-hours per seed at 60 epochs, measured on an RTX 4060 Laptop
+  (8 GB, `micro_batch_size: 32`). Run it with
+  `python scripts/run_phase12.py --ablation --ratio 20 --models st_dssm` (~13.5 h for
+  the three canonical seeds at the primary condition). The arm is resumable: each run
+  carries a `-masktrain` run identity and `--resume auto`, so re-running the command
+  continues from the last completed epoch instead of starting over. Per ADR-0011 the
+  aggregator reports it in its own section, never inside a primary condition cell.
 
 The next focus is Phase 13 — Calibration and robustness review.
 
