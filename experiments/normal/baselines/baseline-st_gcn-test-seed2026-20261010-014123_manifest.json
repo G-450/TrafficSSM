@@ -1,0 +1,566 @@
+{
+  "best_epoch": 76,
+  "checkpoint_path": "experiments/normal/checkpoints\\baseline-st_gcn-test-seed2026-20261010-014123_best.pt",
+  "config_hash": "2b0f384ef5a227d8b98682478e530d271b335fa41f1c058c78dca630e1d3c97d",
+  "dataset_manifest_checksum": "ad5a3a8254a02c2da2df261f6c2fb305",
+  "distribution_family": "gaussian",
+  "end_time_utc": "2026-10-13T03:38:19.865900+00:00",
+  "forecast_horizon": 12,
+  "git_commit": "28d04bd71a624a0a3244e9b104b643a1494c6965",
+  "git_dirty": false,
+  "manifest_checksum": "410f12cdac62227290664fa31252777e93a1c56bc8390a100da1244cbb9a3bd7",
+  "mask_checksum": "",
+  "mask_condition": "0%",
+  "mask_seed": null,
+  "mask_sensor_ids": [],
+  "metrics": [
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 40569096,
+      "value": 1.7742323180039723
+    },
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 40569096,
+      "value": 4.059186321236211
+    },
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 40569096,
+      "value": 4.02413267284297
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 0.8788983821868896
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.5924468040466309
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 1.6826237883845827
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.1761813163757324
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.3435592651367188
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 2.362066231811366
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.390870451927185
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.9298698902130127
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 2.899097529192498
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.560257911682129
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 3.389073371887207
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 3.3647932039574604
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.6974166631698608
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 3.7526626586914062
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 3.759706880172776
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.8139554262161255
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.052009105682373
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 4.104770890133522
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.9167568683624268
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.309974193572998
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 4.41046956894789
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.009464979171753
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.5342698097229
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 4.680974116949322
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.0948119163513184
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.735959053039551
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 4.925572653079376
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.1744492053985596
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.9165849685668945
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 5.154181496320219
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.2506697177886963
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 5.084188938140869
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 5.368076453071004
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.327054977416992
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 5.247664451599121
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 5.577259262095619
+    }
+  ],
+  "model_name": "deterministic_st_gcn",
+  "output_paths": {},
+  "overall_metrics": {
+    "MAE": 1.7742323180039723,
+    "MAPE": 4.02413267284297,
+    "RMSE": 4.059186321236211,
+    "valid_count": 40569096
+  },
+  "package_versions": {
+    "matplotlib": "3.10.8",
+    "numpy": "1.26.4",
+    "python": "3.12.10",
+    "scipy": "1.17.1",
+    "torch": "2.12.1+cpu"
+  },
+  "per_horizon_metrics": [
+    {
+      "MAE": 0.8788983821868896,
+      "MAPE": 1.6826237883845827,
+      "RMSE": 1.5924468040466309,
+      "horizon_minutes": 5,
+      "horizon_step": 1,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 1.1761813163757324,
+      "MAPE": 2.362066231811366,
+      "RMSE": 2.3435592651367188,
+      "horizon_minutes": 10,
+      "horizon_step": 2,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 1.390870451927185,
+      "MAPE": 2.899097529192498,
+      "RMSE": 2.9298698902130127,
+      "horizon_minutes": 15,
+      "horizon_step": 3,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 1.560257911682129,
+      "MAPE": 3.3647932039574604,
+      "RMSE": 3.389073371887207,
+      "horizon_minutes": 20,
+      "horizon_step": 4,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 1.6974166631698608,
+      "MAPE": 3.759706880172776,
+      "RMSE": 3.7526626586914062,
+      "horizon_minutes": 25,
+      "horizon_step": 5,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 1.8139554262161255,
+      "MAPE": 4.104770890133522,
+      "RMSE": 4.052009105682373,
+      "horizon_minutes": 30,
+      "horizon_step": 6,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 1.9167568683624268,
+      "MAPE": 4.41046956894789,
+      "RMSE": 4.309974193572998,
+      "horizon_minutes": 35,
+      "horizon_step": 7,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 2.009464979171753,
+      "MAPE": 4.680974116949322,
+      "RMSE": 4.5342698097229,
+      "horizon_minutes": 40,
+      "horizon_step": 8,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 2.0948119163513184,
+      "MAPE": 4.925572653079376,
+      "RMSE": 4.735959053039551,
+      "horizon_minutes": 45,
+      "horizon_step": 9,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 2.1744492053985596,
+      "MAPE": 5.154181496320219,
+      "RMSE": 4.9165849685668945,
+      "horizon_minutes": 50,
+      "horizon_step": 10,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 2.2506697177886963,
+      "MAPE": 5.368076453071004,
+      "RMSE": 5.084188938140869,
+      "horizon_minutes": 55,
+      "horizon_step": 11,
+      "valid_count": 3380758
+    },
+    {
+      "MAE": 2.327054977416992,
+      "MAPE": 5.577259262095619,
+      "RMSE": 5.247664451599121,
+      "horizon_minutes": 60,
+      "horizon_step": 12,
+      "valid_count": 3380758
+    }
+  ],
+  "resolved_config": {
+    "artifact_dir": "data/processed",
+    "cadence_minutes": 5,
+    "model_name": "deterministic_st_gcn",
+    "output_dir": "experiments/normal/baselines",
+    "predictions_path": "experiments/normal/baselines\\baseline-st_gcn-test-seed2026-20261010-014123_predictions.npz",
+    "run_id": "baseline-st_gcn-test-seed2026-20261010-014123",
+    "schema_version": "1.0",
+    "split": "test",
+    "training_config": {
+      "adj_mx_path": "data/raw/adj_mx_bay.pkl",
+      "artifact_dir": "data/processed",
+      "batch_size": 64,
+      "cadence_minutes": 5,
+      "cheb_k": 3,
+      "checkpoint_dir": "experiments/normal/checkpoints",
+      "dropout": 0.1,
+      "forecast_horizon": 12,
+      "hidden_channels": 64,
+      "input_length": 12,
+      "lr": 0.001,
+      "max_epochs": 100,
+      "min_delta": 0.0001,
+      "model": "st_gcn",
+      "output_dir": "experiments/normal/baselines",
+      "patience": 15,
+      "save_plots": true,
+      "schema_version": "1.0",
+      "seed": 2026,
+      "split": "test",
+      "weight_decay": 0.0001
+    }
+  },
+  "run_id": "baseline-st_gcn-test-seed2026-20261010-014123",
+  "run_status": "complete",
+  "sample_count": 10403,
+  "schema_version": "1.0",
+  "selection_metric": "val_mae",
+  "sensor_count": 325,
+  "split_artifact_checksum": "3d4a62c1ed05f0b9d2555f53ef592cc6690866729f92e29d67cf404c6087490f",
+  "split_evaluated": "test",
+  "start_time_utc": "2026-10-13T03:38:19.864904+00:00",
+  "total_epochs": 91,
+  "trainable_parameters": 109260,
+  "training_seed": 2026
+}

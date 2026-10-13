@@ -1,0 +1,1151 @@
+{
+  "best_epoch": 51,
+  "checkpoint_path": "experiments/normal/checkpoints\\st_dssm-test-seed2027-20261012-153815_best.pt",
+  "config_hash": "851cb2a79ccce520eb307b2427fa05eb2a3d6d77b0795a3f91b4360365361cbb",
+  "dataset_manifest_checksum": "ad5a3a8254a02c2da2df261f6c2fb305",
+  "distribution_family": "gaussian",
+  "end_time_utc": "2026-10-13T03:37:05.064446+00:00",
+  "forecast_horizon": 12,
+  "git_commit": "28d04bd71a624a0a3244e9b104b643a1494c6965",
+  "git_dirty": false,
+  "manifest_checksum": "6c93f0c8c251ee2a8a71dcf24eaffe67bd5fa8d8ac1c3d788bf9b501a157911a",
+  "mask_checksum": "",
+  "mask_condition": "0%",
+  "mask_seed": null,
+  "mask_sensor_ids": [],
+  "metrics": [
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 40569096,
+      "value": 1.9467242062091827
+    },
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 40569096,
+      "value": 4.092747981515208
+    },
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 40569096,
+      "value": 4.409618704793869
+    },
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 40569096,
+      "value": 2.111493388811747
+    },
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 40569096,
+      "value": 1.4395292749601005
+    },
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 40569096,
+      "value": 0.9623929012369415
+    },
+    {
+      "aggregation": "mean",
+      "horizon": "aggregate",
+      "horizon_minutes": null,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 40569096,
+      "value": 11.411261280377706
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 0.9002199172973633
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.607326865196228
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 1.7909023801342436
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.4601318836212158
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 0.6630363512719297
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9619123876953038
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 1,
+      "horizon_minutes": 5,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 5.212022304534912
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.217171311378479
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.3477447032928467
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 2.5259274353059094
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.719909906387329
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 0.9002260661945326
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9614518400902993
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 2,
+      "horizon_minutes": 10,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 7.068231582641602
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.456088900566101
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.9287075996398926
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 3.1179645700413197
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.8790785074234009
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.0794571255551626
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9607614623702732
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 3,
+      "horizon_minutes": 15,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 8.431694984436035
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.6530941724777222
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 3.3917624950408936
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 3.624574645846517
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.9937809705734253
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.225725122718483
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9603571151794953
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 4,
+      "horizon_minutes": 20,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 9.5569429397583
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.8227866888046265
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 3.766195058822632
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 4.0711130432144085
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 2.0842857360839844
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.3515028950961117
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9612234889335468
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 5,
+      "horizon_minutes": 25,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 10.623025894165039
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 1.9721096754074097
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.077450275421143
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 4.466479875506452
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 2.157513380050659
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.460579828915878
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9618121143246574
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 6,
+      "horizon_minutes": 30,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 11.516427993774414
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.1069552898406982
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.344754219055176
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 4.825052138663311
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 2.2194066047668457
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.5594803699515103
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9624696591711089
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 7,
+      "horizon_minutes": 35,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 12.355226516723633
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.2303614616394043
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.5778303146362305
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 5.148783800722458
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 2.2732081413269043
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.6490278795827984
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9627805361992784
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 8,
+      "horizon_minutes": 40,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 13.09517765045166
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.3440990447998047
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.7843451499938965
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 5.442685475299092
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 2.3224029541015625
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.7314925079604908
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9632351679712065
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 9,
+      "horizon_minutes": 45,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 13.763587951660156
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.4511055946350098
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 4.970539569854736
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 5.714963850272242
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 2.3676416873931885
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.8100946018722284
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9637723256145515
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 10,
+      "horizon_minutes": 50,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 14.452983856201172
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.5536770820617676
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 5.142355442047119
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 5.9707554177992
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 2.410254955291748
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.8851053163725058
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.964229619511364
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 11,
+      "horizon_minutes": 55,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 15.099968910217285
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "MAE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 2.6530213356018066
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "RMSE",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 5.305370807647705
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "MAPE",
+      "target_group": "all",
+      "unit": "percent",
+      "valid_count": 3380758,
+      "value": 6.216221824721268
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "NLL",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 2.450305938720703
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "CRPS",
+      "target_group": "all",
+      "unit": "raw",
+      "valid_count": 3380758,
+      "value": 1.9586232340295717
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "PICP",
+      "target_group": "all",
+      "unit": "ratio",
+      "valid_count": 3380758,
+      "value": 0.9647090977822134
+    },
+    {
+      "aggregation": "mean",
+      "horizon": 12,
+      "horizon_minutes": 60,
+      "name": "MPIW",
+      "target_group": "all",
+      "unit": "mph",
+      "valid_count": 3380758,
+      "value": 15.759844779968262
+    }
+  ],
+  "model_name": "st_dssm",
+  "output_paths": {},
+  "overall_metrics": {
+    "CRPS": 1.4395292749601005,
+    "MAE": 1.9467242062091827,
+    "MAPE": 4.409618704793869,
+    "MPIW": 11.411261280377706,
+    "NLL": 2.111493388811747,
+    "PICP": 0.9623929012369415,
+    "RMSE": 4.092747981515208,
+    "valid_count": 40569096
+  },
+  "package_versions": {
+    "matplotlib": "3.10.8",
+    "numpy": "1.26.4",
+    "python": "3.12.10",
+    "scipy": "1.17.1",
+    "torch": "2.12.1+cpu"
+  },
+  "per_horizon_metrics": [
+    {
+      "CRPS": 0.6630363512719297,
+      "MAE": 0.9002199172973633,
+      "MAPE": 1.7909023801342436,
+      "MPIW": 5.212022304534912,
+      "NLL": 1.4601318836212158,
+      "PICP": 0.9619123876953038,
+      "RMSE": 1.607326865196228,
+      "horizon_minutes": 5,
+      "horizon_step": 1,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 0.9002260661945326,
+      "MAE": 1.217171311378479,
+      "MAPE": 2.5259274353059094,
+      "MPIW": 7.068231582641602,
+      "NLL": 1.719909906387329,
+      "PICP": 0.9614518400902993,
+      "RMSE": 2.3477447032928467,
+      "horizon_minutes": 10,
+      "horizon_step": 2,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.0794571255551626,
+      "MAE": 1.456088900566101,
+      "MAPE": 3.1179645700413197,
+      "MPIW": 8.431694984436035,
+      "NLL": 1.8790785074234009,
+      "PICP": 0.9607614623702732,
+      "RMSE": 2.9287075996398926,
+      "horizon_minutes": 15,
+      "horizon_step": 3,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.225725122718483,
+      "MAE": 1.6530941724777222,
+      "MAPE": 3.624574645846517,
+      "MPIW": 9.5569429397583,
+      "NLL": 1.9937809705734253,
+      "PICP": 0.9603571151794953,
+      "RMSE": 3.3917624950408936,
+      "horizon_minutes": 20,
+      "horizon_step": 4,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.3515028950961117,
+      "MAE": 1.8227866888046265,
+      "MAPE": 4.0711130432144085,
+      "MPIW": 10.623025894165039,
+      "NLL": 2.0842857360839844,
+      "PICP": 0.9612234889335468,
+      "RMSE": 3.766195058822632,
+      "horizon_minutes": 25,
+      "horizon_step": 5,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.460579828915878,
+      "MAE": 1.9721096754074097,
+      "MAPE": 4.466479875506452,
+      "MPIW": 11.516427993774414,
+      "NLL": 2.157513380050659,
+      "PICP": 0.9618121143246574,
+      "RMSE": 4.077450275421143,
+      "horizon_minutes": 30,
+      "horizon_step": 6,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.5594803699515103,
+      "MAE": 2.1069552898406982,
+      "MAPE": 4.825052138663311,
+      "MPIW": 12.355226516723633,
+      "NLL": 2.2194066047668457,
+      "PICP": 0.9624696591711089,
+      "RMSE": 4.344754219055176,
+      "horizon_minutes": 35,
+      "horizon_step": 7,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.6490278795827984,
+      "MAE": 2.2303614616394043,
+      "MAPE": 5.148783800722458,
+      "MPIW": 13.09517765045166,
+      "NLL": 2.2732081413269043,
+      "PICP": 0.9627805361992784,
+      "RMSE": 4.5778303146362305,
+      "horizon_minutes": 40,
+      "horizon_step": 8,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.7314925079604908,
+      "MAE": 2.3440990447998047,
+      "MAPE": 5.442685475299092,
+      "MPIW": 13.763587951660156,
+      "NLL": 2.3224029541015625,
+      "PICP": 0.9632351679712065,
+      "RMSE": 4.7843451499938965,
+      "horizon_minutes": 45,
+      "horizon_step": 9,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.8100946018722284,
+      "MAE": 2.4511055946350098,
+      "MAPE": 5.714963850272242,
+      "MPIW": 14.452983856201172,
+      "NLL": 2.3676416873931885,
+      "PICP": 0.9637723256145515,
+      "RMSE": 4.970539569854736,
+      "horizon_minutes": 50,
+      "horizon_step": 10,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.8851053163725058,
+      "MAE": 2.5536770820617676,
+      "MAPE": 5.9707554177992,
+      "MPIW": 15.099968910217285,
+      "NLL": 2.410254955291748,
+      "PICP": 0.964229619511364,
+      "RMSE": 5.142355442047119,
+      "horizon_minutes": 55,
+      "horizon_step": 11,
+      "valid_count": 3380758
+    },
+    {
+      "CRPS": 1.9586232340295717,
+      "MAE": 2.6530213356018066,
+      "MAPE": 6.216221824721268,
+      "MPIW": 15.759844779968262,
+      "NLL": 2.450305938720703,
+      "PICP": 0.9647090977822134,
+      "RMSE": 5.305370807647705,
+      "horizon_minutes": 60,
+      "horizon_step": 12,
+      "valid_count": 3380758
+    }
+  ],
+  "resolved_config": {
+    "artifact_dir": "data/processed",
+    "cadence_minutes": 5,
+    "model_name": "st_dssm",
+    "output_dir": "experiments/normal",
+    "predictions_path": "experiments/normal\\st_dssm-test-seed2027-20261012-153815_predictions.npz",
+    "run_id": "st_dssm-test-seed2027-20261012-153815",
+    "schema_version": "1.0",
+    "split": "test",
+    "training_config": {
+      "artifact_dir": "data/processed",
+      "checkpoint_dir": "experiments/normal/checkpoints",
+      "device": "cuda",
+      "model": {
+        "cheb_k": 3,
+        "context_dim": 64,
+        "dropout": 0.1,
+        "hidden_dim": 128,
+        "horizon": 12,
+        "in_channels": 2,
+        "input_length": 12,
+        "latent_dim": 32,
+        "num_nodes": 325
+      },
+      "output_dir": "experiments/normal",
+      "schedules": {
+        "beta_anneal_epochs": 20,
+        "teacher_force_decay_epochs": 50
+      },
+      "seed": 2027,
+      "seeds": [
+        2026,
+        2027,
+        2028
+      ],
+      "split": "test",
+      "training": {
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "max_epochs": 60,
+        "micro_batch_size": 32,
+        "patience": 10,
+        "weight_decay": 0.0001
+      }
+    }
+  },
+  "run_id": "st_dssm-test-seed2027-20261012-153815",
+  "run_status": "complete",
+  "sample_count": 10403,
+  "schema_version": "1.0",
+  "selection_metric": "val_nll",
+  "sensor_count": 325,
+  "split_artifact_checksum": "3d4a62c1ed05f0b9d2555f53ef592cc6690866729f92e29d67cf404c6087490f",
+  "split_evaluated": "test",
+  "start_time_utc": "2026-10-13T03:37:05.063445+00:00",
+  "total_epochs": 60,
+  "trainable_parameters": 397058,
+  "training_seed": 2027
+}

@@ -1,0 +1,113 @@
+Executing Deterministic ST-GCN Baseline Pipeline...
+Random seed set to: 2026
+Using compute device: cuda
+Note: Raw graph adjacency is directed; applying canonical symmetrization (W + W.T)/2 for Chebyshev spectral convolution.
+Model capacity: 109260 trainable parameters.
+No unfinished run to resume; starting a new run.
+Beginning training (Max epochs=100, Patience=15, Min delta=0.0001)...
+Epoch 001 | Train MAE (norm): 0.2624 | Val MAE (norm): 0.2753 | Best Val: 0.2753 (Ep 1)
+Epoch 002 | Train MAE (norm): 0.2445 | Val MAE (norm): 0.2697 | Best Val: 0.2697 (Ep 2)
+Epoch 003 | Train MAE (norm): 0.2413 | Val MAE (norm): 0.2706 | Best Val: 0.2697 (Ep 2)
+Epoch 004 | Train MAE (norm): 0.2395 | Val MAE (norm): 0.2663 | Best Val: 0.2663 (Ep 4)
+Epoch 005 | Train MAE (norm): 0.2385 | Val MAE (norm): 0.2660 | Best Val: 0.2660 (Ep 5)
+Epoch 006 | Train MAE (norm): 0.2373 | Val MAE (norm): 0.2673 | Best Val: 0.2660 (Ep 5)
+Epoch 007 | Train MAE (norm): 0.2366 | Val MAE (norm): 0.2653 | Best Val: 0.2653 (Ep 7)
+Epoch 008 | Train MAE (norm): 0.2359 | Val MAE (norm): 0.2644 | Best Val: 0.2644 (Ep 8)
+Epoch 009 | Train MAE (norm): 0.2353 | Val MAE (norm): 0.2598 | Best Val: 0.2598 (Ep 9)
+Epoch 010 | Train MAE (norm): 0.2346 | Val MAE (norm): 0.2615 | Best Val: 0.2598 (Ep 9)
+Epoch 011 | Train MAE (norm): 0.2343 | Val MAE (norm): 0.2582 | Best Val: 0.2582 (Ep 11)
+Epoch 012 | Train MAE (norm): 0.2339 | Val MAE (norm): 0.2636 | Best Val: 0.2582 (Ep 11)
+Epoch 013 | Train MAE (norm): 0.2331 | Val MAE (norm): 0.2577 | Best Val: 0.2577 (Ep 13)
+Epoch 014 | Train MAE (norm): 0.2329 | Val MAE (norm): 0.2597 | Best Val: 0.2577 (Ep 13)
+Epoch 015 | Train MAE (norm): 0.2326 | Val MAE (norm): 0.2573 | Best Val: 0.2573 (Ep 15)
+Epoch 016 | Train MAE (norm): 0.2325 | Val MAE (norm): 0.2604 | Best Val: 0.2573 (Ep 15)
+Epoch 017 | Train MAE (norm): 0.2323 | Val MAE (norm): 0.2582 | Best Val: 0.2573 (Ep 15)
+Epoch 018 | Train MAE (norm): 0.2319 | Val MAE (norm): 0.2597 | Best Val: 0.2573 (Ep 15)
+Epoch 019 | Train MAE (norm): 0.2314 | Val MAE (norm): 0.2587 | Best Val: 0.2573 (Ep 15)
+Epoch 020 | Train MAE (norm): 0.2315 | Val MAE (norm): 0.2577 | Best Val: 0.2573 (Ep 15)
+Epoch 021 | Train MAE (norm): 0.2311 | Val MAE (norm): 0.2581 | Best Val: 0.2573 (Ep 15)
+Epoch 022 | Train MAE (norm): 0.2306 | Val MAE (norm): 0.2547 | Best Val: 0.2547 (Ep 22)
+Epoch 023 | Train MAE (norm): 0.2305 | Val MAE (norm): 0.2545 | Best Val: 0.2545 (Ep 23)
+Epoch 024 | Train MAE (norm): 0.2302 | Val MAE (norm): 0.2566 | Best Val: 0.2545 (Ep 23)
+Epoch 025 | Train MAE (norm): 0.2300 | Val MAE (norm): 0.2539 | Best Val: 0.2539 (Ep 25)
+Epoch 026 | Train MAE (norm): 0.2298 | Val MAE (norm): 0.2540 | Best Val: 0.2539 (Ep 25)
+Epoch 027 | Train MAE (norm): 0.2297 | Val MAE (norm): 0.2548 | Best Val: 0.2539 (Ep 25)
+Epoch 028 | Train MAE (norm): 0.2293 | Val MAE (norm): 0.2561 | Best Val: 0.2539 (Ep 25)
+Epoch 029 | Train MAE (norm): 0.2291 | Val MAE (norm): 0.2557 | Best Val: 0.2539 (Ep 25)
+Epoch 030 | Train MAE (norm): 0.2290 | Val MAE (norm): 0.2530 | Best Val: 0.2530 (Ep 30)
+Epoch 031 | Train MAE (norm): 0.2286 | Val MAE (norm): 0.2536 | Best Val: 0.2530 (Ep 30)
+Epoch 032 | Train MAE (norm): 0.2286 | Val MAE (norm): 0.2524 | Best Val: 0.2524 (Ep 32)
+Epoch 033 | Train MAE (norm): 0.2279 | Val MAE (norm): 0.2520 | Best Val: 0.2520 (Ep 33)
+Epoch 034 | Train MAE (norm): 0.2279 | Val MAE (norm): 0.2532 | Best Val: 0.2520 (Ep 33)
+Epoch 035 | Train MAE (norm): 0.2277 | Val MAE (norm): 0.2539 | Best Val: 0.2520 (Ep 33)
+Epoch 036 | Train MAE (norm): 0.2276 | Val MAE (norm): 0.2556 | Best Val: 0.2520 (Ep 33)
+Epoch 037 | Train MAE (norm): 0.2272 | Val MAE (norm): 0.2527 | Best Val: 0.2520 (Ep 33)
+Epoch 038 | Train MAE (norm): 0.2271 | Val MAE (norm): 0.2507 | Best Val: 0.2507 (Ep 38)
+Epoch 039 | Train MAE (norm): 0.2268 | Val MAE (norm): 0.2499 | Best Val: 0.2499 (Ep 39)
+Epoch 040 | Train MAE (norm): 0.2268 | Val MAE (norm): 0.2515 | Best Val: 0.2499 (Ep 39)
+Epoch 041 | Train MAE (norm): 0.2264 | Val MAE (norm): 0.2504 | Best Val: 0.2499 (Ep 39)
+Epoch 042 | Train MAE (norm): 0.2266 | Val MAE (norm): 0.2508 | Best Val: 0.2499 (Ep 39)
+Epoch 043 | Train MAE (norm): 0.2259 | Val MAE (norm): 0.2499 | Best Val: 0.2499 (Ep 39)
+Executing Deterministic ST-GCN Baseline Pipeline...
+Random seed set to: 2026
+Using compute device: cuda
+Note: Raw graph adjacency is directed; applying canonical symmetrization (W + W.T)/2 for Chebyshev spectral convolution.
+Model capacity: 109260 trainable parameters.
+Resuming from training state: experiments/normal/checkpoints\baseline-st_gcn-test-seed2026-20261010-014123_last.pt
+Resumed at epoch 43 with best val MAE: 0.24988575341404676
+Beginning training (Max epochs=100, Patience=15, Min delta=0.0001)...
+Epoch 044 | Train MAE (norm): 0.2261 | Val MAE (norm): 0.2520 | Best Val: 0.2499 (Ep 39)
+Epoch 045 | Train MAE (norm): 0.2256 | Val MAE (norm): 0.2487 | Best Val: 0.2487 (Ep 45)
+Epoch 046 | Train MAE (norm): 0.2256 | Val MAE (norm): 0.2495 | Best Val: 0.2487 (Ep 45)
+Epoch 047 | Train MAE (norm): 0.2254 | Val MAE (norm): 0.2493 | Best Val: 0.2487 (Ep 45)
+Epoch 048 | Train MAE (norm): 0.2254 | Val MAE (norm): 0.2479 | Best Val: 0.2479 (Ep 48)
+Epoch 049 | Train MAE (norm): 0.2254 | Val MAE (norm): 0.2488 | Best Val: 0.2479 (Ep 48)
+Epoch 050 | Train MAE (norm): 0.2251 | Val MAE (norm): 0.2493 | Best Val: 0.2479 (Ep 48)
+Epoch 051 | Train MAE (norm): 0.2249 | Val MAE (norm): 0.2527 | Best Val: 0.2479 (Ep 48)
+Epoch 052 | Train MAE (norm): 0.2249 | Val MAE (norm): 0.2488 | Best Val: 0.2479 (Ep 48)
+Epoch 053 | Train MAE (norm): 0.2249 | Val MAE (norm): 0.2473 | Best Val: 0.2473 (Ep 53)
+Epoch 054 | Train MAE (norm): 0.2243 | Val MAE (norm): 0.2476 | Best Val: 0.2473 (Ep 53)
+Epoch 055 | Train MAE (norm): 0.2244 | Val MAE (norm): 0.2487 | Best Val: 0.2473 (Ep 53)
+Epoch 056 | Train MAE (norm): 0.2244 | Val MAE (norm): 0.2474 | Best Val: 0.2473 (Ep 53)
+Epoch 057 | Train MAE (norm): 0.2241 | Val MAE (norm): 0.2480 | Best Val: 0.2473 (Ep 53)
+Epoch 058 | Train MAE (norm): 0.2240 | Val MAE (norm): 0.2486 | Best Val: 0.2473 (Ep 53)
+Epoch 059 | Train MAE (norm): 0.2238 | Val MAE (norm): 0.2468 | Best Val: 0.2468 (Ep 59)
+Epoch 060 | Train MAE (norm): 0.2238 | Val MAE (norm): 0.2469 | Best Val: 0.2468 (Ep 59)
+Epoch 061 | Train MAE (norm): 0.2235 | Val MAE (norm): 0.2465 | Best Val: 0.2465 (Ep 61)
+Epoch 062 | Train MAE (norm): 0.2236 | Val MAE (norm): 0.2471 | Best Val: 0.2465 (Ep 61)
+Epoch 063 | Train MAE (norm): 0.2235 | Val MAE (norm): 0.2481 | Best Val: 0.2465 (Ep 61)
+Epoch 064 | Train MAE (norm): 0.2234 | Val MAE (norm): 0.2468 | Best Val: 0.2465 (Ep 61)
+Epoch 065 | Train MAE (norm): 0.2232 | Val MAE (norm): 0.2467 | Best Val: 0.2465 (Ep 61)
+Epoch 066 | Train MAE (norm): 0.2232 | Val MAE (norm): 0.2485 | Best Val: 0.2465 (Ep 61)
+Epoch 067 | Train MAE (norm): 0.2232 | Val MAE (norm): 0.2510 | Best Val: 0.2465 (Ep 61)
+Epoch 068 | Train MAE (norm): 0.2231 | Val MAE (norm): 0.2487 | Best Val: 0.2465 (Ep 61)
+Epoch 069 | Train MAE (norm): 0.2231 | Val MAE (norm): 0.2469 | Best Val: 0.2465 (Ep 61)
+Epoch 070 | Train MAE (norm): 0.2228 | Val MAE (norm): 0.2472 | Best Val: 0.2465 (Ep 61)
+Epoch 071 | Train MAE (norm): 0.2227 | Val MAE (norm): 0.2474 | Best Val: 0.2465 (Ep 61)
+Epoch 072 | Train MAE (norm): 0.2230 | Val MAE (norm): 0.2462 | Best Val: 0.2462 (Ep 72)
+Epoch 073 | Train MAE (norm): 0.2226 | Val MAE (norm): 0.2475 | Best Val: 0.2462 (Ep 72)
+Epoch 074 | Train MAE (norm): 0.2225 | Val MAE (norm): 0.2459 | Best Val: 0.2459 (Ep 74)
+Epoch 075 | Train MAE (norm): 0.2224 | Val MAE (norm): 0.2463 | Best Val: 0.2459 (Ep 74)
+Epoch 076 | Train MAE (norm): 0.2224 | Val MAE (norm): 0.2442 | Best Val: 0.2442 (Ep 76)
+Epoch 077 | Train MAE (norm): 0.2224 | Val MAE (norm): 0.2450 | Best Val: 0.2442 (Ep 76)
+Epoch 078 | Train MAE (norm): 0.2222 | Val MAE (norm): 0.2466 | Best Val: 0.2442 (Ep 76)
+Epoch 079 | Train MAE (norm): 0.2225 | Val MAE (norm): 0.2459 | Best Val: 0.2442 (Ep 76)
+Epoch 080 | Train MAE (norm): 0.2220 | Val MAE (norm): 0.2457 | Best Val: 0.2442 (Ep 76)
+Epoch 081 | Train MAE (norm): 0.2220 | Val MAE (norm): 0.2459 | Best Val: 0.2442 (Ep 76)
+Epoch 082 | Train MAE (norm): 0.2219 | Val MAE (norm): 0.2473 | Best Val: 0.2442 (Ep 76)
+Epoch 083 | Train MAE (norm): 0.2219 | Val MAE (norm): 0.2444 | Best Val: 0.2442 (Ep 76)
+Epoch 084 | Train MAE (norm): 0.2219 | Val MAE (norm): 0.2449 | Best Val: 0.2442 (Ep 76)
+Epoch 085 | Train MAE (norm): 0.2218 | Val MAE (norm): 0.2453 | Best Val: 0.2442 (Ep 76)
+Epoch 086 | Train MAE (norm): 0.2219 | Val MAE (norm): 0.2445 | Best Val: 0.2442 (Ep 76)
+Epoch 087 | Train MAE (norm): 0.2215 | Val MAE (norm): 0.2457 | Best Val: 0.2442 (Ep 76)
+Epoch 088 | Train MAE (norm): 0.2215 | Val MAE (norm): 0.2451 | Best Val: 0.2442 (Ep 76)
+Epoch 089 | Train MAE (norm): 0.2214 | Val MAE (norm): 0.2459 | Best Val: 0.2442 (Ep 76)
+Epoch 090 | Train MAE (norm): 0.2216 | Val MAE (norm): 0.2448 | Best Val: 0.2442 (Ep 76)
+Epoch 091 | Train MAE (norm): 0.2212 | Val MAE (norm): 0.2443 | Best Val: 0.2442 (Ep 76)
+Early stopping triggered at epoch 91. Restoring best weights from epoch 76.
+Best checkpoint saved to: experiments/normal/checkpoints\baseline-st_gcn-test-seed2026-20261010-014123_best.pt
+Predictions saved to: experiments/normal/baselines\baseline-st_gcn-test-seed2026-20261010-014123_predictions.npz
+Executing configured evaluation run...
+Loading canonical Phase 3 dataset artifact from: data/processed
+Loading predictions from: experiments/normal/baselines\baseline-st_gcn-test-seed2026-20261010-014123_predictions.npz
+Evaluation complete. Run manifest saved and verified at: experiments/normal/baselines\baseline-st_gcn-test-seed2026-20261010-014123_manifest.json

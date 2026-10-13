@@ -1,0 +1,354 @@
+=== tuning start Sun Oct 11 12:15:48 IST 2026 ===
+Starting Phase 10 Tuning over 3 configurations...
+
+--- Tuning Run 1/3 ---
+Params: {'learning_rate': 0.001, 'weight_decay': 0.0001, 'dropout': 0.1}
+Executing ST-DSSM Training Pipeline...
+Random seed set to: 42
+Using compute device: cuda
+Note: Raw graph adjacency is directed; applying canonical symmetrization (W + W.T)/2 for Chebyshev spectral convolution.
+Model capacity: 397058 trainable parameters.
+Gradient accumulation: batch size 64 in micro-batches of 32.
+No unfinished run to resume; starting a new run.
+Beginning training (Max epochs=100, Beta Anneal=20, TF Decay=50)...
+Epoch 001 | beta: 0.05 | TF: 0.98 | Train ELBO: -0.2392 (NLL -0.2436, KL 0.0896) | Val NLL: 3.5630 | Best Val NLL: 3.5630
+Epoch 002 | beta: 0.10 | TF: 0.96 | Train ELBO: -0.4626 (NLL -0.4659, KL 0.0326) | Val NLL: 2.7371 | Best Val NLL: 2.7371
+Epoch 003 | beta: 0.15 | TF: 0.94 | Train ELBO: -0.4836 (NLL -0.4870, KL 0.0224) | Val NLL: 2.9624 | Best Val NLL: 2.7371
+Epoch 004 | beta: 0.20 | TF: 0.92 | Train ELBO: -0.4898 (NLL -0.4929, KL 0.0154) | Val NLL: 2.4915 | Best Val NLL: 2.4915
+Epoch 005 | beta: 0.25 | TF: 0.90 | Train ELBO: -0.4843 (NLL -0.4872, KL 0.0115) | Val NLL: 2.8056 | Best Val NLL: 2.4915
+Epoch 006 | beta: 0.30 | TF: 0.88 | Train ELBO: -0.4820 (NLL -0.4849, KL 0.0098) | Val NLL: 1.7909 | Best Val NLL: 1.7909
+Epoch 007 | beta: 0.35 | TF: 0.86 | Train ELBO: -0.4743 (NLL -0.4773, KL 0.0085) | Val NLL: 2.0312 | Best Val NLL: 1.7909
+Epoch 008 | beta: 0.40 | TF: 0.84 | Train ELBO: -0.4768 (NLL -0.4793, KL 0.0062) | Val NLL: 2.0629 | Best Val NLL: 1.7909
+Epoch 009 | beta: 0.45 | TF: 0.82 | Train ELBO: -0.4692 (NLL -0.4718, KL 0.0057) | Val NLL: 1.6772 | Best Val NLL: 1.6772
+Epoch 010 | beta: 0.50 | TF: 0.80 | Train ELBO: -0.4604 (NLL -0.4631, KL 0.0054) | Val NLL: 1.7243 | Best Val NLL: 1.6772
+Epoch 011 | beta: 0.55 | TF: 0.78 | Train ELBO: -0.4527 (NLL -0.4553, KL 0.0047) | Val NLL: 1.6335 | Best Val NLL: 1.6335
+Epoch 012 | beta: 0.60 | TF: 0.76 | Train ELBO: -0.4479 (NLL -0.4502, KL 0.0038) | Val NLL: 1.9260 | Best Val NLL: 1.6335
+Epoch 013 | beta: 0.65 | TF: 0.74 | Train ELBO: -0.4328 (NLL -0.4352, KL 0.0036) | Val NLL: 1.9617 | Best Val NLL: 1.6335
+Epoch 014 | beta: 0.70 | TF: 0.72 | Train ELBO: -0.4232 (NLL -0.4257, KL 0.0035) | Val NLL: 1.1638 | Best Val NLL: 1.1638
+Epoch 015 | beta: 0.75 | TF: 0.70 | Train ELBO: -0.4253 (NLL -0.4270, KL 0.0023) | Val NLL: 1.3399 | Best Val NLL: 1.1638
+Epoch 016 | beta: 0.80 | TF: 0.68 | Train ELBO: -0.4145 (NLL -0.4165, KL 0.0025) | Val NLL: 1.6384 | Best Val NLL: 1.1638
+Epoch 017 | beta: 0.85 | TF: 0.66 | Train ELBO: -0.4059 (NLL -0.4079, KL 0.0024) | Val NLL: 1.2976 | Best Val NLL: 1.1638
+Epoch 018 | beta: 0.90 | TF: 0.64 | Train ELBO: -0.3919 (NLL -0.3940, KL 0.0024) | Val NLL: 1.2951 | Best Val NLL: 1.1638
+Epoch 019 | beta: 0.95 | TF: 0.62 | Train ELBO: -0.3800 (NLL -0.3822, KL 0.0023) | Val NLL: 0.9153 | Best Val NLL: 0.9153
+Epoch 020 | beta: 1.00 | TF: 0.60 | Train ELBO: -0.3777 (NLL -0.3794, KL 0.0017) | Val NLL: 1.3290 | Best Val NLL: 0.9153
+Epoch 021 | beta: 1.00 | TF: 0.58 | Train ELBO: -0.3660 (NLL -0.3680, KL 0.0021) | Val NLL: 0.7914 | Best Val NLL: 0.7914
+Epoch 022 | beta: 1.00 | TF: 0.56 | Train ELBO: -0.3539 (NLL -0.3557, KL 0.0018) | Val NLL: 0.8261 | Best Val NLL: 0.7914
+Epoch 023 | beta: 1.00 | TF: 0.54 | Train ELBO: -0.3479 (NLL -0.3497, KL 0.0018) | Val NLL: 0.7632 | Best Val NLL: 0.7632
+Epoch 024 | beta: 1.00 | TF: 0.52 | Train ELBO: -0.3391 (NLL -0.3409, KL 0.0018) | Val NLL: 0.7925 | Best Val NLL: 0.7632
+Epoch 025 | beta: 1.00 | TF: 0.50 | Train ELBO: -0.3297 (NLL -0.3313, KL 0.0016) | Val NLL: 0.7638 | Best Val NLL: 0.7632
+Epoch 026 | beta: 1.00 | TF: 0.48 | Train ELBO: -0.3132 (NLL -0.3149, KL 0.0017) | Val NLL: 0.5038 | Best Val NLL: 0.5038
+Epoch 027 | beta: 1.00 | TF: 0.46 | Train ELBO: -0.3107 (NLL -0.3126, KL 0.0020) | Val NLL: 0.3556 | Best Val NLL: 0.3556
+Epoch 028 | beta: 1.00 | TF: 0.44 | Train ELBO: -0.2932 (NLL -0.2948, KL 0.0016) | Val NLL: 0.7390 | Best Val NLL: 0.3556
+Epoch 029 | beta: 1.00 | TF: 0.42 | Train ELBO: -0.2874 (NLL -0.2888, KL 0.0014) | Val NLL: 0.5278 | Best Val NLL: 0.3556
+Epoch 030 | beta: 1.00 | TF: 0.40 | Train ELBO: -0.2716 (NLL -0.2734, KL 0.0017) | Val NLL: 0.4852 | Best Val NLL: 0.3556
+Epoch 031 | beta: 1.00 | TF: 0.38 | Train ELBO: -0.2637 (NLL -0.2650, KL 0.0014) | Val NLL: 0.5272 | Best Val NLL: 0.3556
+Epoch 032 | beta: 1.00 | TF: 0.36 | Train ELBO: -0.2565 (NLL -0.2583, KL 0.0018) | Val NLL: 0.4575 | Best Val NLL: 0.3556
+Epoch 033 | beta: 1.00 | TF: 0.34 | Train ELBO: -0.2442 (NLL -0.2460, KL 0.0018) | Val NLL: 0.4459 | Best Val NLL: 0.3556
+Epoch 034 | beta: 1.00 | TF: 0.32 | Train ELBO: -0.2292 (NLL -0.2307, KL 0.0015) | Val NLL: 0.6549 | Best Val NLL: 0.3556
+Epoch 035 | beta: 1.00 | TF: 0.30 | Train ELBO: -0.2168 (NLL -0.2180, KL 0.0013) | Val NLL: 0.3602 | Best Val NLL: 0.3556
+Epoch 036 | beta: 1.00 | TF: 0.28 | Train ELBO: -0.2043 (NLL -0.2058, KL 0.0015) | Val NLL: 0.4438 | Best Val NLL: 0.3556
+Epoch 037 | beta: 1.00 | TF: 0.26 | Train ELBO: -0.1949 (NLL -0.1963, KL 0.0015) | Val NLL: 0.2634 | Best Val NLL: 0.2634
+Epoch 038 | beta: 1.00 | TF: 0.24 | Train ELBO: -0.1860 (NLL -0.1874, KL 0.0013) | Val NLL: 0.2274 | Best Val NLL: 0.2274
+Epoch 039 | beta: 1.00 | TF: 0.22 | Train ELBO: -0.1750 (NLL -0.1765, KL 0.0016) | Val NLL: 0.1882 | Best Val NLL: 0.1882
+Epoch 040 | beta: 1.00 | TF: 0.20 | Train ELBO: -0.1563 (NLL -0.1580, KL 0.0017) | Val NLL: 0.3475 | Best Val NLL: 0.1882
+Epoch 041 | beta: 1.00 | TF: 0.18 | Train ELBO: -0.1461 (NLL -0.1476, KL 0.0014) | Val NLL: 0.2361 | Best Val NLL: 0.1882
+Epoch 042 | beta: 1.00 | TF: 0.16 | Train ELBO: -0.1256 (NLL -0.1271, KL 0.0015) | Val NLL: 0.1607 | Best Val NLL: 0.1607
+Epoch 043 | beta: 1.00 | TF: 0.14 | Train ELBO: -0.1253 (NLL -0.1263, KL 0.0010) | Val NLL: 0.2369 | Best Val NLL: 0.1607
+Epoch 044 | beta: 1.00 | TF: 0.12 | Train ELBO: -0.1098 (NLL -0.1112, KL 0.0013) | Val NLL: 0.1883 | Best Val NLL: 0.1607
+Epoch 045 | beta: 1.00 | TF: 0.10 | Train ELBO: -0.0922 (NLL -0.0936, KL 0.0014) | Val NLL: 0.1853 | Best Val NLL: 0.1607
+Epoch 046 | beta: 1.00 | TF: 0.08 | Train ELBO: -0.0740 (NLL -0.0755, KL 0.0015) | Val NLL: 0.1750 | Best Val NLL: 0.1607
+Epoch 047 | beta: 1.00 | TF: 0.06 | Train ELBO: -0.0692 (NLL -0.0704, KL 0.0012) | Val NLL: 0.1592 | Best Val NLL: 0.1592
+Epoch 048 | beta: 1.00 | TF: 0.04 | Train ELBO: -0.0516 (NLL -0.0529, KL 0.0012) | Val NLL: 0.1483 | Best Val NLL: 0.1483
+Epoch 049 | beta: 1.00 | TF: 0.02 | Train ELBO: -0.0435 (NLL -0.0446, KL 0.0010) | Val NLL: 0.1332 | Best Val NLL: 0.1332
+Epoch 050 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0268 (NLL -0.0281, KL 0.0013) | Val NLL: 0.1293 | Best Val NLL: 0.1293
+Epoch 051 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0347 (NLL -0.0359, KL 0.0012) | Val NLL: 0.1294 | Best Val NLL: 0.1293
+Epoch 052 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0360 (NLL -0.0374, KL 0.0014) | Val NLL: 0.1213 | Best Val NLL: 0.1213
+Epoch 053 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0408 (NLL -0.0420, KL 0.0013) | Val NLL: 0.1211 | Best Val NLL: 0.1211
+Epoch 054 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0434 (NLL -0.0447, KL 0.0012) | Val NLL: 0.1218 | Best Val NLL: 0.1211
+Epoch 055 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0456 (NLL -0.0470, KL 0.0014) | Val NLL: 0.1295 | Best Val NLL: 0.1211
+Epoch 056 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0490 (NLL -0.0504, KL 0.0013) | Val NLL: 0.1219 | Best Val NLL: 0.1211
+Epoch 057 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0509 (NLL -0.0522, KL 0.0013) | Val NLL: 0.1200 | Best Val NLL: 0.1200
+Epoch 058 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0525 (NLL -0.0539, KL 0.0014) | Val NLL: 0.1480 | Best Val NLL: 0.1200
+Epoch 059 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0561 (NLL -0.0573, KL 0.0012) | Val NLL: 0.1356 | Best Val NLL: 0.1200
+Epoch 060 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0564 (NLL -0.0576, KL 0.0013) | Val NLL: 0.1342 | Best Val NLL: 0.1200
+Epoch 061 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0574 (NLL -0.0586, KL 0.0012) | Val NLL: 0.1389 | Best Val NLL: 0.1200
+Epoch 062 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0619 (NLL -0.0632, KL 0.0012) | Val NLL: 0.1540 | Best Val NLL: 0.1200
+Epoch 063 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0621 (NLL -0.0635, KL 0.0014) | Val NLL: 0.1172 | Best Val NLL: 0.1172
+Epoch 064 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0627 (NLL -0.0640, KL 0.0012) | Val NLL: 0.1330 | Best Val NLL: 0.1172
+Epoch 065 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0635 (NLL -0.0648, KL 0.0013) | Val NLL: 0.1432 | Best Val NLL: 0.1172
+Epoch 066 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0640 (NLL -0.0654, KL 0.0014) | Val NLL: 0.1315 | Best Val NLL: 0.1172
+Epoch 067 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0674 (NLL -0.0686, KL 0.0012) | Val NLL: 0.1130 | Best Val NLL: 0.1130
+Epoch 068 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0665 (NLL -0.0679, KL 0.0015) | Val NLL: 0.1275 | Best Val NLL: 0.1130
+Epoch 069 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0685 (NLL -0.0701, KL 0.0015) | Val NLL: 0.1209 | Best Val NLL: 0.1130
+Epoch 070 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0705 (NLL -0.0718, KL 0.0012) | Val NLL: 0.1280 | Best Val NLL: 0.1130
+Epoch 071 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0722 (NLL -0.0735, KL 0.0013) | Val NLL: 0.1380 | Best Val NLL: 0.1130
+Epoch 072 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0710 (NLL -0.0726, KL 0.0016) | Val NLL: 0.1289 | Best Val NLL: 0.1130
+Epoch 073 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0751 (NLL -0.0763, KL 0.0012) | Val NLL: 0.1324 | Best Val NLL: 0.1130
+Epoch 074 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0753 (NLL -0.0766, KL 0.0013) | Val NLL: 0.1218 | Best Val NLL: 0.1130
+Epoch 075 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0758 (NLL -0.0771, KL 0.0012) | Val NLL: 0.1347 | Best Val NLL: 0.1130
+Epoch 076 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0759 (NLL -0.0773, KL 0.0014) | Val NLL: 0.1168 | Best Val NLL: 0.1130
+Epoch 077 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0769 (NLL -0.0784, KL 0.0014) | Val NLL: 0.1152 | Best Val NLL: 0.1130
+Epoch 078 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0798 (NLL -0.0811, KL 0.0013) | Val NLL: 0.1165 | Best Val NLL: 0.1130
+Epoch 079 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0795 (NLL -0.0808, KL 0.0012) | Val NLL: 0.1377 | Best Val NLL: 0.1130
+Epoch 080 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0812 (NLL -0.0823, KL 0.0012) | Val NLL: 0.1093 | Best Val NLL: 0.1093
+Epoch 081 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0796 (NLL -0.0810, KL 0.0014) | Val NLL: 0.1234 | Best Val NLL: 0.1093
+Epoch 082 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0809 (NLL -0.0822, KL 0.0013) | Val NLL: 0.1374 | Best Val NLL: 0.1093
+Epoch 083 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0805 (NLL -0.0819, KL 0.0014) | Val NLL: 0.1277 | Best Val NLL: 0.1093
+Epoch 084 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0818 (NLL -0.0831, KL 0.0012) | Val NLL: 0.1333 | Best Val NLL: 0.1093
+Epoch 085 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0850 (NLL -0.0864, KL 0.0013) | Val NLL: 0.1160 | Best Val NLL: 0.1093
+Epoch 086 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0828 (NLL -0.0841, KL 0.0013) | Val NLL: 0.1174 | Best Val NLL: 0.1093
+Epoch 087 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0835 (NLL -0.0848, KL 0.0013) | Val NLL: 0.1308 | Best Val NLL: 0.1093
+Epoch 088 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0847 (NLL -0.0860, KL 0.0014) | Val NLL: 0.1400 | Best Val NLL: 0.1093
+Epoch 089 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0842 (NLL -0.0855, KL 0.0013) | Val NLL: 0.1281 | Best Val NLL: 0.1093
+Epoch 090 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0877 (NLL -0.0890, KL 0.0013) | Val NLL: 0.1309 | Best Val NLL: 0.1093
+Epoch 091 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0864 (NLL -0.0877, KL 0.0013) | Val NLL: 0.1060 | Best Val NLL: 0.1060
+Epoch 092 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0875 (NLL -0.0889, KL 0.0014) | Val NLL: 0.1252 | Best Val NLL: 0.1060
+Epoch 093 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0838 (NLL -0.0852, KL 0.0013) | Val NLL: 0.1133 | Best Val NLL: 0.1060
+Epoch 094 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0906 (NLL -0.0918, KL 0.0012) | Val NLL: 0.1304 | Best Val NLL: 0.1060
+Epoch 095 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0907 (NLL -0.0919, KL 0.0012) | Val NLL: 0.1159 | Best Val NLL: 0.1060
+Epoch 096 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0897 (NLL -0.0912, KL 0.0015) | Val NLL: 0.1278 | Best Val NLL: 0.1060
+Epoch 097 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0904 (NLL -0.0917, KL 0.0012) | Val NLL: 0.1090 | Best Val NLL: 0.1060
+Epoch 098 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0898 (NLL -0.0910, KL 0.0013) | Val NLL: 0.1013 | Best Val NLL: 0.1013
+Epoch 099 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0918 (NLL -0.0931, KL 0.0013) | Val NLL: 0.1068 | Best Val NLL: 0.1013
+Epoch 100 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0925 (NLL -0.0937, KL 0.0012) | Val NLL: 0.1109 | Best Val NLL: 0.1013
+Best checkpoint saved to: experiments/tuning\checkpoints_0\st_dssm-val-seed42-20261011-064600_best.pt
+Predictions saved to: experiments/tuning\run_0\st_dssm-val-seed42-20261011-064600_predictions.npz
+Executing configured evaluation run...
+Loading canonical Phase 3 dataset artifact from: data/processed
+Loading predictions from: experiments/tuning\run_0\st_dssm-val-seed42-20261011-064600_predictions.npz
+Evaluation complete. Run manifest saved and verified at: experiments/tuning\run_0\st_dssm-val-seed42-20261011-064600_manifest.json
+Run 0 Val NLL: 2.117987730937178
+
+--- Tuning Run 2/3 ---
+Params: {'learning_rate': 0.0005, 'weight_decay': 1e-05, 'dropout': 0.2}
+Executing ST-DSSM Training Pipeline...
+Random seed set to: 42
+Using compute device: cuda
+Note: Raw graph adjacency is directed; applying canonical symmetrization (W + W.T)/2 for Chebyshev spectral convolution.
+Model capacity: 397058 trainable parameters.
+Gradient accumulation: batch size 64 in micro-batches of 32.
+No unfinished run to resume; starting a new run.
+Beginning training (Max epochs=100, Beta Anneal=20, TF Decay=50)...
+Epoch 001 | beta: 0.05 | TF: 0.98 | Train ELBO: -0.1650 (NLL -0.1702, KL 0.1026) | Val NLL: 2.8148 | Best Val NLL: 2.8148
+Epoch 002 | beta: 0.10 | TF: 0.96 | Train ELBO: -0.4210 (NLL -0.4251, KL 0.0414) | Val NLL: 2.9427 | Best Val NLL: 2.8148
+Epoch 003 | beta: 0.15 | TF: 0.94 | Train ELBO: -0.4594 (NLL -0.4628, KL 0.0230) | Val NLL: 2.7901 | Best Val NLL: 2.7901
+Epoch 004 | beta: 0.20 | TF: 0.92 | Train ELBO: -0.4739 (NLL -0.4772, KL 0.0168) | Val NLL: 2.1951 | Best Val NLL: 2.1951
+Epoch 005 | beta: 0.25 | TF: 0.90 | Train ELBO: -0.4764 (NLL -0.4794, KL 0.0120) | Val NLL: 2.7092 | Best Val NLL: 2.1951
+Epoch 006 | beta: 0.30 | TF: 0.88 | Train ELBO: -0.4768 (NLL -0.4798, KL 0.0100) | Val NLL: 2.3292 | Best Val NLL: 2.1951
+Epoch 007 | beta: 0.35 | TF: 0.86 | Train ELBO: -0.4720 (NLL -0.4752, KL 0.0089) | Val NLL: 2.5638 | Best Val NLL: 2.1951
+Epoch 008 | beta: 0.40 | TF: 0.84 | Train ELBO: -0.4750 (NLL -0.4777, KL 0.0070) | Val NLL: 1.8875 | Best Val NLL: 1.8875
+Epoch 009 | beta: 0.45 | TF: 0.82 | Train ELBO: -0.4662 (NLL -0.4690, KL 0.0063) | Val NLL: 1.8564 | Best Val NLL: 1.8564
+Epoch 010 | beta: 0.50 | TF: 0.80 | Train ELBO: -0.4597 (NLL -0.4626, KL 0.0059) | Val NLL: 2.0397 | Best Val NLL: 1.8564
+Epoch 011 | beta: 0.55 | TF: 0.78 | Train ELBO: -0.4523 (NLL -0.4552, KL 0.0052) | Val NLL: 1.4572 | Best Val NLL: 1.4572
+Epoch 012 | beta: 0.60 | TF: 0.76 | Train ELBO: -0.4481 (NLL -0.4507, KL 0.0044) | Val NLL: 1.5592 | Best Val NLL: 1.4572
+Epoch 013 | beta: 0.65 | TF: 0.74 | Train ELBO: -0.4337 (NLL -0.4365, KL 0.0043) | Val NLL: 1.9063 | Best Val NLL: 1.4572
+Epoch 014 | beta: 0.70 | TF: 0.72 | Train ELBO: -0.4262 (NLL -0.4288, KL 0.0037) | Val NLL: 1.1127 | Best Val NLL: 1.1127
+Epoch 015 | beta: 0.75 | TF: 0.70 | Train ELBO: -0.4262 (NLL -0.4284, KL 0.0030) | Val NLL: 1.4840 | Best Val NLL: 1.1127
+Epoch 016 | beta: 0.80 | TF: 0.68 | Train ELBO: -0.4178 (NLL -0.4202, KL 0.0030) | Val NLL: 1.4951 | Best Val NLL: 1.1127
+Epoch 017 | beta: 0.85 | TF: 0.66 | Train ELBO: -0.4109 (NLL -0.4134, KL 0.0029) | Val NLL: 1.2804 | Best Val NLL: 1.1127
+Epoch 018 | beta: 0.90 | TF: 0.64 | Train ELBO: -0.3979 (NLL -0.4003, KL 0.0026) | Val NLL: 1.4119 | Best Val NLL: 1.1127
+Epoch 019 | beta: 0.95 | TF: 0.62 | Train ELBO: -0.3868 (NLL -0.3892, KL 0.0026) | Val NLL: 0.9550 | Best Val NLL: 0.9550
+Epoch 020 | beta: 1.00 | TF: 0.60 | Train ELBO: -0.3838 (NLL -0.3859, KL 0.0021) | Val NLL: 1.4069 | Best Val NLL: 0.9550
+Epoch 021 | beta: 1.00 | TF: 0.58 | Train ELBO: -0.3751 (NLL -0.3774, KL 0.0023) | Val NLL: 0.7307 | Best Val NLL: 0.7307
+Epoch 022 | beta: 1.00 | TF: 0.56 | Train ELBO: -0.3626 (NLL -0.3648, KL 0.0022) | Val NLL: 0.7280 | Best Val NLL: 0.7280
+Epoch 023 | beta: 1.00 | TF: 0.54 | Train ELBO: -0.3573 (NLL -0.3595, KL 0.0022) | Val NLL: 0.8351 | Best Val NLL: 0.7280
+Epoch 024 | beta: 1.00 | TF: 0.52 | Train ELBO: -0.3501 (NLL -0.3521, KL 0.0020) | Val NLL: 0.7208 | Best Val NLL: 0.7208
+Epoch 025 | beta: 1.00 | TF: 0.50 | Train ELBO: -0.3420 (NLL -0.3439, KL 0.0019) | Val NLL: 0.6031 | Best Val NLL: 0.6031
+Epoch 026 | beta: 1.00 | TF: 0.48 | Train ELBO: -0.3269 (NLL -0.3289, KL 0.0020) | Val NLL: 0.4732 | Best Val NLL: 0.4732
+Epoch 027 | beta: 1.00 | TF: 0.46 | Train ELBO: -0.3238 (NLL -0.3258, KL 0.0020) | Val NLL: 0.3603 | Best Val NLL: 0.3603
+Epoch 028 | beta: 1.00 | TF: 0.44 | Train ELBO: -0.3092 (NLL -0.3110, KL 0.0018) | Val NLL: 0.6015 | Best Val NLL: 0.3603
+Epoch 029 | beta: 1.00 | TF: 0.42 | Train ELBO: -0.3017 (NLL -0.3035, KL 0.0018) | Val NLL: 0.4582 | Best Val NLL: 0.3603
+Epoch 030 | beta: 1.00 | TF: 0.40 | Train ELBO: -0.2851 (NLL -0.2871, KL 0.0020) | Val NLL: 0.5328 | Best Val NLL: 0.3603
+Epoch 031 | beta: 1.00 | TF: 0.38 | Train ELBO: -0.2793 (NLL -0.2809, KL 0.0016) | Val NLL: 0.4459 | Best Val NLL: 0.3603
+Epoch 032 | beta: 1.00 | TF: 0.36 | Train ELBO: -0.2721 (NLL -0.2740, KL 0.0018) | Val NLL: 0.4008 | Best Val NLL: 0.3603
+Epoch 033 | beta: 1.00 | TF: 0.34 | Train ELBO: -0.2635 (NLL -0.2653, KL 0.0019) | Val NLL: 0.4252 | Best Val NLL: 0.3603
+Epoch 034 | beta: 1.00 | TF: 0.32 | Train ELBO: -0.2472 (NLL -0.2489, KL 0.0017) | Val NLL: 0.6152 | Best Val NLL: 0.3603
+Epoch 035 | beta: 1.00 | TF: 0.30 | Train ELBO: -0.2366 (NLL -0.2383, KL 0.0017) | Val NLL: 0.3422 | Best Val NLL: 0.3422
+Epoch 036 | beta: 1.00 | TF: 0.28 | Train ELBO: -0.2228 (NLL -0.2247, KL 0.0019) | Val NLL: 0.4008 | Best Val NLL: 0.3422
+Epoch 037 | beta: 1.00 | TF: 0.26 | Train ELBO: -0.2136 (NLL -0.2153, KL 0.0017) | Val NLL: 0.2432 | Best Val NLL: 0.2432
+Epoch 038 | beta: 1.00 | TF: 0.24 | Train ELBO: -0.2050 (NLL -0.2066, KL 0.0016) | Val NLL: 0.2358 | Best Val NLL: 0.2358
+Epoch 039 | beta: 1.00 | TF: 0.22 | Train ELBO: -0.1974 (NLL -0.1991, KL 0.0017) | Val NLL: 0.1751 | Best Val NLL: 0.1751
+Epoch 040 | beta: 1.00 | TF: 0.20 | Train ELBO: -0.1782 (NLL -0.1801, KL 0.0019) | Val NLL: 0.3228 | Best Val NLL: 0.1751
+Epoch 041 | beta: 1.00 | TF: 0.18 | Train ELBO: -0.1662 (NLL -0.1679, KL 0.0017) | Val NLL: 0.1701 | Best Val NLL: 0.1701
+Epoch 042 | beta: 1.00 | TF: 0.16 | Train ELBO: -0.1493 (NLL -0.1511, KL 0.0017) | Val NLL: 0.1619 | Best Val NLL: 0.1619
+Epoch 043 | beta: 1.00 | TF: 0.14 | Train ELBO: -0.1452 (NLL -0.1467, KL 0.0015) | Val NLL: 0.2027 | Best Val NLL: 0.1619
+Epoch 044 | beta: 1.00 | TF: 0.12 | Train ELBO: -0.1307 (NLL -0.1323, KL 0.0016) | Val NLL: 0.2322 | Best Val NLL: 0.1619
+Epoch 045 | beta: 1.00 | TF: 0.10 | Train ELBO: -0.1132 (NLL -0.1148, KL 0.0016) | Val NLL: 0.1757 | Best Val NLL: 0.1619
+Epoch 046 | beta: 1.00 | TF: 0.08 | Train ELBO: -0.0975 (NLL -0.0992, KL 0.0017) | Val NLL: 0.1510 | Best Val NLL: 0.1510
+Epoch 047 | beta: 1.00 | TF: 0.06 | Train ELBO: -0.0902 (NLL -0.0917, KL 0.0015) | Val NLL: 0.1396 | Best Val NLL: 0.1396
+Epoch 048 | beta: 1.00 | TF: 0.04 | Train ELBO: -0.0731 (NLL -0.0746, KL 0.0015) | Val NLL: 0.1277 | Best Val NLL: 0.1277
+Epoch 049 | beta: 1.00 | TF: 0.02 | Train ELBO: -0.0617 (NLL -0.0630, KL 0.0014) | Val NLL: 0.1313 | Best Val NLL: 0.1277
+Epoch 050 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0468 (NLL -0.0483, KL 0.0015) | Val NLL: 0.1290 | Best Val NLL: 0.1277
+Epoch 051 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0499 (NLL -0.0515, KL 0.0016) | Val NLL: 0.1160 | Best Val NLL: 0.1160
+Epoch 052 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0532 (NLL -0.0548, KL 0.0016) | Val NLL: 0.1252 | Best Val NLL: 0.1160
+Epoch 053 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0560 (NLL -0.0577, KL 0.0017) | Val NLL: 0.1261 | Best Val NLL: 0.1160
+Epoch 054 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0593 (NLL -0.0609, KL 0.0016) | Val NLL: 0.1211 | Best Val NLL: 0.1160
+Epoch 055 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0608 (NLL -0.0625, KL 0.0017) | Val NLL: 0.1195 | Best Val NLL: 0.1160
+Epoch 056 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0631 (NLL -0.0647, KL 0.0017) | Val NLL: 0.1067 | Best Val NLL: 0.1067
+Epoch 057 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0650 (NLL -0.0668, KL 0.0017) | Val NLL: 0.1197 | Best Val NLL: 0.1067
+Epoch 058 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0674 (NLL -0.0690, KL 0.0016) | Val NLL: 0.1448 | Best Val NLL: 0.1067
+Epoch 059 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0695 (NLL -0.0712, KL 0.0017) | Val NLL: 0.1180 | Best Val NLL: 0.1067
+Epoch 060 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0721 (NLL -0.0737, KL 0.0016) | Val NLL: 0.1084 | Best Val NLL: 0.1067
+Epoch 061 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0734 (NLL -0.0750, KL 0.0017) | Val NLL: 0.1290 | Best Val NLL: 0.1067
+Epoch 062 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0751 (NLL -0.0767, KL 0.0016) | Val NLL: 0.1436 | Best Val NLL: 0.1067
+Epoch 063 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0771 (NLL -0.0787, KL 0.0016) | Val NLL: 0.1140 | Best Val NLL: 0.1067
+Epoch 064 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0790 (NLL -0.0806, KL 0.0016) | Val NLL: 0.1222 | Best Val NLL: 0.1067
+Epoch 065 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0810 (NLL -0.0827, KL 0.0017) | Val NLL: 0.1356 | Best Val NLL: 0.1067
+Epoch 066 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0791 (NLL -0.0810, KL 0.0019) | Val NLL: 0.1276 | Best Val NLL: 0.1067
+Epoch 067 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0825 (NLL -0.0842, KL 0.0017) | Val NLL: 0.1018 | Best Val NLL: 0.1018
+Epoch 068 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0837 (NLL -0.0855, KL 0.0018) | Val NLL: 0.1300 | Best Val NLL: 0.1018
+Epoch 069 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0860 (NLL -0.0877, KL 0.0017) | Val NLL: 0.1116 | Best Val NLL: 0.1018
+Epoch 070 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0871 (NLL -0.0888, KL 0.0017) | Val NLL: 0.1234 | Best Val NLL: 0.1018
+Epoch 071 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0889 (NLL -0.0905, KL 0.0017) | Val NLL: 0.1258 | Best Val NLL: 0.1018
+Epoch 072 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0891 (NLL -0.0909, KL 0.0018) | Val NLL: 0.1189 | Best Val NLL: 0.1018
+Epoch 073 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0904 (NLL -0.0921, KL 0.0017) | Val NLL: 0.1151 | Best Val NLL: 0.1018
+Epoch 074 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0922 (NLL -0.0939, KL 0.0017) | Val NLL: 0.1071 | Best Val NLL: 0.1018
+Epoch 075 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0941 (NLL -0.0958, KL 0.0017) | Val NLL: 0.1341 | Best Val NLL: 0.1018
+Epoch 076 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0945 (NLL -0.0963, KL 0.0018) | Val NLL: 0.1101 | Best Val NLL: 0.1018
+Epoch 077 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0961 (NLL -0.0979, KL 0.0018) | Val NLL: 0.1023 | Best Val NLL: 0.1018
+Epoch 078 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0978 (NLL -0.0995, KL 0.0017) | Val NLL: 0.1192 | Best Val NLL: 0.1018
+Epoch 079 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0983 (NLL -0.1000, KL 0.0017) | Val NLL: 0.1268 | Best Val NLL: 0.1018
+Epoch 080 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1008 (NLL -0.1025, KL 0.0016) | Val NLL: 0.1089 | Best Val NLL: 0.1018
+Epoch 081 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0985 (NLL -0.1004, KL 0.0018) | Val NLL: 0.1114 | Best Val NLL: 0.1018
+Epoch 082 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1006 (NLL -0.1024, KL 0.0018) | Val NLL: 0.1293 | Best Val NLL: 0.1018
+Early stopping triggered at epoch 82. Restoring best weights from epoch 67.
+Best checkpoint saved to: experiments/tuning\checkpoints_1\st_dssm-val-seed42-20261011-135203_best.pt
+Predictions saved to: experiments/tuning\run_1\st_dssm-val-seed42-20261011-135203_predictions.npz
+Executing configured evaluation run...
+Loading canonical Phase 3 dataset artifact from: data/processed
+Loading predictions from: experiments/tuning\run_1\st_dssm-val-seed42-20261011-135203_predictions.npz
+Evaluation complete. Run manifest saved and verified at: experiments/tuning\run_1\st_dssm-val-seed42-20261011-135203_manifest.json
+Run 1 Val NLL: 2.118714090084944
+
+--- Tuning Run 3/3 ---
+Params: {'learning_rate': 0.001, 'weight_decay': 1e-05, 'dropout': 0.1}
+Executing ST-DSSM Training Pipeline...
+Random seed set to: 42
+Using compute device: cuda
+Note: Raw graph adjacency is directed; applying canonical symmetrization (W + W.T)/2 for Chebyshev spectral convolution.
+Model capacity: 397058 trainable parameters.
+Gradient accumulation: batch size 64 in micro-batches of 32.
+No unfinished run to resume; starting a new run.
+Beginning training (Max epochs=100, Beta Anneal=20, TF Decay=50)...
+Epoch 001 | beta: 0.05 | TF: 0.98 | Train ELBO: -0.2511 (NLL -0.2555, KL 0.0888) | Val NLL: 3.3575 | Best Val NLL: 3.3575
+Epoch 002 | beta: 0.10 | TF: 0.96 | Train ELBO: -0.4607 (NLL -0.4643, KL 0.0366) | Val NLL: 3.2363 | Best Val NLL: 3.2363
+Epoch 003 | beta: 0.15 | TF: 0.94 | Train ELBO: -0.4863 (NLL -0.4899, KL 0.0241) | Val NLL: 2.9543 | Best Val NLL: 2.9543
+=== tuning resume Mon Oct 12 02:08:51 IST 2026 ===
+Starting Phase 10 Tuning over 3 configurations...
+
+--- Tuning Run 1/3 ---
+Params: {'learning_rate': 0.001, 'weight_decay': 0.0001, 'dropout': 0.1}
+Run 0 already complete: experiments/tuning\run_0\st_dssm-val-seed42-20261011-064600_manifest.json
+Run 0 Val NLL: 2.117987730937178
+
+--- Tuning Run 2/3 ---
+Params: {'learning_rate': 0.0005, 'weight_decay': 1e-05, 'dropout': 0.2}
+Run 1 already complete: experiments/tuning\run_1\st_dssm-val-seed42-20261011-135203_manifest.json
+Run 1 Val NLL: 2.118714090084944
+
+--- Tuning Run 3/3 ---
+Params: {'learning_rate': 0.001, 'weight_decay': 1e-05, 'dropout': 0.1}
+Executing ST-DSSM Training Pipeline...
+Random seed set to: 42
+Using compute device: cuda
+Note: Raw graph adjacency is directed; applying canonical symmetrization (W + W.T)/2 for Chebyshev spectral convolution.
+Model capacity: 397058 trainable parameters.
+Gradient accumulation: batch size 64 in micro-batches of 32.
+Resuming from checkpoint: experiments/tuning\checkpoints_2\st_dssm-val-seed42-20261011-195023_last.pt
+Resumed at epoch 3 with best val NLL: 2.9543298891768224
+Beginning training (Max epochs=100, Beta Anneal=20, TF Decay=50)...
+Epoch 004 | beta: 0.20 | TF: 0.92 | Train ELBO: -0.4936 (NLL -0.4972, KL 0.0180) | Val NLL: 2.3687 | Best Val NLL: 2.3687
+Epoch 005 | beta: 0.25 | TF: 0.90 | Train ELBO: -0.4886 (NLL -0.4917, KL 0.0124) | Val NLL: 2.5985 | Best Val NLL: 2.3687
+Epoch 006 | beta: 0.30 | TF: 0.88 | Train ELBO: -0.4862 (NLL -0.4893, KL 0.0103) | Val NLL: 1.6451 | Best Val NLL: 1.6451
+Epoch 007 | beta: 0.35 | TF: 0.86 | Train ELBO: -0.4793 (NLL -0.4826, KL 0.0094) | Val NLL: 1.7770 | Best Val NLL: 1.6451
+Epoch 008 | beta: 0.40 | TF: 0.84 | Train ELBO: -0.4830 (NLL -0.4858, KL 0.0071) | Val NLL: 1.9223 | Best Val NLL: 1.6451
+Epoch 009 | beta: 0.45 | TF: 0.82 | Train ELBO: -0.4754 (NLL -0.4783, KL 0.0065) | Val NLL: 1.9434 | Best Val NLL: 1.6451
+Epoch 010 | beta: 0.50 | TF: 0.80 | Train ELBO: -0.4676 (NLL -0.4707, KL 0.0062) | Val NLL: 1.7728 | Best Val NLL: 1.6451
+Epoch 011 | beta: 0.55 | TF: 0.78 | Train ELBO: -0.4611 (NLL -0.4641, KL 0.0054) | Val NLL: 1.5462 | Best Val NLL: 1.5462
+Epoch 012 | beta: 0.60 | TF: 0.76 | Train ELBO: -0.4574 (NLL -0.4601, KL 0.0046) | Val NLL: 1.9961 | Best Val NLL: 1.5462
+Epoch 013 | beta: 0.65 | TF: 0.74 | Train ELBO: -0.4432 (NLL -0.4460, KL 0.0044) | Val NLL: 1.8177 | Best Val NLL: 1.5462
+Epoch 014 | beta: 0.70 | TF: 0.72 | Train ELBO: -0.4351 (NLL -0.4379, KL 0.0041) | Val NLL: 1.0869 | Best Val NLL: 1.0869
+Epoch 015 | beta: 0.75 | TF: 0.70 | Train ELBO: -0.4374 (NLL -0.4397, KL 0.0030) | Val NLL: 1.4167 | Best Val NLL: 1.0869
+Epoch 016 | beta: 0.80 | TF: 0.68 | Train ELBO: -0.4271 (NLL -0.4297, KL 0.0033) | Val NLL: 1.4815 | Best Val NLL: 1.0869
+Epoch 017 | beta: 0.85 | TF: 0.66 | Train ELBO: -0.4210 (NLL -0.4236, KL 0.0031) | Val NLL: 1.1557 | Best Val NLL: 1.0869
+Epoch 018 | beta: 0.90 | TF: 0.64 | Train ELBO: -0.4077 (NLL -0.4103, KL 0.0029) | Val NLL: 1.2465 | Best Val NLL: 1.0869
+Epoch 019 | beta: 0.95 | TF: 0.62 | Train ELBO: -0.3963 (NLL -0.3990, KL 0.0028) | Val NLL: 0.9738 | Best Val NLL: 0.9738
+Epoch 020 | beta: 1.00 | TF: 0.60 | Train ELBO: -0.3942 (NLL -0.3965, KL 0.0023) | Val NLL: 1.2537 | Best Val NLL: 0.9738
+Epoch 021 | beta: 1.00 | TF: 0.58 | Train ELBO: -0.3868 (NLL -0.3893, KL 0.0024) | Val NLL: 0.7670 | Best Val NLL: 0.7670
+Epoch 022 | beta: 1.00 | TF: 0.56 | Train ELBO: -0.3746 (NLL -0.3769, KL 0.0023) | Val NLL: 0.7776 | Best Val NLL: 0.7670
+Epoch 023 | beta: 1.00 | TF: 0.54 | Train ELBO: -0.3676 (NLL -0.3700, KL 0.0024) | Val NLL: 0.8017 | Best Val NLL: 0.7670
+Epoch 024 | beta: 1.00 | TF: 0.52 | Train ELBO: -0.3619 (NLL -0.3641, KL 0.0021) | Val NLL: 0.6836 | Best Val NLL: 0.6836
+Epoch 025 | beta: 1.00 | TF: 0.50 | Train ELBO: -0.3529 (NLL -0.3551, KL 0.0022) | Val NLL: 0.6628 | Best Val NLL: 0.6628
+Epoch 026 | beta: 1.00 | TF: 0.48 | Train ELBO: -0.3362 (NLL -0.3384, KL 0.0022) | Val NLL: 0.4997 | Best Val NLL: 0.4997
+Epoch 027 | beta: 1.00 | TF: 0.46 | Train ELBO: -0.3357 (NLL -0.3379, KL 0.0022) | Val NLL: 0.3188 | Best Val NLL: 0.3188
+Epoch 028 | beta: 1.00 | TF: 0.44 | Train ELBO: -0.3168 (NLL -0.3188, KL 0.0020) | Val NLL: 0.6245 | Best Val NLL: 0.3188
+Epoch 029 | beta: 1.00 | TF: 0.42 | Train ELBO: -0.3148 (NLL -0.3167, KL 0.0019) | Val NLL: 0.4832 | Best Val NLL: 0.3188
+Epoch 030 | beta: 1.00 | TF: 0.40 | Train ELBO: -0.2990 (NLL -0.3011, KL 0.0021) | Val NLL: 0.4679 | Best Val NLL: 0.3188
+Epoch 031 | beta: 1.00 | TF: 0.38 | Train ELBO: -0.2917 (NLL -0.2935, KL 0.0018) | Val NLL: 0.4179 | Best Val NLL: 0.3188
+Epoch 032 | beta: 1.00 | TF: 0.36 | Train ELBO: -0.2864 (NLL -0.2884, KL 0.0020) | Val NLL: 0.4351 | Best Val NLL: 0.3188
+Epoch 033 | beta: 1.00 | TF: 0.34 | Train ELBO: -0.2754 (NLL -0.2774, KL 0.0020) | Val NLL: 0.3741 | Best Val NLL: 0.3188
+Epoch 034 | beta: 1.00 | TF: 0.32 | Train ELBO: -0.2610 (NLL -0.2629, KL 0.0019) | Val NLL: 0.6472 | Best Val NLL: 0.3188
+Epoch 035 | beta: 1.00 | TF: 0.30 | Train ELBO: -0.2462 (NLL -0.2480, KL 0.0018) | Val NLL: 0.3172 | Best Val NLL: 0.3172
+Epoch 036 | beta: 1.00 | TF: 0.28 | Train ELBO: -0.2365 (NLL -0.2383, KL 0.0018) | Val NLL: 0.4709 | Best Val NLL: 0.3172
+Epoch 037 | beta: 1.00 | TF: 0.26 | Train ELBO: -0.2277 (NLL -0.2296, KL 0.0018) | Val NLL: 0.2467 | Best Val NLL: 0.2467
+Epoch 038 | beta: 1.00 | TF: 0.24 | Train ELBO: -0.2201 (NLL -0.2218, KL 0.0016) | Val NLL: 0.2346 | Best Val NLL: 0.2346
+Epoch 039 | beta: 1.00 | TF: 0.22 | Train ELBO: -0.2111 (NLL -0.2130, KL 0.0019) | Val NLL: 0.1942 | Best Val NLL: 0.1942
+Epoch 040 | beta: 1.00 | TF: 0.20 | Train ELBO: -0.1913 (NLL -0.1934, KL 0.0021) | Val NLL: 0.2889 | Best Val NLL: 0.1942
+Epoch 041 | beta: 1.00 | TF: 0.18 | Train ELBO: -0.1840 (NLL -0.1857, KL 0.0017) | Val NLL: 0.2365 | Best Val NLL: 0.1942
+Epoch 042 | beta: 1.00 | TF: 0.16 | Train ELBO: -0.1659 (NLL -0.1677, KL 0.0018) | Val NLL: 0.1655 | Best Val NLL: 0.1655
+Epoch 043 | beta: 1.00 | TF: 0.14 | Train ELBO: -0.1639 (NLL -0.1654, KL 0.0015) | Val NLL: 0.2469 | Best Val NLL: 0.1655
+Epoch 044 | beta: 1.00 | TF: 0.12 | Train ELBO: -0.1476 (NLL -0.1492, KL 0.0017) | Val NLL: 0.2373 | Best Val NLL: 0.1655
+Epoch 045 | beta: 1.00 | TF: 0.10 | Train ELBO: -0.1332 (NLL -0.1348, KL 0.0017) | Val NLL: 0.1832 | Best Val NLL: 0.1655
+Epoch 046 | beta: 1.00 | TF: 0.08 | Train ELBO: -0.1153 (NLL -0.1172, KL 0.0019) | Val NLL: 0.1784 | Best Val NLL: 0.1655
+Epoch 047 | beta: 1.00 | TF: 0.06 | Train ELBO: -0.1111 (NLL -0.1127, KL 0.0016) | Val NLL: 0.1495 | Best Val NLL: 0.1495
+Epoch 048 | beta: 1.00 | TF: 0.04 | Train ELBO: -0.0929 (NLL -0.0946, KL 0.0017) | Val NLL: 0.1605 | Best Val NLL: 0.1495
+Epoch 049 | beta: 1.00 | TF: 0.02 | Train ELBO: -0.0843 (NLL -0.0858, KL 0.0015) | Val NLL: 0.1332 | Best Val NLL: 0.1332
+Epoch 050 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0693 (NLL -0.0711, KL 0.0018) | Val NLL: 0.1326 | Best Val NLL: 0.1326
+Epoch 051 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0742 (NLL -0.0759, KL 0.0017) | Val NLL: 0.1281 | Best Val NLL: 0.1281
+Epoch 052 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0781 (NLL -0.0800, KL 0.0019) | Val NLL: 0.1283 | Best Val NLL: 0.1281
+Epoch 053 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0800 (NLL -0.0820, KL 0.0020) | Val NLL: 0.1292 | Best Val NLL: 0.1281
+Epoch 054 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0860 (NLL -0.0879, KL 0.0018) | Val NLL: 0.1289 | Best Val NLL: 0.1281
+Epoch 055 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0879 (NLL -0.0899, KL 0.0020) | Val NLL: 0.1389 | Best Val NLL: 0.1281
+Epoch 056 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0909 (NLL -0.0927, KL 0.0018) | Val NLL: 0.1255 | Best Val NLL: 0.1255
+Epoch 057 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0924 (NLL -0.0943, KL 0.0019) | Val NLL: 0.1213 | Best Val NLL: 0.1213
+Epoch 058 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0945 (NLL -0.0964, KL 0.0019) | Val NLL: 0.1457 | Best Val NLL: 0.1213
+Epoch 059 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0977 (NLL -0.0995, KL 0.0018) | Val NLL: 0.1445 | Best Val NLL: 0.1213
+Epoch 060 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.0984 (NLL -0.1013, KL 0.0030) | Val NLL: 0.1394 | Best Val NLL: 0.1213
+Epoch 061 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1001 (NLL -0.1020, KL 0.0019) | Val NLL: 0.1411 | Best Val NLL: 0.1213
+Epoch 062 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1062 (NLL -0.1081, KL 0.0019) | Val NLL: 0.1577 | Best Val NLL: 0.1213
+Epoch 063 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1059 (NLL -0.1083, KL 0.0024) | Val NLL: 0.1215 | Best Val NLL: 0.1213
+Epoch 064 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1088 (NLL -0.1107, KL 0.0018) | Val NLL: 0.1660 | Best Val NLL: 0.1213
+Epoch 065 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1071 (NLL -0.1091, KL 0.0020) | Val NLL: 0.1515 | Best Val NLL: 0.1213
+Epoch 066 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1111 (NLL -0.1132, KL 0.0021) | Val NLL: 0.1452 | Best Val NLL: 0.1213
+Epoch 067 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1132 (NLL -0.1151, KL 0.0020) | Val NLL: 0.1210 | Best Val NLL: 0.1210
+Epoch 068 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1152 (NLL -0.1171, KL 0.0019) | Val NLL: 0.1513 | Best Val NLL: 0.1210
+Epoch 069 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1158 (NLL -0.1178, KL 0.0020) | Val NLL: 0.1158 | Best Val NLL: 0.1158
+Epoch 070 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1169 (NLL -0.1205, KL 0.0036) | Val NLL: 0.1468 | Best Val NLL: 0.1158
+Epoch 071 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1201 (NLL -0.1221, KL 0.0020) | Val NLL: 0.1612 | Best Val NLL: 0.1158
+Epoch 072 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1211 (NLL -0.1233, KL 0.0022) | Val NLL: 0.1352 | Best Val NLL: 0.1158
+Epoch 073 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1206 (NLL -0.1226, KL 0.0020) | Val NLL: 0.1326 | Best Val NLL: 0.1158
+Epoch 074 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1240 (NLL -0.1261, KL 0.0021) | Val NLL: 0.1267 | Best Val NLL: 0.1158
+Epoch 075 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1266 (NLL -0.1287, KL 0.0020) | Val NLL: 0.1523 | Best Val NLL: 0.1158
+Epoch 076 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1274 (NLL -0.1296, KL 0.0023) | Val NLL: 0.1283 | Best Val NLL: 0.1158
+Epoch 077 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1279 (NLL -0.1300, KL 0.0021) | Val NLL: 0.1451 | Best Val NLL: 0.1158
+Epoch 078 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1312 (NLL -0.1332, KL 0.0020) | Val NLL: 0.1429 | Best Val NLL: 0.1158
+Epoch 079 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1312 (NLL -0.1333, KL 0.0021) | Val NLL: 0.1765 | Best Val NLL: 0.1158
+Epoch 080 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1278 (NLL -0.1300, KL 0.0023) | Val NLL: 0.1290 | Best Val NLL: 0.1158
+Epoch 081 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1298 (NLL -0.1320, KL 0.0022) | Val NLL: 0.1456 | Best Val NLL: 0.1158
+Epoch 082 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1351 (NLL -0.1371, KL 0.0021) | Val NLL: 0.1804 | Best Val NLL: 0.1158
+Epoch 083 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1370 (NLL -0.1392, KL 0.0022) | Val NLL: 0.1389 | Best Val NLL: 0.1158
+Epoch 084 | beta: 1.00 | TF: 0.00 | Train ELBO: -0.1350 (NLL -0.1371, KL 0.0022) | Val NLL: 0.1534 | Best Val NLL: 0.1158
+Early stopping triggered at epoch 84. Restoring best weights from epoch 69.
+Best checkpoint saved to: experiments/tuning\checkpoints_2\st_dssm-val-seed42-20261011-195023_best.pt
+Predictions saved to: experiments/tuning\run_2\st_dssm-val-seed42-20261011-195023_predictions.npz
+Executing configured evaluation run...
+Loading canonical Phase 3 dataset artifact from: data/processed
+Loading predictions from: experiments/tuning\run_2\st_dssm-val-seed42-20261011-195023_predictions.npz
+Evaluation complete. Run manifest saved and verified at: experiments/tuning\run_2\st_dssm-val-seed42-20261011-195023_manifest.json
+Run 2 Val NLL: 2.1336026910648003
+
+============================================================
+Tuning Complete. Best Val NLL: 2.117987730937178
+Best configuration saved at: experiments/tuning\temp_config_0.yaml
+Locked configuration copied to configs/tuned.yaml
+============================================================
