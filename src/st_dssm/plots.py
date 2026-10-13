@@ -10,6 +10,7 @@ plot_prediction_intervals : time-series with observed speeds, mean, and confiden
 plot_calibration_curve : reliability diagram comparing empirical vs nominal coverage.
 plot_interval_width_vs_horizon : interval width across forecast horizons in minutes.
 plot_metric_comparison : grouped bar chart comparing multiple models or conditions.
+plot_horizon_curves : multi-model horizon curves with across-seed spread bands.
 """
 
 from __future__ import annotations
@@ -385,6 +386,92 @@ def plot_metric_comparison(
     ax.set_xticks(x)
     ax.set_xticklabels(group_labels)
     ax.legend(loc="upper right", framealpha=0.7)
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return output_path
+
+
+# ---------------------------------------------------------------------------
+# Multi-model horizon curves with across-seed spread
+# ---------------------------------------------------------------------------
+
+
+def plot_horizon_curves(
+    horizon_minutes: list[int],
+    series: dict[str, tuple[list[float], list[float]]],
+    metric_name: str,
+    output_path: str,
+    *,
+    unit: str = "mph",
+    title: str | None = None,
+    reference_level: float | None = None,
+    reference_label: str | None = None,
+) -> str:
+    """Compare models across forecast horizons, shading the across-seed spread.
+
+    Parameters
+    ----------
+    horizon_minutes : horizon of each point in minutes (x-axis).
+    series : ``{model_name: (means, stds)}``; ``stds`` may be all-zero for a
+        single-seed or deterministic model, in which case no band is drawn.
+    metric_name : metric label on the y-axis.
+    output_path : file path to save the figure.
+    unit : unit string appended to the y-axis label.
+    title : optional title.
+    reference_level : optional horizontal reference line (e.g. nominal coverage).
+    reference_label : legend label for the reference line.
+
+    Returns
+    -------
+    The output file path.
+    """
+    if not series:
+        raise ValueError("series must not be empty.")
+
+    n = len(horizon_minutes)
+    for name, (means, stds) in series.items():
+        if len(means) != n or len(stds) != n:
+            raise ValueError(
+                f"Model '{name}' has {len(means)} means and {len(stds)} stds but expected {n} of each."
+            )
+
+    _apply_style()
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    x = np.asarray(horizon_minutes, dtype=float)
+    for i, (name, (means, stds)) in enumerate(series.items()):
+        color = _PALETTE[i % len(_PALETTE)]
+        mean_arr = np.asarray(means, dtype=float)
+        std_arr = np.asarray(stds, dtype=float)
+        ax.plot(x, mean_arr, marker="o", markersize=4, color=color, label=name, linewidth=1.8)
+        if np.any(std_arr > 0):
+            ax.fill_between(
+                x,
+                mean_arr - std_arr,
+                mean_arr + std_arr,
+                color=color,
+                alpha=0.18,
+                linewidth=0,
+            )
+
+    if reference_level is not None:
+        ax.axhline(
+            reference_level,
+            color="#e0e0e0",
+            linestyle="--",
+            linewidth=1.2,
+            alpha=0.8,
+            label=reference_label or f"reference = {reference_level:g}",
+        )
+
+    ylabel = metric_name if not unit else f"{metric_name} ({unit})"
+    ax.set_xlabel("Forecast horizon (minutes)")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title or f"{metric_name} across forecast horizons", fontsize=14, fontweight="bold")
+    ax.set_xticks(x)
+    ax.legend(loc="best", framealpha=0.7)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     fig.savefig(output_path, dpi=150, bbox_inches="tight")

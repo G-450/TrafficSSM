@@ -8,6 +8,8 @@ a validated RunManifest, and rendering headless evaluation plots.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import subprocess
 import sys
@@ -17,6 +19,7 @@ from typing import Any
 import numpy as np
 import yaml
 
+from st_dssm.data import compute_md5
 from st_dssm.io import load_and_validate_artifact
 from st_dssm.metrics import (
     MetricError,
@@ -60,6 +63,51 @@ def _get_git_commit() -> tuple[str, bool]:
         return commit, len(status) > 0
     except Exception:  # noqa: BLE001
         return "unknown", False
+
+
+def _package_versions() -> dict[str, str]:
+    """Record versions of the packages that determine numerical results."""
+    import platform
+
+    versions = {"python": platform.python_version(), "numpy": np.__version__}
+    for name in ("torch", "matplotlib", "scipy"):
+        try:
+            versions[name] = __import__(name).__version__
+        except Exception:  # noqa: BLE001, S110 - an absent optional package is not an error
+            pass
+    return versions
+
+
+def _config_hash(config: dict[str, Any]) -> str:
+    """Deterministic SHA256 over the resolved configuration."""
+    canonical = json.dumps(config, sort_keys=True, default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _artifact_checksums(artifact_dir: str, split: str, metadata: dict[str, Any]) -> tuple[str, str]:
+    """Tie a result to the exact data artifact that produced it.
+
+    Returns ``(dataset_manifest_checksum, split_artifact_checksum)``: the MD5 of the
+    Phase 3 metadata file, and a digest over the per-array checksums that this
+    evaluation actually read (the split's tensors plus the scaler). Either is an
+    empty string when the artifact does not record it.
+    """
+    dataset_checksum = ""
+    metadata_path = os.path.join(artifact_dir, "processed_metadata.json")
+    if os.path.exists(metadata_path):
+        dataset_checksum = compute_md5(metadata_path)
+
+    arrays_meta = metadata.get("arrays") or {}
+    relevant = [
+        f"{name}={arrays_meta[name]['checksum']}"
+        for name in sorted(arrays_meta)
+        if name.startswith((f"{split}_", "scaler_"))
+        if isinstance(arrays_meta.get(name), dict) and "checksum" in arrays_meta[name]
+    ]
+    split_checksum = (
+        hashlib.sha256("|".join(relevant).encode("utf-8")).hexdigest() if relevant else ""
+    )
+    return dataset_checksum, split_checksum
 
 
 def _populate_manifest_metrics(
@@ -125,6 +173,33 @@ def _populate_manifest_metrics(
                 )
 
 
+def provenance_from_checkpoint(checkpoint_path: str) -> dict[str, Any]:
+    """Read training provenance out of a ``_best.pt`` checkpoint.
+
+    Lets an evaluation be re-run from saved predictions with the same provenance
+    the original training run recorded, without retraining. ``trainable_parameters``
+    is the number of floating-point entries in the saved ``state_dict``, which is
+    the trainable count for models that register no non-trainable buffers; pass
+    ``--trainable-parameters`` to override it.
+    """
+    import torch  # imported lazily: evaluation itself needs no deep-learning stack
+
+    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    state_dict = payload.get("model_state_dict", {})
+    cfg = payload.get("config") or {}
+
+    provenance: dict[str, Any] = {
+        "checkpoint_path": checkpoint_path,
+        "best_epoch": int(payload.get("epoch", 0)),
+        "trainable_parameters": int(
+            sum(v.numel() for v in state_dict.values() if v.is_floating_point())
+        ),
+    }
+    if cfg.get("seed") is not None:
+        provenance["training_seed"] = int(cfg["seed"])
+    return provenance
+
+
 def run_synthetic_smoke(
     output_dir: str,
     save_plots: bool = True,
@@ -174,6 +249,7 @@ def run_synthetic_smoke(
         forecast_horizon=H,
         git_commit=git_commit,
         git_dirty=git_dirty,
+        package_versions=_package_versions(),
         start_time_utc=datetime.now(timezone.utc).isoformat(),
     )
 
@@ -239,10 +315,54 @@ def run_synthetic_smoke(
     return manifest, manifest_path
 
 
+#: RunManifest fields a caller may fill in through ``run_evaluation(provenance=...)``.
+#: Restricted deliberately: a typo must fail loudly rather than silently leave a
+#: manifest field at its default.
+PROVENANCE_FIELDS = frozenset(
+    {
+        "training_seed",
+        "checkpoint_path",
+        "selection_metric",
+        "best_epoch",
+        "total_epochs",
+        "trainable_parameters",
+        "distribution_family",
+        "mask_seed",
+        "mask_condition",
+        "mask_sensor_ids",
+        "mask_checksum",
+    }
+)
+
+
+def _apply_provenance(manifest: RunManifest, provenance: dict[str, Any] | None) -> None:
+    """Fill training-provenance fields on ``manifest`` before it is serialized.
+
+    Callers that train a model (``st-dssm-train``, ``st-dssm-baseline``) know the
+    seed, checkpoint and epoch counts that produced the predictions. These must be
+    applied before the manifest is written, so that the single atomic save records
+    a complete run: a manifest saved first and patched afterwards is left without
+    provenance if the process dies in between (e.g. during plot rendering).
+    """
+    if not provenance:
+        return
+
+    unknown = sorted(set(provenance) - PROVENANCE_FIELDS)
+    if unknown:
+        raise MetricError(
+            f"Unknown provenance field(s) {unknown}; allowed fields: {sorted(PROVENANCE_FIELDS)}"
+        )
+
+    for key, value in provenance.items():
+        if value is not None:
+            setattr(manifest, key, value)
+
+
 def run_evaluation(
     config: dict[str, Any],
     output_dir: str | None = None,
     save_plots: bool = True,
+    provenance: dict[str, Any] | None = None,
 ) -> tuple[RunManifest, str]:
     """Execute evaluation on canonical Phase 3 data artifacts and model predictions."""
     print("Executing configured evaluation run...")
@@ -357,6 +477,13 @@ def run_evaluation(
     run_id = config.get("run_id") or f"eval-{model_name}-{split}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
 
     S, H, N = raw_true.shape[:3]
+
+    # Audit trail: a reviewer must be able to tie this result to the exact data,
+    # configuration and package versions that produced it.
+    dataset_checksum, split_checksum = (
+        _artifact_checksums(artifact_dir, split, metadata) if artifact_dir else ("", "")
+    )
+
     manifest = RunManifest(
         run_id=run_id,
         model_name=model_name,
@@ -366,14 +493,21 @@ def run_evaluation(
         forecast_horizon=H,
         git_commit=git_commit,
         git_dirty=git_dirty,
+        config_hash=_config_hash(config),
         resolved_config=config,
+        package_versions=_package_versions(),
+        dataset_manifest_checksum=dataset_checksum,
+        split_artifact_checksum=split_checksum,
         start_time_utc=datetime.now(timezone.utc).isoformat(),
     )
 
     _populate_manifest_metrics(manifest, overall, per_horizon)
+    _apply_provenance(manifest, provenance)
     manifest.mark_complete()
 
-    # Save manifest atomically
+    # Save manifest atomically. The manifest is the scientific record and is
+    # complete at this point; plot rendering below is a presentation step that
+    # must not be able to invalidate it.
     manifest_path = os.path.join(out_dir, f"{run_id}_manifest.json")
     save_run_manifest(manifest, manifest_path, overwrite=True, atomic=True)
 
@@ -406,15 +540,27 @@ def run_evaluation(
                 sensor_idx=sid,
                 unit="mph",
             )
+            del lo_raw, hi_raw
 
-            cal_results = calibration_curve(raw_true, raw_pred, raw_sigma, mask=mask)
-            nom_levels = list(cal_results.keys())
-            emp_covs = [float(cal_results[lvl]["picp"]) for lvl in nom_levels]
-            plot_calibration_curve(
-                nom_levels,
-                emp_covs,
-                os.path.join(plots_dir, f"{run_id}_calibration.png"),
-            )
+            # The calibration sweep allocates interval bounds over the full
+            # prediction array once per nominal level, so it is the most
+            # memory-hungry step of a full-split evaluation. Keep it last and
+            # report a failure here as a warning: the manifest is already saved,
+            # and the caller still needs to finish its own cleanup.
+            cal_path = os.path.join(plots_dir, f"{run_id}_calibration.png")
+            try:
+                cal_results = calibration_curve(raw_true, raw_pred, raw_sigma, mask=mask)
+                nom_levels = list(cal_results.keys())
+                emp_covs = [float(cal_results[lvl]["picp"]) for lvl in nom_levels]
+                plot_calibration_curve(nom_levels, emp_covs, cal_path)
+            except (MemoryError, MetricError) as exc:
+                print(
+                    f"Warning: calibration curve not rendered ({type(exc).__name__}: {exc}). "
+                    f"Re-render it with: st-dssm-evaluate --artifact-dir {artifact_dir} "
+                    f"--predictions-path {predictions_path} --split {split} --output-dir {out_dir}",
+                    file=sys.stderr,
+                    flush=True,
+                )
 
     # Validate saved manifest
     loaded = load_run_manifest(manifest_path)
@@ -483,8 +629,46 @@ def main(argv: list[str] | None = None) -> int:
         action="store_false",
         help="Disable evaluation plot generation.",
     )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Run identifier for the manifest. Pass the original run id to regenerate "
+        "a run's manifest in place from its saved predictions.",
+    )
+    parser.add_argument(
+        "--model-name",
+        type=str,
+        default=None,
+        help="Model name recorded in the manifest (e.g. 'st_dssm').",
+    )
+    parser.add_argument(
+        "--provenance-checkpoint",
+        type=str,
+        default=None,
+        help="Read training provenance (seed, best epoch, parameter count) from this "
+        "checkpoint. Individual provenance flags below override it.",
+    )
+    parser.add_argument("--training-seed", type=int, default=None, help="Training seed to record.")
+    parser.add_argument("--selection-metric", type=str, default=None, help="Checkpoint selection metric (e.g. 'val_nll').")
+    parser.add_argument("--best-epoch", type=int, default=None, help="Epoch of the selected checkpoint.")
+    parser.add_argument("--total-epochs", type=int, default=None, help="Number of epochs the run executed.")
+    parser.add_argument("--trainable-parameters", type=int, default=None, help="Trainable parameter count to record.")
 
     args = parser.parse_args(argv)
+
+    provenance: dict[str, Any] = {}
+    if args.provenance_checkpoint:
+        provenance.update(provenance_from_checkpoint(args.provenance_checkpoint))
+    for key, value in (
+        ("training_seed", args.training_seed),
+        ("selection_metric", args.selection_metric),
+        ("best_epoch", args.best_epoch),
+        ("total_epochs", args.total_epochs),
+        ("trainable_parameters", args.trainable_parameters),
+    ):
+        if value is not None:
+            provenance[key] = value
 
     try:
         if args.synthetic_smoke:
@@ -506,10 +690,15 @@ def main(argv: list[str] | None = None) -> int:
                     cadence_minutes=args.cadence_minutes,
                 )
             else:
+                if args.run_id:
+                    config["run_id"] = args.run_id
+                if args.model_name:
+                    config["model_name"] = args.model_name
                 run_evaluation(
                     config=config,
                     output_dir=args.output_dir,
                     save_plots=args.save_plots,
+                    provenance=provenance,
                 )
             return 0
 
@@ -521,7 +710,16 @@ def main(argv: list[str] | None = None) -> int:
                 "cadence_minutes": args.cadence_minutes,
                 "output_dir": args.output_dir,
             }
-            run_evaluation(config=config, output_dir=args.output_dir, save_plots=args.save_plots)
+            if args.run_id:
+                config["run_id"] = args.run_id
+            if args.model_name:
+                config["model_name"] = args.model_name
+            run_evaluation(
+                config=config,
+                output_dir=args.output_dir,
+                save_plots=args.save_plots,
+                provenance=provenance,
+            )
             return 0
 
         # If no arguments given, run synthetic smoke
