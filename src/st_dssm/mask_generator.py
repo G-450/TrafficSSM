@@ -282,6 +282,14 @@ def resolve_mask_generator(
         return generator
 
     if ratio is None or float(ratio) == 0.0:
+        if ratio is None and masking_cfg.get("seed") is not None:
+            # A seed alone does not say how much to withhold. Silently treating
+            # this as the normal condition would report a masked run as a 0%
+            # one, so it fails instead.
+            raise ValueError(
+                "masking.seed was given without masking.missing_ratio; pass the "
+                "ratio (e.g. 0.2), or a mask_path, or neither for the 0% condition"
+            )
         return None
 
     if seed is None:

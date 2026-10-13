@@ -227,6 +227,12 @@ def test_mask_seed_defaults_to_the_run_seed() -> None:
     assert generator.seed == RUN_SEED
 
 
+def test_a_seed_without_a_ratio_is_rejected() -> None:
+    """Otherwise a masked run would be silently reported as the 0% condition."""
+    with pytest.raises(ValueError, match="without masking.missing_ratio"):
+        resolve_mask_generator({"seed": 2026}, N_SENSORS, None)
+
+
 def test_a_condition_without_a_seed_is_rejected() -> None:
     with pytest.raises(ValueError, match="masking.seed is required"):
         resolve_mask_generator({"missing_ratio": MASK_RATIO}, N_SENSORS, None)
