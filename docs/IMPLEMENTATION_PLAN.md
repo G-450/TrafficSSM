@@ -22,8 +22,8 @@ The project restarted its implementation on 2026-08-13.
 | 7 | Probabilistic forecast head | ✅ Done |
 | 8 | DSSM integration | ✅ Done |
 | 9 | Training operations | ✅ Done |
-| 10 | Normal-condition study | 🔲 Next |
-| 11 | Missingness mechanism | 🔲 In progress |
+| 10 | Normal-condition study | ✅ Done |
+| 11 | Missingness mechanism | 🔲 Next |
 | 12 | Robustness study | 🔲 Pending |
 | 13 | Calibration and robustness review | 🔲 Pending |
 | 14 | Final release | 🔲 Pending |
@@ -154,10 +154,11 @@ TrafficSSM/
     ├── test_dssm.py                  # Phase 8 — GaussianDSSM (30 tests)
     ├── test_train_cli.py             # Phase 9 — st-dssm-train CLI (9 tests)
     ├── test_mask_generator.py        # Phase 11 — mask generation (15 tests)
-    └── test_phase10_scripts.py       # Phase 10 — tuning/seed-run scripts resume (2 tests)
+    ├── test_phase10_scripts.py       # Phase 10 — tuning/seed-run scripts resume (2 tests)
+    └── test_phase10_aggregate.py     # Phase 10 — locked tables + comparability (7 tests)
 ```
 
-**Total tests:** 242 collected · 242 pass when `data/processed` is present
+**Total tests:** 258 collected · 258 pass when `data/processed` is present
 (without it, `test_encoder_cli_unrecognized_graph_and_missing_metadata` is skipped)
 
 ---
@@ -174,6 +175,10 @@ TrafficSSM/
 | `st-dssm-encoder` | `cli.encoder` | 6 | Verify encoder on canonical dataset |
 | `st-dssm-dssm` | `cli.dssm` | 8 | End-to-end DSSM synthetic smoke test |
 | `st-dssm-train` | `cli.train` | 9 | Configuration-driven training loop |
+
+Phase 10 is driven by scripts rather than console entry points:
+`scripts/tune_phase10.py` (validation-only tuning), `scripts/run_phase10.py`
+(per-seed test runs) and `scripts/aggregate_phase10.py` (lock and verify the tables).
 
 ---
 
@@ -303,23 +308,34 @@ Planned deliverables (completed via PR #11):
 
 ---
 
-### 🔲 Phase 10 — Normal-condition study (next)
+### ✅ Phase 10 — Normal-condition study
 
-- Tune ST-DSSM hyperparameters against validation NLL only, with predefined search record
-- Lock configuration, evaluate test set once per seed (2026, 2027, 2028)
-- Compare with Phase 5 deterministic baseline at 0% masking
-- Produce locked test tables and figures in `experiments/normal/`
+- Tuned ST-DSSM against validation NLL only (`scripts/tune_phase10.py`, 3 grid points);
+  the selected configuration is locked in `configs/tuned.yaml` and the search is recorded
+  in `experiments/tuning/`
+- Evaluated the test set once per canonical seed (2026, 2027, 2028) with
+  `scripts/run_phase10.py`; the Phase 5 baselines were rerun under the same protocol
+- Locked tables, figures and machine-readable aggregate written by
+  `scripts/aggregate_phase10.py` to `experiments/normal/phase10_results.md`,
+  `phase10_results.json` and `experiments/normal/plots/phase10_*.png`
 
-*Note: `scripts/tune_phase10.py` and `scripts/run_phase10.py` are scaffolded but have not been executed end-to-end.*
+**Gate met:** `python scripts/aggregate_phase10.py --check` re-derives the locked
+aggregate from the seven run manifests and fails on any drift. Each manifest records
+the data checksums, resolved config hash, package versions, seed, checkpoint and epoch
+counts behind its result.
 
-**Gate:** Normal-condition tables and figures are reproducible from manifests.
+**Headline result:** ST-DSSM delivers calibrated uncertainty (test NLL 2.117 ± 0.006,
+PICP 0.961 ± 0.001 against a 95% nominal interval) at a cost in point accuracy relative
+to the deterministic ST-GCN (MAE 1.936 ± 0.011 vs 1.777 ± 0.004 mph). Both beat
+historical persistence (2.169 mph). See `experiments/normal/phase10_results.md`.
 
 ---
 
-### 🔲 Phases 11–13 — Missingness and scientific analysis
+### 🔲 Phases 11–13 — Missingness and scientific analysis (Phase 11 next)
 
-- **Phase 11:** `st_dssm.mask_generator` — node-level masks with published seeds and IDs;
-  prevent masked ground truth from reaching inputs.
+- **Phase 11:** `st_dssm.mask_generator` is implemented and tested (reproducible
+  node-level masks with published seeds and IDs); what remains is wiring masks through
+  training and evaluation and proving no masked ground truth reaches the inputs.
 - **Phase 12:** Execute 10/20/30% conditions using same masks across models;
   evaluate all/masked/unmasked targets; ablations isolating graph context, state-space
   inference, and masking representation.

@@ -135,3 +135,167 @@ def test_git_dirty_ignores_untracked_files(tmp_path, monkeypatch) -> None:
     (tmp_path / "code.py").write_text("x = 2\n", encoding="utf-8")
     _, dirty = _get_git_commit()
     assert dirty is True
+
+
+class TestEvaluationProvenance:
+    """A saved manifest must be a complete record the first time it is written.
+
+    The manifest used to be saved and then patched with training provenance, so a
+    run killed in between (e.g. during plot rendering) left a manifest reporting
+    seed ``None`` and ``0`` epochs for a result that was otherwise valid.
+    """
+
+    @staticmethod
+    def _artifact_and_predictions(tmp_path):
+        artifact_dir = str(tmp_path / "artifact")
+        S, H, N = 6, 12, 3
+        arrays = {
+            "test_X": np.zeros((S, 12, N, 1), dtype=np.float32),
+            "test_X_mask": np.ones((S, 12, N, 1), dtype=np.float32),
+            "test_Y": np.ones((S, H, N, 1), dtype=np.float32) * 0.5,
+            "test_Y_mask": np.ones((S, H, N, 1), dtype=np.float32),
+        }
+        metadata = {
+            "schema_version": "1.0",
+            "scaler": {"mean": [50.0, 55.0, 60.0], "std": [5.0, 6.0, 7.0]},
+            "sensor_ids": ["s1", "s2", "s3"],
+            "splits": {"train": 60, "val": 12, "test": S},
+        }
+        save_processed_artifact(artifact_dir, arrays, metadata)
+
+        pred_path = str(tmp_path / "preds.npz")
+        np.savez_compressed(
+            pred_path,
+            mu=np.ones((S, H, N, 1), dtype=np.float32) * 0.4,
+            sigma=np.ones((S, H, N, 1), dtype=np.float32) * 0.2,
+        )
+        return artifact_dir, pred_path
+
+    def test_provenance_is_recorded_in_the_first_manifest_write(self, tmp_path):
+        from st_dssm.cli.evaluate import run_evaluation
+
+        artifact_dir, pred_path = self._artifact_and_predictions(tmp_path)
+        out_dir = str(tmp_path / "results")
+        config = {
+            "run_id": "st_dssm-test-seed2026-fixture",
+            "model_name": "st_dssm",
+            "artifact_dir": artifact_dir,
+            "predictions_path": pred_path,
+            "split": "test",
+            "output_dir": out_dir,
+        }
+        provenance = {
+            "training_seed": 2026,
+            "checkpoint_path": "ckpt/best.pt",
+            "selection_metric": "val_nll",
+            "best_epoch": 58,
+            "total_epochs": 60,
+            "trainable_parameters": 397058,
+        }
+
+        # save_plots=False proves the provenance is already in the file that the
+        # evaluator writes, independently of anything that happens afterwards.
+        _manifest, manifest_path = run_evaluation(
+            config, output_dir=out_dir, save_plots=False, provenance=provenance
+        )
+
+        loaded = load_run_manifest(manifest_path)
+        assert loaded.training_seed == 2026
+        assert loaded.checkpoint_path == "ckpt/best.pt"
+        assert loaded.selection_metric == "val_nll"
+        assert loaded.best_epoch == 58
+        assert loaded.total_epochs == 60
+        assert loaded.trainable_parameters == 397058
+        assert loaded.run_status == "complete"
+
+    def test_unknown_provenance_field_is_rejected(self, tmp_path):
+        import pytest
+
+        from st_dssm.cli.evaluate import run_evaluation
+        from st_dssm.metrics import MetricError
+
+        artifact_dir, pred_path = self._artifact_and_predictions(tmp_path)
+        config = {
+            "run_id": "r",
+            "model_name": "st_dssm",
+            "artifact_dir": artifact_dir,
+            "predictions_path": pred_path,
+            "split": "test",
+        }
+        with pytest.raises(MetricError, match="Unknown provenance field"):
+            run_evaluation(
+                config,
+                output_dir=str(tmp_path / "out"),
+                save_plots=False,
+                provenance={"traning_seed": 2026},
+            )
+
+    def test_manifest_records_data_config_and_package_provenance(self, tmp_path):
+        from st_dssm.cli.evaluate import run_evaluation
+
+        artifact_dir, pred_path = self._artifact_and_predictions(tmp_path)
+        out_dir = str(tmp_path / "results")
+        config = {
+            "run_id": "run-prov",
+            "model_name": "st_dssm",
+            "artifact_dir": artifact_dir,
+            "predictions_path": pred_path,
+            "split": "test",
+        }
+        _manifest, manifest_path = run_evaluation(config, output_dir=out_dir, save_plots=False)
+
+        loaded = load_run_manifest(manifest_path)
+        assert loaded.config_hash != ""
+        assert loaded.dataset_manifest_checksum != ""
+        assert loaded.split_artifact_checksum != ""
+        assert "numpy" in loaded.package_versions
+        assert "python" in loaded.package_versions
+
+    def test_provenance_can_be_read_from_a_checkpoint(self, tmp_path):
+        from torch import nn
+
+        from st_dssm.cli.evaluate import provenance_from_checkpoint
+        from st_dssm.training import save_checkpoint
+
+        model = nn.Linear(4, 3)  # 4*3 weights + 3 biases = 15 parameters
+        ckpt = str(tmp_path / "model_best.pt")
+        save_checkpoint(ckpt, model, epoch=42, val_loss=0.1234, config={"seed": 2027})
+
+        provenance = provenance_from_checkpoint(ckpt)
+        assert provenance["training_seed"] == 2027
+        assert provenance["best_epoch"] == 42
+        assert provenance["trainable_parameters"] == 15
+        assert provenance["checkpoint_path"] == ckpt
+
+    def test_cli_regenerates_a_manifest_in_place_with_provenance(self, tmp_path):
+        artifact_dir, pred_path = self._artifact_and_predictions(tmp_path)
+        out_dir = str(tmp_path / "results")
+
+        exit_code = main(
+            [
+                "--artifact-dir", artifact_dir,
+                "--predictions-path", pred_path,
+                "--split", "test",
+                "--output-dir", out_dir,
+                "--run-id", "st_dssm-test-seed2028-original",
+                "--model-name", "st_dssm",
+                "--training-seed", "2028",
+                "--selection-metric", "val_nll",
+                "--best-epoch", "60",
+                "--total-epochs", "60",
+                "--trainable-parameters", "397058",
+                "--no-plots",
+            ]
+        )
+        assert exit_code == 0
+
+        # The run id is preserved, so the original run's manifest is replaced
+        # rather than a second manifest being created alongside it.
+        manifest_path = os.path.join(out_dir, "st_dssm-test-seed2028-original_manifest.json")
+        loaded = load_run_manifest(manifest_path)
+        assert loaded.run_id == "st_dssm-test-seed2028-original"
+        assert loaded.model_name == "st_dssm"
+        assert loaded.training_seed == 2028
+        assert loaded.best_epoch == 60
+        assert loaded.total_epochs == 60
+        assert loaded.trainable_parameters == 397058

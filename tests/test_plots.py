@@ -14,6 +14,7 @@ import pytest
 
 from st_dssm.plots import (
     plot_calibration_curve,
+    plot_horizon_curves,
     plot_horizon_metrics,
     plot_interval_width_vs_horizon,
     plot_metric_comparison,
@@ -93,6 +94,53 @@ class TestPlots:
         assert os.path.exists(out)
         assert os.path.getsize(out) > 0
         assert len(plt.get_fignums()) == 0
+
+    def test_plot_horizon_curves_creates_file(self, tmp_path):
+        out = str(tmp_path / "horizon_curves.png")
+        minutes = [5 * h for h in range(1, 13)]
+        series = {
+            "Deterministic ST-GCN": ([1.4 + 0.1 * i for i in range(12)], [0.0] * 12),
+            "ST-DSSM": ([1.5 + 0.1 * i for i in range(12)], [0.01 * i for i in range(12)]),
+        }
+
+        result = plot_horizon_curves(
+            minutes,
+            series,
+            "MAE",
+            out,
+            unit="mph",
+            title="MAE by horizon",
+        )
+        assert result == out
+        assert os.path.exists(out)
+        assert os.path.getsize(out) > 0
+        assert len(plt.get_fignums()) == 0
+
+    def test_plot_horizon_curves_draws_reference_level(self, tmp_path):
+        out = str(tmp_path / "picp_curves.png")
+        minutes = [5, 10, 15]
+        series = {"ST-DSSM": ([0.96, 0.96, 0.97], [0.001, 0.001, 0.002])}
+
+        plot_horizon_curves(
+            minutes,
+            series,
+            "PICP",
+            out,
+            unit="ratio",
+            reference_level=0.95,
+            reference_label="nominal 95%",
+        )
+        assert os.path.getsize(out) > 0
+        assert len(plt.get_fignums()) == 0
+
+    def test_plot_horizon_curves_rejects_mismatched_series(self, tmp_path):
+        out = str(tmp_path / "bad_curves.png")
+        with pytest.raises(ValueError, match="expected 3"):
+            plot_horizon_curves([5, 10, 15], {"m": ([1.0, 2.0], [0.0, 0.0])}, "MAE", out)
+
+    def test_plot_horizon_curves_rejects_empty_series(self, tmp_path):
+        with pytest.raises(ValueError, match="must not be empty"):
+            plot_horizon_curves([5], {}, "MAE", str(tmp_path / "empty.png"))
 
     def test_length_mismatch_raises(self, tmp_path):
         out = str(tmp_path / "bad.png")

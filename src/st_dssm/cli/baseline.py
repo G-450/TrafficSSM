@@ -33,7 +33,6 @@ from st_dssm.graph import (
     symmetrize_adjacency,
 )
 from st_dssm.io import load_and_validate_artifact
-from st_dssm.result_schema import save_run_manifest
 from st_dssm.training import (
     EarlyStopping,
     MaskedMAELoss,
@@ -341,17 +340,25 @@ def train_and_eval_st_gcn(
         "output_dir": output_dir,
     }
 
-    manifest, manifest_path = run_evaluation(eval_config, output_dir=output_dir, save_plots=save_plots)
-
     # Record training provenance so each result traces back to its run settings.
-    manifest.training_seed = seed
-    manifest.checkpoint_path = best_ckpt_path
-    manifest.selection_metric = "val_mae"
-    manifest.best_epoch = int(early_stopping.best_epoch or 0)
-    manifest.total_epochs = last_epoch
-    manifest.trainable_parameters = int(capacity_report["trainable_parameters"])
-    manifest.resolved_config["training_config"] = config
-    save_run_manifest(manifest, manifest_path, overwrite=True, atomic=True)
+    # This is passed into the evaluator rather than patched in afterwards, so the
+    # manifest is complete the first and only time it is written.
+    eval_config["training_config"] = config
+    provenance = {
+        "training_seed": seed,
+        "checkpoint_path": best_ckpt_path,
+        "selection_metric": "val_mae",
+        "best_epoch": int(early_stopping.best_epoch or 0),
+        "total_epochs": last_epoch,
+        "trainable_parameters": int(capacity_report["trainable_parameters"]),
+    }
+
+    manifest, manifest_path = run_evaluation(
+        eval_config,
+        output_dir=output_dir,
+        save_plots=save_plots,
+        provenance=provenance,
+    )
 
     # The run is complete; drop its resume state so "--resume auto" won't pick it up.
     if os.path.exists(last_state_path):
