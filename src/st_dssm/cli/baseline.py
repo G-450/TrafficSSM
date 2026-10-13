@@ -33,6 +33,7 @@ from st_dssm.graph import (
     symmetrize_adjacency,
 )
 from st_dssm.io import load_and_validate_artifact
+from st_dssm.mask_generator import MaskGenerator, resolve_mask_generator
 from st_dssm.training import (
     EarlyStopping,
     MaskedMAELoss,
@@ -42,6 +43,44 @@ from st_dssm.training import (
     set_seed,
 )
 from st_dssm.validator import validate_graph
+
+
+def _resolve_condition(
+    config: dict[str, Any], num_nodes: int, seed: int | None
+) -> tuple[MaskGenerator | None, bool, str]:
+    """Resolve the run's masking condition and report it.
+
+    Returns ``(generator, apply_to_training, run_id_tag)``. ``generator`` is None
+    for the normal (0%) condition, in which case nothing about the run changes.
+    """
+    masking_cfg = config.get("masking") or {}
+    generator = resolve_mask_generator(masking_cfg, num_nodes, seed)
+    apply_to_training = bool(masking_cfg.get("apply_to_training", False))
+    if generator is None:
+        return None, apply_to_training, ""
+
+    withheld = int((~generator.node_mask).sum())
+    print(
+        f"Experimental mask {generator.mask_id}: {withheld} of {generator.num_nodes} "
+        f"sensors withheld from model inputs (checksum {generator.checksum[:12]}).",
+        flush=True,
+    )
+    return generator, apply_to_training, f"-{generator.mask_id}"
+
+
+def _mask_eval_config(
+    generator: MaskGenerator | None, apply_to_training: bool
+) -> dict[str, Any]:
+    """The masking block the evaluator needs to report target groups."""
+    if generator is None:
+        return {}
+    return {
+        "masking": {
+            "missing_ratio": generator.missing_ratio,
+            "seed": generator.seed,
+            "apply_to_training": apply_to_training,
+        }
+    }
 
 
 def run_persistence_baseline(
@@ -58,13 +97,30 @@ def run_persistence_baseline(
     arrays, _metadata = load_and_validate_artifact(artifact_dir)
 
     x_key = f"{split}_X" if f"{split}_X" in arrays else f"x_{split}"
+    x_mask_key = f"{split}_X_mask" if f"{split}_X_mask" in arrays else f"x_{split}_mask"
     x_data = arrays[x_key]  # [S, L, N, 1]
+
+    # Experimental node masking (Phase 11). Persistence reads the last observed
+    # input step, so a withheld sensor's input is 0.0 after normalization and the
+    # baseline predicts its training mean. That is the honest consequence of the
+    # condition and is not special-cased.
+    mask_generator, mask_training, condition_tag = _resolve_condition(
+        config, x_data.shape[2], config.get("seed")
+    )
+    if mask_generator is not None:
+        x_mask = arrays.get(x_mask_key)
+        if x_mask is None:
+            raise KeyError(
+                f"Input mask '{x_mask_key}' not found in artifact; a masked condition "
+                "needs the native observation mask."
+            )
+        x_data, _ = mask_generator.apply_mask(x_data, x_mask, copy=False)
 
     persistence = HistoricalPersistence(forecast_horizon=forecast_horizon)
     y_pred = persistence.predict(x_data, forecast_horizon=forecast_horizon)
 
     os.makedirs(output_dir, exist_ok=True)
-    run_id = f"baseline-persistence-{split}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    run_id = f"baseline-persistence-{split}{condition_tag}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
     predictions_path = os.path.join(output_dir, f"{run_id}_predictions.npz")
 
     np.savez_compressed(predictions_path, predictions=y_pred)
@@ -80,6 +136,8 @@ def run_persistence_baseline(
         "split": split,
         "cadence_minutes": int(config.get("cadence_minutes", 5)),
         "output_dir": output_dir,
+        "seed": config.get("seed"),
+        **_mask_eval_config(mask_generator, mask_training),
     }
 
     manifest, manifest_path = run_evaluation(eval_config, output_dir=output_dir, save_plots=save_plots)
@@ -92,13 +150,22 @@ def train_and_eval_st_gcn(
     checkpoint_dir: str = "artifacts/checkpoints",
     save_plots: bool = True,
     resume_path: str | None = None,
+    predict_from: str | None = None,
 ) -> dict[str, Any]:
     """Train and evaluate the deterministic ST-GCN baseline.
 
     ``resume_path`` may be a training state saved by an interrupted run, or
     "auto" to continue the newest unfinished run for this split and seed.
+    ``predict_from`` evaluates an existing ``_best.pt`` checkpoint instead of
+    training, which is how a missingness condition is run (ADR-0004).
     """
     print("Executing Deterministic ST-GCN Baseline Pipeline...")
+
+    if predict_from is not None and resume_path is not None:
+        raise ValueError(
+            "--predict-from evaluates a finished checkpoint and --resume continues an "
+            "unfinished run; pass only one."
+        )
 
     seed = int(config.get("seed", 2026))
     set_seed(seed)
@@ -126,6 +193,25 @@ def train_and_eval_st_gcn(
     test_x_mask_key = f"{split}_X_mask" if f"{split}_X_mask" in arrays else f"x_{split}_mask"
     test_x = arrays[test_x_key]
     test_x_mask = arrays[test_x_mask_key]
+
+    # 1b. Experimental node masking (Phase 11). Inputs only: targets stay intact
+    # so the evaluator still scores every sensor (ADR-0004). Masking is in place
+    # because a full split of inputs is hundreds of megabytes.
+    mask_generator, mask_training, condition_tag = _resolve_condition(
+        config, train_x.shape[2], seed
+    )
+    if mask_generator is not None:
+        test_x, test_x_mask = mask_generator.apply_mask(test_x, test_x_mask, copy=False)
+        if mask_training:
+            print("Masking training and validation inputs under the same mask.", flush=True)
+            train_x, train_x_mask = mask_generator.apply_mask(train_x, train_x_mask, copy=False)
+            val_x, val_x_mask = mask_generator.apply_mask(val_x, val_x_mask, copy=False)
+        else:
+            print(
+                "Training and validation inputs are unmasked; the condition applies "
+                "at inference only (ADR-0004).",
+                flush=True,
+            )
 
     # 2. Graph & Chebyshev Polynomials
     adj_mx_path = config.get("adj_mx_path", "data/raw/adj_mx_bay.pkl")
@@ -195,21 +281,24 @@ def train_and_eval_st_gcn(
 
     # 4. DataLoaders using zero-copy tensor views and batch-level channel concatenation
     batch_size = int(config.get("batch_size", 64))
-    train_dataset = TensorDataset(
-        torch.from_numpy(train_x),
-        torch.from_numpy(train_x_mask),
-        torch.from_numpy(train_y),
-        torch.from_numpy(train_y_mask),
-    )
-    val_dataset = TensorDataset(
-        torch.from_numpy(val_x),
-        torch.from_numpy(val_x_mask),
-        torch.from_numpy(val_y),
-        torch.from_numpy(val_y_mask),
-    )
+    train_loader: DataLoader | None = None
+    val_loader: DataLoader | None = None
+    if predict_from is None:
+        train_dataset = TensorDataset(
+            torch.from_numpy(train_x),
+            torch.from_numpy(train_x_mask),
+            torch.from_numpy(train_y),
+            torch.from_numpy(train_y_mask),
+        )
+        val_dataset = TensorDataset(
+            torch.from_numpy(val_x),
+            torch.from_numpy(val_x_mask),
+            torch.from_numpy(val_y),
+            torch.from_numpy(val_y_mask),
+        )
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
     # 5. Training loop
     lr = float(config.get("lr", 1e-3))
@@ -222,11 +311,15 @@ def train_and_eval_st_gcn(
     min_delta = float(config.get("min_delta", 1e-4))
     early_stopping = EarlyStopping(patience=patience, min_delta=min_delta, mode="min")
 
-    run_id = f"baseline-st_gcn-{split}-seed{seed}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    # The run identity carries the masking condition, so runs under different
+    # conditions neither overwrite each other's outputs nor resume each other.
+    run_prefix = f"baseline-st_gcn-{split}-seed{seed}{condition_tag}"
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    run_id = f"{run_prefix}-{timestamp}"
     start_epoch = 1
     if resume_path == "auto":
         # A run's _last.pt state is deleted once the run completes.
-        candidates = sorted(glob.glob(os.path.join(checkpoint_dir, f"baseline-st_gcn-{split}-seed{seed}-*_last.pt")))
+        candidates = sorted(glob.glob(os.path.join(checkpoint_dir, f"{run_prefix}-*_last.pt")))
         resume_path = candidates[-1] if candidates else None
         if resume_path is None:
             print("No unfinished run to resume; starting a new run.", flush=True)
@@ -239,12 +332,34 @@ def train_and_eval_st_gcn(
 
     os.makedirs(checkpoint_dir, exist_ok=True)
     best_ckpt_path = os.path.join(checkpoint_dir, f"{run_id}_best.pt")
-    last_state_path = os.path.join(checkpoint_dir, f"{run_id}_last.pt")
+    last_state_path: str | None = os.path.join(checkpoint_dir, f"{run_id}_last.pt")
 
-    print(f"Beginning training (Max epochs={max_epochs}, Patience={patience}, Min delta={min_delta})...", flush=True)
+    if predict_from is not None:
+        # Evaluate an existing checkpoint instead of training. Nothing is fitted
+        # here, so no checkpoint is written and no training state is kept.
+        from st_dssm.training import load_checkpoint
 
-    last_epoch = start_epoch - 1
-    epochs_to_run = range(start_epoch, max_epochs + 1) if not early_stopping.early_stop else range(0)
+        if not os.path.exists(predict_from):
+            raise FileNotFoundError(f"Checkpoint not found at: {predict_from}")
+        checkpoint = load_checkpoint(predict_from, model, map_location=device)
+        best_ckpt_path = predict_from
+        last_state_path = None
+        run_id = f"{run_prefix}-predict-{timestamp}"
+        early_stopping.best_epoch = int(checkpoint.get("epoch", 0))
+        early_stopping.best_score = checkpoint.get("val_loss")
+        print(
+            f"Evaluating checkpoint {predict_from} (epoch "
+            f"{early_stopping.best_epoch}) without training.",
+            flush=True,
+        )
+    else:
+        print(f"Beginning training (Max epochs={max_epochs}, Patience={patience}, Min delta={min_delta})...", flush=True)
+
+    last_epoch = 0 if predict_from is not None else start_epoch - 1
+    if predict_from is not None:
+        epochs_to_run: range = range(0)
+    else:
+        epochs_to_run = range(start_epoch, max_epochs + 1) if not early_stopping.early_stop else range(0)
     for epoch in epochs_to_run:
         last_epoch = epoch
         model.train()
@@ -297,16 +412,17 @@ def train_and_eval_st_gcn(
             break
 
     # Restore best checkpoint
-    early_stopping.restore_best_weights(model)
-    save_checkpoint(
-        best_ckpt_path,
-        model,
-        optimizer,
-        epoch=early_stopping.best_epoch,
-        val_loss=early_stopping.best_score or 0.0,
-        config=config,
-    )
-    print(f"Best checkpoint saved to: {best_ckpt_path}", flush=True)
+    if predict_from is None:
+        early_stopping.restore_best_weights(model)
+        save_checkpoint(
+            best_ckpt_path,
+            model,
+            optimizer,
+            epoch=early_stopping.best_epoch,
+            val_loss=early_stopping.best_score or 0.0,
+            config=config,
+        )
+        print(f"Best checkpoint saved to: {best_ckpt_path}", flush=True)
 
     # 6. Evaluation on target split
     model.eval()
@@ -338,6 +454,8 @@ def train_and_eval_st_gcn(
         "split": split,
         "cadence_minutes": int(config.get("cadence_minutes", 5)),
         "output_dir": output_dir,
+        "seed": seed,
+        **_mask_eval_config(mask_generator, mask_training),
     }
 
     # Record training provenance so each result traces back to its run settings.
@@ -361,7 +479,7 @@ def train_and_eval_st_gcn(
     )
 
     # The run is complete; drop its resume state so "--resume auto" won't pick it up.
-    if os.path.exists(last_state_path):
+    if last_state_path is not None and os.path.exists(last_state_path):
         os.remove(last_state_path)
 
     return {
@@ -509,6 +627,41 @@ def main(argv: list[str] | None = None) -> int:
         help="Training state to resume from, or 'auto' to continue the newest unfinished run for this split and seed.",
     )
     parser.add_argument(
+        "--predict-from",
+        type=str,
+        default=None,
+        help="Evaluate this '_best.pt' checkpoint instead of training (st_gcn only). "
+        "The primary way to run a missingness condition (ADR-0004).",
+    )
+    parser.add_argument(
+        "--mask-ratio",
+        type=float,
+        default=None,
+        help="Withhold this fraction of sensors from the model's input history "
+        "(e.g. 0.2 for the primary condition). 0.0 is the normal condition.",
+    )
+    parser.add_argument(
+        "--mask-seed",
+        type=int,
+        default=None,
+        help="Seed of the experimental mask (canonical: 2026, 2027, 2028). "
+        "[default: the run's seed]",
+    )
+    parser.add_argument(
+        "--mask-path",
+        type=str,
+        default=None,
+        help="Published mask artifact (experiments/masks/*.json) to use instead of "
+        "regenerating the mask from ratio and seed. Its checksum is verified.",
+    )
+    parser.add_argument(
+        "--mask-training",
+        action="store_true",
+        default=None,
+        help="Also withhold the same sensors during training and validation. By "
+        "default a condition applies at inference only (ADR-0004).",
+    )
+    parser.add_argument(
         "--save-plots",
         action="store_true",
         default=True,
@@ -554,11 +707,31 @@ def main(argv: list[str] | None = None) -> int:
         if args.adj_mx_path:
             config["adj_mx_path"] = args.adj_mx_path
 
+        # Masking condition (Phase 11). CLI flags override the config block.
+        masking = dict(config.get("masking") or {})
+        if args.mask_ratio is not None:
+            masking["missing_ratio"] = args.mask_ratio
+        if args.mask_seed is not None:
+            masking["seed"] = args.mask_seed
+        if args.mask_path is not None:
+            masking["mask_path"] = args.mask_path
+        if args.mask_training is not None:
+            masking["apply_to_training"] = args.mask_training
+        if masking:
+            config["masking"] = masking
+
         model_type = config["model"]
         out_dir = config["output_dir"]
         ckpt_dir = config["checkpoint_dir"]
 
         if model_type == "persistence":
+            if args.predict_from:
+                print(
+                    "--predict-from does not apply to the persistence baseline, "
+                    "which fits no parameters.",
+                    file=sys.stderr,
+                )
+                return 1
             run_persistence_baseline(
                 config=config,
                 output_dir=out_dir,
@@ -571,6 +744,7 @@ def main(argv: list[str] | None = None) -> int:
                 checkpoint_dir=ckpt_dir,
                 save_plots=args.save_plots,
                 resume_path=args.resume,
+                predict_from=args.predict_from,
             )
         else:
             print(f"Unknown baseline model: {model_type}", file=sys.stderr)

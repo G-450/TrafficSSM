@@ -1,10 +1,11 @@
 # Current project state
 
 **Status date:** 2026-10-13
-**Delivery state:** Phase 10 normal-condition study is complete: tuning, three seeded
-test runs per model, and locked tables, figures and a machine-readable aggregate in
-`experiments/normal/`. Phase 11 missingness mechanism is next (the mask generator is
-implemented and tested; masks are not yet wired through training and evaluation).
+**Delivery state:** Phase 11 missingness mechanism is complete: the canonical masks are
+published under `experiments/masks/`, masks are wired through every predictor's input
+boundary and reported as `all`/`masked`/`unmasked` target groups, and the leakage gate is
+tested end to end. Phase 12 robustness study is next (execute the nine conditions and the
+ablations). The Phase 10 normal-condition results remain locked in `experiments/normal/`.
 
 ## Implemented foundation
 
@@ -21,6 +22,19 @@ implemented and tested; masks are not yet wired through training and evaluation)
 - **Phase 9 Training operations:** `st-dssm-train` CLI with YAML configuration, validation-NLL
   checkpoint selection, beta annealing, teacher-forcing decay, micro-batched gradient
   accumulation and per-epoch resumable state (`--resume auto`).
+- **Phase 11 Missingness mechanism:** nine published mask artifacts under
+  `experiments/masks/` (10/20/30% x seeds 2026/2027/2028), each recording the withheld
+  sensor indices, their PEMS-BAY IDs and a checksum, regenerated or verified with
+  `scripts/generate_masks.py`. `st-dssm-train` and `st-dssm-baseline` accept a `masking:`
+  config block or `--mask-ratio/--mask-seed/--mask-path/--mask-training` and withhold whole
+  sensors at every input step with `M_obs = 0` (ADR-0007); targets are never masked. Per
+  ADR-0011 a condition applies at inference, so `--predict-from <checkpoint>` scores the
+  locked Phase 10 model under a condition without retraining, and run identity carries the
+  condition. `st-dssm-evaluate` reports every metric over `all`, `masked` and `unmasked`
+  target groups and records `mask_seed`, `mask_condition`, `mask_sensor_ids` and
+  `mask_checksum`. The leakage gate is an invariance test: two artifacts differing only in
+  the withheld sensors' input values produce bit-identical predictions and metrics through
+  the real pipeline.
 - **Phase 10 Normal-condition study:** hyperparameters tuned against validation NLL only
   (`scripts/tune_phase10.py`, search recorded in `experiments/tuning/`, best val NLL 2.118),
   configuration locked in `configs/tuned.yaml`, and the test set evaluated once per canonical
@@ -65,26 +79,30 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 | Phase 8 (DSSM) | 30 | ✅ Passing |
 | Phase 9 (training CLI) | 9 | ✅ Passing |
 | Phase 10 (run scripts, aggregation, provenance, plots) | 18 | ✅ Passing |
-| Phase 11 (missingness mechanism) | 15 | ✅ Passing |
-| **Total** | **258** | **✅ All passing** |
+| Phase 11 (mask generation) | 15 | ✅ Passing |
+| Phase 11 (masking wiring, leakage gate, target groups) | 21 | ✅ Passing |
+| **Total** | **279** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 
 ## Next authorized work
 
-Phase 10 is complete and locked. Once approved, proceed to
-[Phase 11 — Missingness mechanism](IMPLEMENTATION_PLAN.md):
-- Wire `st_dssm.mask_generator` masks through training and evaluation
-- Prove no masked ground truth reaches model inputs (leakage gate)
-- Record mask seeds, sensor IDs and checksums in each run manifest
-  (`mask_seed`, `mask_condition`, `mask_sensor_ids`, `mask_checksum` are already
-  carried by the manifest schema and settable through the evaluator's provenance)
+Phase 11 is complete. Once approved, proceed to
+[Phase 12 — Robustness study](IMPLEMENTATION_PLAN.md):
+- Execute the nine conditions (10/20/30% x mask seeds 2026/2027/2028) for ST-DSSM,
+  deterministic ST-GCN and historical persistence, pairing each mask seed with the
+  matching training seed and reusing the locked Phase 10 checkpoints via `--predict-from`
+- Aggregate the conditions into locked tables, by target group and horizon, the way
+  `scripts/aggregate_phase10.py` locks the normal condition
+- Run the ablations isolating graph context, state-space inference and the masking
+  representation (the last one via `--mask-training`, labelled as an ablation per ADR-0011)
 
-**Known environment issue (2026-10-13):** the installed PyTorch is `2.12.1+cpu`, so
-`torch.cuda.is_available()` is `False` and any new training run would fall back to CPU.
-The Phase 10 runs were trained on CUDA (an RTX 4060 Laptop GPU) before this change.
-Reinstall a CUDA build of torch before starting the Phase 12 runs, or the ~5 min/epoch
-figure below no longer holds.
+**Compute note (2026-10-13):** the installed PyTorch is `2.12.1+cpu`, so
+`torch.cuda.is_available()` is `False`. Per ADR-0011 a condition is a forward pass over
+the test split rather than a training run, so the Phase 12 condition matrix does not need
+the GPU; the masked-training ablation does. The Phase 10 runs were trained on CUDA (an
+RTX 4060 Laptop GPU), so reinstall a CUDA build of torch before any run that fits
+parameters, or the ~5 min/epoch figure below no longer holds.
 
 ## Reproducing the Phase 10 results
 

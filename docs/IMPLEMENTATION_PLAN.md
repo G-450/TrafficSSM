@@ -23,8 +23,8 @@ The project restarted its implementation on 2026-08-13.
 | 8 | DSSM integration | ✅ Done |
 | 9 | Training operations | ✅ Done |
 | 10 | Normal-condition study | ✅ Done |
-| 11 | Missingness mechanism | 🔲 Next |
-| 12 | Robustness study | 🔲 Pending |
+| 11 | Missingness mechanism | ✅ Done |
+| 12 | Robustness study | 🔲 Next |
 | 13 | Calibration and robustness review | 🔲 Pending |
 | 14 | Final release | 🔲 Pending |
 
@@ -53,6 +53,8 @@ TrafficSSM/
 │
 ├── experiments/
 │   ├── baselines/                    # Baseline run manifests (Phase 5)
+│   ├── masks/                        # Published experimental masks (Phase 11)
+│   ├── missingness/                  # Condition run manifests (Phase 11/12)
 │   └── encoder/                      # Encoder verification manifests (Phase 6)
 │
 ├── docs/
@@ -154,11 +156,12 @@ TrafficSSM/
     ├── test_dssm.py                  # Phase 8 — GaussianDSSM (30 tests)
     ├── test_train_cli.py             # Phase 9 — st-dssm-train CLI (9 tests)
     ├── test_mask_generator.py        # Phase 11 — mask generation (15 tests)
+    ├── test_phase11_masking.py       # Phase 11 — leakage gate + conditions (21 tests)
     ├── test_phase10_scripts.py       # Phase 10 — tuning/seed-run scripts resume (2 tests)
     └── test_phase10_aggregate.py     # Phase 10 — locked tables + comparability (7 tests)
 ```
 
-**Total tests:** 258 collected · 258 pass when `data/processed` is present
+**Total tests:** 279 collected · 279 pass when `data/processed` is present
 (without it, `test_encoder_cli_unrecognized_graph_and_missing_metadata` is skipped)
 
 ---
@@ -179,6 +182,8 @@ TrafficSSM/
 Phase 10 is driven by scripts rather than console entry points:
 `scripts/tune_phase10.py` (validation-only tuning), `scripts/run_phase10.py`
 (per-seed test runs) and `scripts/aggregate_phase10.py` (lock and verify the tables).
+Phase 11 adds `scripts/generate_masks.py` (publish and verify the canonical masks) and
+the `--predict-from` / `--mask-*` flags on `st-dssm-train` and `st-dssm-baseline`.
 
 ---
 
@@ -331,18 +336,51 @@ historical persistence (2.169 mph). See `experiments/normal/phase10_results.md`.
 
 ---
 
-### 🔲 Phases 11–13 — Missingness and scientific analysis (Phase 11 next)
+### ✅ Phase 11 — Missingness mechanism
 
-- **Phase 11:** `st_dssm.mask_generator` is implemented and tested (reproducible
-  node-level masks with published seeds and IDs); what remains is wiring masks through
-  training and evaluation and proving no masked ground truth reaches the inputs.
+- Masks are published artifacts: `scripts/generate_masks.py` writes the nine canonical
+  (10/20/30% x seeds 2026/2027/2028) masks to `experiments/masks/`, each recording the
+  withheld sensor indices, their PEMS-BAY IDs and a checksum. `--check` re-derives them.
+- Masks are wired through the model input boundary of every predictor
+  (`st-dssm-train`, `st-dssm-baseline --model st_gcn`, `--model persistence`) via a
+  `masking:` config block or `--mask-ratio/--mask-seed/--mask-path/--mask-training`.
+  Withheld sensors are zeroed at every input step with `M_obs = 0` (ADR-0007), in place,
+  and targets are never touched.
+- Per ADR-0011 a condition applies at inference, so `--predict-from <checkpoint>`
+  evaluates the locked Phase 10 model under a condition without retraining; run identity
+  carries the condition so conditions cannot collide or resume each other.
+- The evaluator reports every metric over `all`, `masked` and `unmasked` target groups
+  and records `mask_seed`, `mask_condition`, `mask_sensor_ids` and `mask_checksum` in the
+  run manifest.
+
+**Gate met:** `tests/test_phase11_masking.py` (21 tests). The leakage gate is an
+invariance test: two data artifacts differing only in the withheld sensors' input values
+(genuine speeds vs. `999.0`) produce bit-identical predictions and identical metrics
+through the real training/evaluation pipeline, which can only hold if no withheld value
+reaches a forward pass. Targets are proven unchanged on disk and the `all`-group valid
+count is identical to the normal condition; `masked` + `unmasked` counts partition it
+exactly. Mask fairness is pinned by one mask for all models at a given ratio and seed,
+checksum-verified mask artifacts, and nesting across levels (ADR-0010).
+
+**Verified on PEMS-BAY (2026-10-13):** the 20%/seed-2026 persistence condition run
+(`experiments/missingness/baseline-persistence-test-node20-seed2026-20261013-110858_manifest.json`)
+withholds exactly 65 of 325 sensors and partitions the 40,569,096 evaluated targets into
+8,113,800 masked and 32,455,296 unmasked, with an unmasked-group MAE of 2.166 mph against
+the locked all-sensor figure of 2.169 mph. This is a mechanism check, not a study result;
+the condition matrix is Phase 12. The learned models' condition runs are forward passes of
+about an hour each on the current CPU-only torch build, so they are executed in Phase 12
+rather than as a Phase 11 check; `--predict-from` itself is covered by the tests.
+
+---
+
+### 🔲 Phases 12–13 — Robustness study and scientific analysis (Phase 12 next)
+
 - **Phase 12:** Execute 10/20/30% conditions using same masks across models;
   evaluate all/masked/unmasked targets; ablations isolating graph context, state-space
   inference, and masking representation.
 - **Phase 13:** Calibration diagnostics, error analysis, latency records;
   claims and limitations reconciled with evidence.
 
-**Gate (Phase 11):** No target leakage; masks reproducible/fair.
 **Gate (Phase 13):** Primary 20% condition is repeated across seeds and directly
 traceable to code/config/data/masks.
 

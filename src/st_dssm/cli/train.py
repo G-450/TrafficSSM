@@ -34,6 +34,7 @@ from st_dssm.graph import (
     symmetrize_adjacency,
 )
 from st_dssm.io import load_and_validate_artifact
+from st_dssm.mask_generator import resolve_mask_generator
 from st_dssm.training import (
     EarlyStopping,
     is_training_state,
@@ -109,9 +110,22 @@ def train_st_dssm(
     checkpoint_dir: str = "artifacts/checkpoints",
     save_plots: bool = True,
     resume_path: str | None = None,
+    predict_from: str | None = None,
 ) -> dict[str, Any]:
-    """Train and evaluate the ST-DSSM."""
+    """Train and evaluate the ST-DSSM.
+
+    ``predict_from`` evaluates an existing ``_best.pt`` checkpoint instead of
+    training: the primary way to run a missingness condition, since ADR-0004
+    withholds sensors from the model's input at inference, so the normal-condition
+    checkpoint is the model under test.
+    """
     print("Executing ST-DSSM Training Pipeline...")
+
+    if predict_from is not None and resume_path is not None:
+        raise ValueError(
+            "--predict-from evaluates a finished checkpoint and --resume continues an "
+            "unfinished run; pass only one."
+        )
 
     # Configuration extraction
     seed = int(config.get("seed", 2026))
@@ -140,6 +154,35 @@ def train_st_dssm(
     test_x_mask_key = f"{split}_X_mask" if f"{split}_X_mask" in arrays else f"x_{split}_mask"
     test_x = arrays[test_x_key]
     test_x_mask = arrays[test_x_mask_key]
+
+    # 1b. Experimental node masking (Phase 11)
+    # The mask withholds whole sensors from the model's input history; targets are
+    # never touched, so the evaluator still scores every sensor (ADR-0004). Inputs
+    # are masked in place: a full split is hundreds of megabytes.
+    masking_cfg = config.get("masking") or {}
+    mask_generator = resolve_mask_generator(masking_cfg, train_x.shape[2], seed)
+    mask_training = bool(masking_cfg.get("apply_to_training", False))
+    condition_tag = ""
+    if mask_generator is not None:
+        withheld = int((~mask_generator.node_mask).sum())
+        condition_tag = f"-{mask_generator.mask_id}"
+        print(
+            f"Experimental mask {mask_generator.mask_id}: {withheld} of "
+            f"{mask_generator.num_nodes} sensors withheld from model inputs "
+            f"(checksum {mask_generator.checksum[:12]}).",
+            flush=True,
+        )
+        test_x, test_x_mask = mask_generator.apply_mask(test_x, test_x_mask, copy=False)
+        if mask_training:
+            print("Masking training and validation inputs under the same mask.", flush=True)
+            train_x, train_x_mask = mask_generator.apply_mask(train_x, train_x_mask, copy=False)
+            val_x, val_x_mask = mask_generator.apply_mask(val_x, val_x_mask, copy=False)
+        else:
+            print(
+                "Training and validation inputs are unmasked; the condition applies "
+                "at inference only (ADR-0004).",
+                flush=True,
+            )
 
     # 2. Graph & Chebyshev Polynomials
     adj_mx_path = config.get("adj_mx_path", "data/raw/adj_mx_bay.pkl")
@@ -218,21 +261,24 @@ def train_st_dssm(
                 f"training.micro_batch_size must be in [1, batch_size={batch_size}], got {micro_batch_size}"
             )
         print(f"Gradient accumulation: batch size {batch_size} in micro-batches of {micro_batch_size}.", flush=True)
-    train_dataset = TensorDataset(
-        torch.from_numpy(train_x),
-        torch.from_numpy(train_x_mask),
-        torch.from_numpy(train_y),
-        torch.from_numpy(train_y_mask),
-    )
-    val_dataset = TensorDataset(
-        torch.from_numpy(val_x),
-        torch.from_numpy(val_x_mask),
-        torch.from_numpy(val_y),
-        torch.from_numpy(val_y_mask),
-    )
+    train_loader: DataLoader | None = None
+    val_loader: DataLoader | None = None
+    if predict_from is None:
+        train_dataset = TensorDataset(
+            torch.from_numpy(train_x),
+            torch.from_numpy(train_x_mask),
+            torch.from_numpy(train_y),
+            torch.from_numpy(train_y_mask),
+        )
+        val_dataset = TensorDataset(
+            torch.from_numpy(val_x),
+            torch.from_numpy(val_x_mask),
+            torch.from_numpy(val_y),
+            torch.from_numpy(val_y_mask),
+        )
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
     # 5. Training loop
     lr = float(train_cfg.get("learning_rate", 1e-3))
@@ -251,11 +297,15 @@ def train_st_dssm(
     early_stopping = EarlyStopping(patience=patience, min_delta=min_delta, mode="min")
 
     start_epoch = 1
-    run_id = f"st_dssm-{split}-seed{seed}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    # The run identity carries the masking condition, so runs under different
+    # conditions neither overwrite each other's outputs nor resume each other.
+    run_prefix = f"st_dssm-{split}-seed{seed}{condition_tag}"
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    run_id = f"{run_prefix}-{timestamp}"
     if resume_path == "auto":
         # Pick up the newest unfinished run for this split and seed, if any.
         # A run's _last.pt state is deleted once the run completes.
-        candidates = sorted(glob.glob(os.path.join(checkpoint_dir, f"st_dssm-{split}-seed{seed}-*_last.pt")))
+        candidates = sorted(glob.glob(os.path.join(checkpoint_dir, f"{run_prefix}-*_last.pt")))
         resume_path = candidates[-1] if candidates else None
         if resume_path is None:
             print("No unfinished run to resume; starting a new run.", flush=True)
@@ -277,13 +327,36 @@ def train_st_dssm(
 
     os.makedirs(checkpoint_dir, exist_ok=True)
     best_ckpt_path = os.path.join(checkpoint_dir, f"{run_id}_best.pt")
-    last_state_path = os.path.join(checkpoint_dir, f"{run_id}_last.pt")
+    last_state_path: str | None = os.path.join(checkpoint_dir, f"{run_id}_last.pt")
 
-    print(f"Beginning training (Max epochs={max_epochs}, Beta Anneal={beta_anneal_epochs}, TF Decay={tf_decay_epochs})...", flush=True)
+    if predict_from is not None:
+        # Evaluate an existing checkpoint instead of training. Nothing is fitted
+        # here, so no checkpoint is written and no training state is kept.
+        from st_dssm.training import load_checkpoint
 
-    last_epoch = start_epoch - 1
-    # A run interrupted after early stopping triggered goes straight to evaluation.
-    epochs_to_run = range(start_epoch, max_epochs + 1) if not early_stopping.early_stop else range(0)
+        if not os.path.exists(predict_from):
+            raise FileNotFoundError(f"Checkpoint not found at: {predict_from}")
+        checkpoint = load_checkpoint(predict_from, model, map_location=device)
+        best_ckpt_path = predict_from
+        last_state_path = None
+        run_id = f"{run_prefix}-predict-{timestamp}"
+        early_stopping.best_epoch = int(checkpoint.get("epoch", 0))
+        early_stopping.best_score = checkpoint.get("val_loss")
+        print(
+            f"Evaluating checkpoint {predict_from} (epoch "
+            f"{early_stopping.best_epoch}) without training.",
+            flush=True,
+        )
+    else:
+        print(f"Beginning training (Max epochs={max_epochs}, Beta Anneal={beta_anneal_epochs}, TF Decay={tf_decay_epochs})...", flush=True)
+
+    last_epoch = 0 if predict_from is not None else start_epoch - 1
+    # A run interrupted after early stopping triggered goes straight to evaluation,
+    # and an inference-only run runs no epochs at all.
+    if predict_from is not None:
+        epochs_to_run: range = range(0)
+    else:
+        epochs_to_run = range(start_epoch, max_epochs + 1) if not early_stopping.early_stop else range(0)
     for epoch in epochs_to_run:
         last_epoch = epoch
         # Calculate schedules
@@ -346,16 +419,17 @@ def train_st_dssm(
             break
 
     # Restore best checkpoint
-    early_stopping.restore_best_weights(model)
-    save_checkpoint(
-        best_ckpt_path,
-        model,
-        optimizer,
-        epoch=early_stopping.best_epoch,
-        val_loss=early_stopping.best_score or 0.0,
-        config=config,
-    )
-    print(f"Best checkpoint saved to: {best_ckpt_path}", flush=True)
+    if predict_from is None:
+        early_stopping.restore_best_weights(model)
+        save_checkpoint(
+            best_ckpt_path,
+            model,
+            optimizer,
+            epoch=early_stopping.best_epoch,
+            val_loss=early_stopping.best_score or 0.0,
+            config=config,
+        )
+        print(f"Best checkpoint saved to: {best_ckpt_path}", flush=True)
 
     # 6. Evaluation on target split
     model.eval()
@@ -394,7 +468,17 @@ def train_st_dssm(
         "cadence_minutes": int(config.get("cadence_minutes", 5)),
         "output_dir": output_dir,
         "training_config": config,
+        "seed": seed,
     }
+    if mask_generator is not None:
+        # The evaluator reports masked/unmasked target groups and records which
+        # sensors were withheld. Pin the mask by seed and ratio, not by file path,
+        # so the manifest stands on its own.
+        eval_config["masking"] = {
+            "missing_ratio": mask_generator.missing_ratio,
+            "seed": mask_generator.seed,
+            "apply_to_training": mask_training,
+        }
 
     # Record training provenance so each result traces back to its run settings.
     # This is passed into the evaluator rather than patched in afterwards, so the
@@ -416,7 +500,7 @@ def train_st_dssm(
     )
 
     # The run is complete; drop its resume state so "--resume auto" won't pick it up.
-    if os.path.exists(last_state_path):
+    if last_state_path is not None and os.path.exists(last_state_path):
         os.remove(last_state_path)
 
     return {
@@ -521,6 +605,42 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Checkpoint to resume from, or 'auto' to continue the newest unfinished run for this split and seed.",
     )
+    parser.add_argument(
+        "--predict-from",
+        type=str,
+        default=None,
+        help="Evaluate this '_best.pt' checkpoint instead of training. The primary "
+        "way to run a missingness condition: the normal-condition model is the "
+        "model under test (ADR-0004).",
+    )
+    parser.add_argument(
+        "--mask-ratio",
+        type=float,
+        default=None,
+        help="Withhold this fraction of sensors from the model's input history "
+        "(e.g. 0.2 for the primary condition). 0.0 is the normal condition.",
+    )
+    parser.add_argument(
+        "--mask-seed",
+        type=int,
+        default=None,
+        help="Seed of the experimental mask (canonical: 2026, 2027, 2028). "
+        "[default: the run's training seed]",
+    )
+    parser.add_argument(
+        "--mask-path",
+        type=str,
+        default=None,
+        help="Published mask artifact (experiments/masks/*.json) to use instead of "
+        "regenerating the mask from ratio and seed. Its checksum is verified.",
+    )
+    parser.add_argument(
+        "--mask-training",
+        action="store_true",
+        default=None,
+        help="Also withhold the same sensors during training and validation. By "
+        "default a condition applies at inference only (ADR-0004).",
+    )
     parser.add_argument("--adj-mx-path", type=str, default=None, help="Path to graph adjacency pickle file.")
     parser.add_argument("--device", type=str, default=None, help="Compute device. [default: cuda if available, else cpu]")
     parser.add_argument("--save-plots", action="store_true", default=True, help="Generate evaluation plots.")
@@ -554,6 +674,19 @@ def main(argv: list[str] | None = None) -> int:
         if args.adj_mx_path:
             config["adj_mx_path"] = args.adj_mx_path
 
+        # Masking condition (Phase 11). CLI flags override the config block.
+        masking = dict(config.get("masking") or {})
+        if args.mask_ratio is not None:
+            masking["missing_ratio"] = args.mask_ratio
+        if args.mask_seed is not None:
+            masking["seed"] = args.mask_seed
+        if args.mask_path is not None:
+            masking["mask_path"] = args.mask_path
+        if args.mask_training is not None:
+            masking["apply_to_training"] = args.mask_training
+        if masking:
+            config["masking"] = masking
+
         out_dir = config["output_dir"]
         ckpt_dir = config["checkpoint_dir"]
 
@@ -563,6 +696,7 @@ def main(argv: list[str] | None = None) -> int:
             checkpoint_dir=ckpt_dir,
             save_plots=args.save_plots,
             resume_path=args.resume,
+            predict_from=args.predict_from,
         )
 
         return 0

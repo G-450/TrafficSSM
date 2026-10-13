@@ -15,10 +15,16 @@ H1 is evaluated from results; no loss, post-processing rule, or chart may artifi
 
 | Condition | Purpose | Status |
 |---|---|---|
-| 0% node masking | normal-condition reference | planned |
-| 10% node masking | sensitivity extension | planned |
-| 20% node masking | primary research condition | planned |
-| 30% node masking | sensitivity extension | planned |
+| 0% node masking | normal-condition reference | complete and locked (Phase 10, `experiments/normal/`) |
+| 10% node masking | sensitivity extension | mask published; runs are Phase 12 |
+| 20% node masking | primary research condition | mask published; runs are Phase 12 |
+| 30% node masking | sensitivity extension | mask published; runs are Phase 12 |
+
+The masks for the three masked conditions are published, checksummed artifacts under
+`experiments/masks/` (nine files: three levels x mask seeds 2026/2027/2028, nested per
+[ADR-0010](DECISIONS/ADR-0010-nested-node-masks.md)). A condition is applied to the
+model's input history at inference and never to the targets, so every condition scores
+the same target set; see [ADR-0011](DECISIONS/ADR-0011-condition-applies-at-inference.md).
 
 For each condition, mask the same sampled sensor IDs across every compared model for a given seed. Primary unit: a selected sensor is withheld over the complete input history window. Report results separately for masked and unmasked target sensors as well as the overall aggregate.
 
