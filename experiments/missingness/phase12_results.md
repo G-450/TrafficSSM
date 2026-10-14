@@ -1,6 +1,6 @@
 # Phase 12 — Robustness condition study (locked results)
 
-**Generated:** 2026-10-13T20:21:06.410842+00:00
+**Generated:** 2026-10-14T11:49:02.735266+00:00
 
 Locked test-set results across 10/20/30% sensor-node missingness conditions.
 Every number is read from the run manifests listed under [Provenance](#provenance).
@@ -85,6 +85,20 @@ Values are **mean +/- sample standard deviation across the three canonical seeds
 | ST-DSSM (ours) | 30% | 2027 | 4.214 | 7.653 | 2.729 |
 | ST-DSSM (ours) | 30% | 2028 | 3.147 | 5.327 | 2.205 |
 
+## Ablation — Masked-training ablation (apply_to_training: true)
+
+Trained and validated with the same sensors withheld, so these runs are a different model from the primary condition runs and must not be compared head-to-head with other models (ADR-0011).
+
+`Primary` repeats the inference-only cell from the tables above so the
+two arms can be read side by side. `Delta` is ablation minus primary:
+negative means training under the mask helped.
+
+| Model | Condition | Group | Primary MAE | Ablation MAE | Delta |
+| :--- | :--- | :--- | ---: | ---: | ---: |
+| ST-DSSM (ours) | 20% | all | 2.945 +/- 0.471 | 2.108 +/- 0.018 | -0.837 |
+| ST-DSSM (ours) | 20% | masked | 5.986 +/- 1.397 | 2.841 +/- 0.044 | -3.145 |
+| ST-DSSM (ours) | 20% | unmasked | 2.184 +/- 0.241 | 1.924 +/- 0.017 | -0.260 |
+
 ## Provenance
 
 | Model | Arm | Condition | Seed | Run manifest | Manifest SHA256 | Code commit |
@@ -116,5 +130,8 @@ Values are **mean +/- sample standard deviation across the three canonical seeds
 | ST-DSSM (ours) | primary | 30% | 2026 | `experiments/missingness/st_dssm-test-seed2026-node30-seed2026-predict-20261013-190840_manifest.json` | `3aaa9c35eae9a431...` | `6620418ba880` |
 | ST-DSSM (ours) | primary | 30% | 2027 | `experiments/missingness/st_dssm-test-seed2027-node30-seed2027-predict-20261013-191618_manifest.json` | `3e1cee17f1997c05...` | `6620418ba880` |
 | ST-DSSM (ours) | primary | 30% | 2028 | `experiments/missingness/st_dssm-test-seed2028-node30-seed2028-predict-20261013-192331_manifest.json` | `d00904a2fe052b99...` | `6620418ba880` |
+| ST-DSSM (ours) | masked-training | 20% | 2026 | `experiments/missingness/st_dssm-test-seed2026-node20-seed2026-masktrain-20261013-205242_manifest.json` | `9981d03f23e36c80...` | `4ff72868ac21` |
+| ST-DSSM (ours) | masked-training | 20% | 2027 | `experiments/missingness/st_dssm-test-seed2027-node20-seed2027-masktrain-20261014-011429_manifest.json` | `6aed150ee31f218f...` | `4ff72868ac21` |
+| ST-DSSM (ours) | masked-training | 20% | 2028 | `experiments/missingness/st_dssm-test-seed2028-node20-seed2028-masktrain-20261014-054209_manifest.json` | `168a60599b39a48e...` | `4ff72868ac21` |
 
 **Environment:** matplotlib 3.11.1, numpy 2.5.2, python 3.12.10, scipy 1.18.0, torch 2.6.0+cu124
