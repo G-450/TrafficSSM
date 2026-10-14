@@ -1,0 +1,67 @@
+{
+  "checkpoints": {
+    "Deterministic ST-GCN": "experiments/normal/checkpoints/baseline-st_gcn-test-seed2026-20261010-014123_best.pt",
+    "ST-DSSM (ours)": "experiments/normal/checkpoints/st_dssm-test-seed2026-20261012-020607_best.pt"
+  },
+  "environment": {
+    "device": "cpu",
+    "device_name": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "numpy": "1.26.4",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "python": "3.12.10",
+    "torch": "2.12.1+cu130"
+  },
+  "measured_at_utc": "2026-10-14T12:13:28.154858+00:00",
+  "models": [
+    {
+      "batch_size": 64,
+      "device": "cpu",
+      "model_name": "Historical Persistence",
+      "per_batch_median_ms": 0.032250005460809916,
+      "per_window_max_ms": 0.0007187497885752236,
+      "per_window_median_ms": 0.0005039063353251549,
+      "per_window_min_ms": 0.0004328126124164555,
+      "per_window_p95_ms": 0.0005953124855295755,
+      "timed_batches": 30,
+      "trainable_parameters": 0,
+      "windows_per_second": 1984495.7880014176
+    },
+    {
+      "batch_size": 64,
+      "device": "cpu",
+      "model_name": "Deterministic ST-GCN",
+      "per_batch_median_ms": 1698.5636000026716,
+      "per_window_max_ms": 27.664796875114916,
+      "per_window_median_ms": 26.540056250041744,
+      "per_window_min_ms": 25.870940625054573,
+      "per_window_p95_ms": 27.290045312611255,
+      "timed_batches": 30,
+      "trainable_parameters": 109260,
+      "windows_per_second": 37.67889527357076
+    },
+    {
+      "batch_size": 64,
+      "device": "cpu",
+      "model_name": "ST-DSSM (ours)",
+      "per_batch_median_ms": 1647.3790000018198,
+      "per_window_max_ms": 26.24245937499836,
+      "per_window_median_ms": 25.740296875028434,
+      "per_window_min_ms": 25.096775000065463,
+      "per_window_p95_ms": 26.129550000177915,
+      "timed_batches": 30,
+      "trainable_parameters": 397058,
+      "windows_per_second": 38.84959077415051
+    }
+  ],
+  "protocol": {
+    "batch_size": 64,
+    "checkpoint_seed": 2026,
+    "cuda_synchronized": false,
+    "operation": "one forward pass: 12 input steps -> 12 horizons x 325 sensors",
+    "split": "test",
+    "st_dssm_path": "forward_predict (prior-only, no target access)",
+    "timed_batches": 30,
+    "warmup_batches": 10
+  },
+  "study": "Phase 13 inference latency"
+}

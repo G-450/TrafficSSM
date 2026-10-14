@@ -11,14 +11,36 @@ When traffic-sensor observations are reduced, can ST-DSSM retain useful forecast
 
 H1 is evaluated from results; no loss, post-processing rule, or chart may artificially enforce widening.
 
+### Verdict (Phase 13, 2026-10-14)
+
+Decided from the locked deliverables, not from expectation. Full reasoning and
+every caveat is in [LIMITATIONS.md](LIMITATIONS.md).
+
+| Hypothesis | Verdict | Decisive evidence |
+|---|---|---|
+| **H0** — masking does not meaningfully change uncertainty | **Rejected** | Aggregate NLL `2.117 -> 6.675` at 20%; `24.224` at withheld sensors |
+| **H1** — distribution changes, intervals may widen, calibration stays reasonable | **Partly supported; final clause false** | MPIW `11.070 -> 13.125` mph (widening real), but withheld-sensor interval ECE `0.0724 -> 0.2775` and PICP `0.665` vs nominal 0.95 |
+
+The research question splits: point accuracy degrades gracefully (MAE
+`1.936 -> 2.945` mph at 20%), the predictive distribution does not. Calibration
+holds at observed sensors and fails at withheld ones, so only the per-group
+tables answer the question honestly.
+
+> [!WARNING]
+> Aggregate interval ECE *falls* under missingness (`0.0724 -> 0.0500` at 20%)
+> while NLL more than triples. The normal-condition forecast is over-dispersed
+> in the bulk, so condition-induced widening cancels part of that bias at the
+> sampled levels while the tail failures driving NLL sit outside them. Do not
+> quote aggregate interval ECE as evidence of robust calibration.
+
 ## Conditions
 
 | Condition | Purpose | Status |
 |---|---|---|
 | 0% node masking | normal-condition reference | complete and locked (Phase 10, `experiments/normal/`) |
-| 10% node masking | sensitivity extension | mask published; runs are Phase 12 |
-| 20% node masking | primary research condition | mask published; runs are Phase 12 |
-| 30% node masking | sensitivity extension | mask published; runs are Phase 12 |
+| 10% node masking | sensitivity extension | complete and locked (Phase 12, `experiments/missingness/`) |
+| 20% node masking | primary research condition | complete and locked (Phase 12); masked-training ablation also complete |
+| 30% node masking | sensitivity extension | complete and locked (Phase 12, `experiments/missingness/`) |
 
 The masks for the three masked conditions are published, checksummed artifacts under
 `experiments/masks/` (nine files: three levels x mask seeds 2026/2027/2028, nested per
@@ -49,7 +71,7 @@ Use nominal 95% intervals unless an ADR changes it. Report each metric by horizo
 
 - Use final training seeds `2026`, `2027`, and `2028`; pair experimental-mask seeds with the same values across models and report mean and standard deviation.
 - Do not select a model based on test performance. Use validation data for architecture and calibration choices, then make one locked final test evaluation per chosen configuration.
-- Treat uncalibrated output as primary. Validation-fitted scalar scale-temperature calibration is allowed only as the separately labelled secondary analysis defined by ADR-0008.
+- Treat uncalibrated output as primary. Validation-fitted scalar scale-temperature calibration is allowed only as the separately labelled secondary analysis defined by ADR-0008. It was executed in Phase 13 (`experiments/calibration/`): the fitted temperature is `1.0694 +/- 0.0196`, it lowers NLL and *raises* interval ECE, and the primary results do not depend on it.
 - Keep an immutable run manifest containing code commit, package environment, config, dataset manifest/checksum, training seed, masking seed, and output paths.
 - Report failed runs and exclusions with reason.
 

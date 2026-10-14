@@ -25,7 +25,7 @@ The project restarted its implementation on 2026-08-13.
 | 10 | Normal-condition study | ✅ Done |
 | 11 | Missingness mechanism | ✅ Done |
 | 12 | Robustness study | ✅ Done |
-| 13 | Calibration and robustness review | 🔲 Pending |
+| 13 | Calibration and robustness review | ✅ Done |
 | 14 | Final release | 🔲 Pending |
 
 ---
@@ -54,7 +54,9 @@ TrafficSSM/
 ├── experiments/
 │   ├── baselines/                    # Baseline run manifests (Phase 5)
 │   ├── masks/                        # Published experimental masks (Phase 11)
+│   ├── normal/                       # Normal-condition study (Phase 10)
 │   ├── missingness/                  # Condition run manifests (Phase 11/12)
+│   ├── calibration/                  # Calibration review + latency (Phase 13)
 │   └── encoder/                      # Encoder verification manifests (Phase 6)
 │
 ├── docs/
@@ -115,6 +117,7 @@ TrafficSSM/
 │   ├── metrics.py                    # MAE, RMSE, Gaussian NLL, CRPS, PICP, MPIW (Phase 4)
 │   ├── result_schema.py              # MetricRecord, RunManifest (Phase 4)
 │   ├── plots.py                      # Horizon plots, calibration curves (Phase 4)
+│   ├── calibration.py                # Reliability, PIT, temperature scaling (Phase 13)
 │   │
 │   ├── — TRAINING LAYER —
 │   ├── training.py                   # MaskedMAELoss, EarlyStopping,
@@ -158,10 +161,14 @@ TrafficSSM/
     ├── test_mask_generator.py        # Phase 11 — mask generation (15 tests)
     ├── test_phase11_masking.py       # Phase 11 — leakage gate + conditions (21 tests)
     ├── test_phase10_scripts.py       # Phase 10 — tuning/seed-run scripts resume (2 tests)
-    └── test_phase10_aggregate.py     # Phase 10 — locked tables + comparability (7 tests)
+    ├── test_phase10_aggregate.py     # Phase 10 — locked tables + comparability (7 tests)
+    ├── test_provenance.py            # Phase 10 — run-manifest provenance (9 tests)
+    ├── test_phase12.py               # Phase 12 — condition matrix + ablation arm (18 tests)
+    ├── test_calibration.py           # Phase 13 — reliability, PIT, temperature (28 tests)
+    └── test_phase13.py               # Phase 13 — calibration review gate + runner (30 tests)
 ```
 
-**Total tests:** 279 collected · 279 pass when `data/processed` is present
+**Total tests:** 361 collected · 361 pass when `data/processed` is present
 (without it, `test_encoder_cli_unrecognized_graph_and_missing_metadata` is skipped)
 
 ---
@@ -182,6 +189,10 @@ TrafficSSM/
 Phase 10 is driven by scripts rather than console entry points:
 `scripts/tune_phase10.py` (validation-only tuning), `scripts/run_phase10.py`
 (per-seed test runs) and `scripts/aggregate_phase10.py` (lock and verify the tables).
+Phase 12 adds `scripts/run_phase12.py` (the condition matrix and the masked-training
+ablation arm) and `scripts/aggregate_phase12.py`. Phase 13 adds
+`scripts/run_phase13.py` (validation passes for the frozen temperature, plus the
+latency records), `scripts/measure_latency.py` and `scripts/aggregate_phase13.py`.
 Phase 11 adds `scripts/generate_masks.py` (publish and verify the canonical masks) and
 the `--predict-from` / `--mask-*` flags on `st-dssm-train` and `st-dssm-baseline`.
 
@@ -219,7 +230,9 @@ into training.
 
 - **Phase 4:** `st_dssm.metrics` — MAE, RMSE, Gaussian NLL, CRPS, PICP, MPIW.
   `st_dssm.result_schema` — `MetricRecord`, `RunManifest`.
-  `st_dssm.plots` — horizon, calibration, width plots.
+  `st_dssm.plots` — horizon, calibration, width, reliability and PIT plots.
+  `st_dssm.calibration` — reliability tables, interval and PIT calibration error,
+  closed-form temperature scaling (Phase 13, ADR-0008).
 - **Phase 5:** `HistoricalPersistence`, `DeterministicSTGCN` (2 causal ST-blocks,
   109,260 params). `st_dssm.training` — `MaskedMAELoss`, `EarlyStopping`,
   `set_seed`, checkpoint I/O. `st-dssm-baseline` CLI with full manifest output.
@@ -391,18 +404,61 @@ Phase 12 rather than as a Phase 11 check; `--predict-from` itself is covered by 
   its last completed epoch. Budget ~4.5 GPU-hours per ST-DSSM run at 60 epochs
   (measured on an RTX 4060 Laptop, 8 GB, `micro_batch_size: 32`).
 
-**Headline:** All models degrade under missingness. ST-DSSM shows higher seed variance
-at 20%/30% conditions (MAE range 2.6–3.5 mph at 20%) than ST-GCN (2.7–3.0 mph),
-suggesting the latent state can amplify input disruption. Masked-sensor MAE is
-consistently 2–3× the unmasked-sensor MAE across all models and conditions.
+**Headline:** All models degrade under missingness. In the primary (inference-only)
+arm ST-DSSM shows higher seed variance at 20%/30% than ST-GCN — MAE
+2.945 ± 0.471 mph vs 2.830 ± 0.141 at 20% — and masked-sensor MAE is consistently
+2–3× the unmasked-sensor MAE across all models and conditions.
 
-### 🔲 Phase 13 — Calibration and robustness review
+*Correction (2026-10-14):* this was previously read as the latent state amplifying
+input disruption. The completed masked-training ablation refutes that: retraining
+under the mask gives MAE 2.108 ± 0.018 mph at 20% (masked-sensor MAE 5.986 → 2.841),
+collapsing the across-seed spread 26×. The variance is a train/test representation
+mismatch, not a property of the state space. No claim is now made in either
+direction; see [LIMITATIONS.md](LIMITATIONS.md) §3.
 
-- Calibration diagnostics, error analysis, latency records;
-  claims and limitations reconciled with evidence.
+### ✅ Phase 13 — Calibration and robustness review
+
+- **Calibration diagnostics** (`st_dssm.calibration`): reliability tables and the
+  signed coverage gap over seven nominal levels, an interval expected calibration
+  error, PIT values with a total-variation PIT error, and the ADR-0008 secondary
+  temperature-scaling analysis. The NLL-optimal temperature has a closed form,
+  `T* = sqrt(mean(r²))` over standardized residuals, proven against a dense grid
+  search in `tests/test_calibration.py`. Math in [EVALUATION.md](EVALUATION.md) §2.4.
+- **Validation runs**: `scripts/run_phase13.py` scores each locked Phase 10
+  checkpoint over the validation split (`--split val --predict-from`, forward
+  passes only) so the temperature is fitted on validation and frozen before any
+  test number, as ADR-0008 requires. Config: `configs/calibration/normal-val.yaml`.
+- **Latency records**: `scripts/measure_latency.py` measures one forward pass
+  (12 horizons × 325 sensors) for all three models with warmup and CUDA
+  synchronization, reporting median and p95 per window, on the accelerator and on
+  the CPU fallback.
+- **Locked deliverable**: `scripts/aggregate_phase13.py` writes
+  `experiments/calibration/phase13_results.{md,json}` and 12 figures, and
+  `--check` re-derives them. Unlike Phases 10/12 this recomputes from the
+  prediction artifacts — a reliability curve is not a manifest quantity — so it
+  checksums every `*_predictions.npz` it reads and takes a few minutes.
+- **Claims reconciled**: [LIMITATIONS.md](LIMITATIONS.md) records the H0/H1
+  verdicts, what the evidence does not support, and the latency caveats;
+  [RESEARCH_AND_EXPERIMENTS.md](RESEARCH_AND_EXPERIMENTS.md) carries the verdict
+  table. Both aggregators now record every distinct run environment instead of
+  one run's package versions.
+
+**Headline:** Point accuracy degrades gracefully under sensor loss; the
+predictive distribution does not. H0 is rejected and H1's "calibration remains
+reasonable" clause is false at withheld sensors (interval ECE 0.0724 → 0.2775,
+PICP 0.665 vs nominal 0.95 at 20%). Even in the normal condition the forecast is
+over-dispersed in the bulk and under-dispersed in the tail, so the fitted
+temperature (1.0694 ± 0.0196) lowers NLL while *raising* interval ECE: a scalar
+cannot repair a shape mismatch. Aggregate interval ECE falls under missingness
+while NLL triples, and must not be quoted as evidence of robustness. The horizon
+analysis inverts the usual intuition — coverage is worst at the *shortest*
+horizon, and at a withheld sensor the 5-minute 95% interval covers only 39% of
+targets (0.794 at 60 min) — and the predictive mean is biased low, increasingly
+so as sensors are withheld.
 
 **Gate:** Primary 20% condition is repeated across seeds and directly
-traceable to code/config/data/masks.
+traceable to code/config/data/masks. ✅ — `aggregate_phase13.py --check`
+re-derives every number from checksummed manifests and prediction artifacts.
 
 ---
 

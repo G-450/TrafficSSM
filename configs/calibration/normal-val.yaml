@@ -1,0 +1,44 @@
+# Validation-split evaluation of the locked Phase 10 normal-condition model.
+#
+# Phase 13 fits the secondary temperature-scaling analysis on this split only.
+# ADR-0008 allows one positive scalar shared across sensors and horizons,
+# selected by validation NLL and frozen before test evaluation, so the
+# temperature may never see the test split:
+#
+#   st-dssm-train --config configs/calibration/normal-val.yaml --seed 2026 \
+#     --predict-from experiments/normal/checkpoints/st_dssm-test-seed2026-...-_best.pt \
+#     --output-dir experiments/calibration
+#
+# This is a forward pass over 5,190 validation windows, not a training run: the
+# model is the locked Phase 10 checkpoint and nothing here changes it. The
+# configuration is configs/tuned.yaml with `split: val` and no masking block,
+# so the fitted temperature belongs to the normal condition.
+
+seed: 2026
+split: val
+artifact_dir: data/processed
+adj_mx_path: data/raw/adj_mx_bay.pkl
+cadence_minutes: 5
+
+model:
+  cheb_k: 3
+  context_dim: 64
+  dropout: 0.1
+  hidden_dim: 128
+  horizon: 12
+  in_channels: 2
+  input_length: 12
+  latent_dim: 32
+  num_nodes: 325
+
+schedules:
+  beta_anneal_epochs: 20
+  teacher_force_decay_epochs: 50
+
+training:
+  batch_size: 64
+  learning_rate: 0.001
+  max_epochs: 60
+  patience: 10
+  micro_batch_size: 32
+  weight_decay: 0.0001
