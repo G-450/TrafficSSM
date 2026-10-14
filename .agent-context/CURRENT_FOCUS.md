@@ -16,13 +16,34 @@ configs are published under `configs/missingness/` and each one resolves to its
 published mask; the Phase 10 checkpoints the conditions evaluate are in
 `experiments/normal/checkpoints/`.
 
-The next focus is Phase 12 — Robustness study: execute the nine conditions (10/20/30% x
-mask seeds 2026/2027/2028) for ST-DSSM, deterministic ST-GCN and historical persistence,
-lock the condition tables the way Phase 10 locked the normal condition, and run the
-ablations isolating graph context, state-space inference and the masking representation.
-Per ADR-0011 a condition is a forward pass over the test split, not a training run, so the
-matrix does not need the GPU; the masked-training ablation does, and the installed torch is
-currently CPU-only.
+Phase 12 — Robustness study is complete and pending PR merge.
+
+The scripts and tests are in place:
+- `scripts/run_phase12.py`   — executes the 27 condition runs (9 × 3 models, all CPU
+  forward passes); skips completed runs; `--dry-run` previews the plan.
+- `scripts/aggregate_phase12.py` — locks the condition tables once all runs are done;
+  `--check` re-derives them.
+- `tests/test_phase12.py`    — 18 gate tests for the aggregator, the masked-training
+  ablation arm and the run script (all pass).
+
+All 27 conditions are complete and were executed via `python scripts/run_phase12.py`.
+All 27 manifests are in `experiments/missingness/`. Locked tables are at
+`experiments/missingness/phase12_results.md` and `phase12_results.json`.
+Verify with: `python scripts/aggregate_phase12.py --check`
+
+**Ablations:**
+- Graph context and state-space ablations are covered by the model comparison in the
+  condition tables (Persistence = no graph, ST-GCN = no state space).
+- Masked-training ablation (ST-DSSM trained with `apply_to_training: true`) requires
+  retraining: ~4.5 GPU-hours per seed at 60 epochs, measured on an RTX 4060 Laptop
+  (8 GB, `micro_batch_size: 32`). Run it with
+  `python scripts/run_phase12.py --ablation --ratio 20 --models st_dssm` (~13.5 h for
+  the three canonical seeds at the primary condition). The arm is resumable: each run
+  carries a `-masktrain` run identity and `--resume auto`, so re-running the command
+  continues from the last completed epoch instead of starting over. Per ADR-0011 the
+  aggregator reports it in its own section, never inside a primary condition cell.
+
+The next focus is Phase 13 — Calibration and robustness review.
 
 See `docs/IMPLEMENTATION_PLAN.md` for gates and sequencing, and consult the accepted
 decision records before making a material design choice. Record any newly discovered

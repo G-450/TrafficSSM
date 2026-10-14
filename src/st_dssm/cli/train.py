@@ -34,6 +34,7 @@ from st_dssm.graph import (
     symmetrize_adjacency,
 )
 from st_dssm.io import load_and_validate_artifact
+from st_dssm.mask_generator import condition_tag as build_condition_tag
 from st_dssm.mask_generator import resolve_mask_generator
 from st_dssm.training import (
     EarlyStopping,
@@ -162,10 +163,11 @@ def train_st_dssm(
     masking_cfg = config.get("masking") or {}
     mask_generator = resolve_mask_generator(masking_cfg, train_x.shape[2], seed)
     mask_training = bool(masking_cfg.get("apply_to_training", False))
-    condition_tag = ""
+    # The masked-training ablation is a different model from the primary
+    # condition run, so it carries its own run-identity suffix (ADR-0011).
+    condition_tag = build_condition_tag(mask_generator, mask_training)
     if mask_generator is not None:
         withheld = int((~mask_generator.node_mask).sum())
-        condition_tag = f"-{mask_generator.mask_id}"
         print(
             f"Experimental mask {mask_generator.mask_id}: {withheld} of "
             f"{mask_generator.num_nodes} sensors withheld from model inputs "

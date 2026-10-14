@@ -50,3 +50,9 @@ data/processed_backup_*/
 experiments/baselines/baseline-persistence-test-20260819-062508_*
 experiments/baselines/baseline-st_gcn-test-seed2026-20260819-062543_*
 experiments/baselines/plots/
+
+# Phase 12 per-run condition plots: 45 figures (3.8 MB) regenerable from the
+# committed predictions, and one per run rather than per finding. The locked
+# deliverable is the model-comparison set that aggregate_phase12.py writes.
+experiments/missingness/plots/*
+!experiments/missingness/plots/phase12_*.png

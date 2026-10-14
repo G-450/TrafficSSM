@@ -24,7 +24,7 @@ The project restarted its implementation on 2026-08-13.
 | 9 | Training operations | ✅ Done |
 | 10 | Normal-condition study | ✅ Done |
 | 11 | Missingness mechanism | ✅ Done |
-| 12 | Robustness study | 🔲 Next |
+| 12 | Robustness study | ✅ Done |
 | 13 | Calibration and robustness review | 🔲 Pending |
 | 14 | Final release | 🔲 Pending |
 
@@ -363,25 +363,45 @@ exactly. Mask fairness is pinned by one mask for all models at a given ratio and
 checksum-verified mask artifacts, and nesting across levels (ADR-0010).
 
 **Verified on PEMS-BAY (2026-10-13):** the 20%/seed-2026 persistence condition run
-(`experiments/missingness/baseline-persistence-test-node20-seed2026-20261013-110858_manifest.json`)
+(`experiments/missingness/baseline-persistence-test-node20-seed2026-20261013-201920_manifest.json`;
+the original 110858 run reached the same 117 metrics but came from an uncommitted tree, so it
+was re-run from a committed one and archived under `experiments/missingness/superseded/`)
 withholds exactly 65 of 325 sensors and partitions the 40,569,096 evaluated targets into
 8,113,800 masked and 32,455,296 unmasked, with an unmasked-group MAE of 2.166 mph against
 the locked all-sensor figure of 2.169 mph. This is a mechanism check, not a study result;
-the condition matrix is Phase 12. The learned models' condition runs are forward passes of
-about an hour each on the current CPU-only torch build, so they are executed in Phase 12
-rather than as a Phase 11 check; `--predict-from` itself is covered by the tests.
+the condition matrix is Phase 12. The learned models' condition runs are executed in
+Phase 12 rather than as a Phase 11 check; `--predict-from` itself is covered by the tests.
 
 ---
 
-### 🔲 Phases 12–13 — Robustness study and scientific analysis (Phase 12 next)
+### ✅ Phase 12 — Robustness study
 
-- **Phase 12:** Execute 10/20/30% conditions using same masks across models;
-  evaluate all/masked/unmasked targets; ablations isolating graph context, state-space
-  inference, and masking representation.
-- **Phase 13:** Calibration diagnostics, error analysis, latency records;
+- Executed all nine conditions (10/20/30% × seeds 2026/2027/2028) for ST-DSSM,
+  deterministic ST-GCN and historical persistence using locked Phase 10 checkpoints
+  via `--predict-from` (ADR-0011); each condition is a forward pass over the test split.
+- Locked tables and machine-readable aggregate in `experiments/missingness/phase12_results.md`
+  and `phase12_results.json`; `python scripts/aggregate_phase12.py --check` re-derives
+  them from the 27 run manifests (the Phase 12 gate).
+- Ablations: graph context and state-space inference are covered by model comparison
+  in the condition tables (Persistence = no graph; ST-GCN = no state space). The
+  masked-training ablation (`apply_to_training: true`) retrains under the mask and is
+  reported separately from the primary cells (ADR-0011): run it with
+  `python scripts/run_phase12.py --ablation --ratio 20 --models st_dssm`, which carries
+  a `-masktrain` run identity and `--resume auto` so an interrupted run continues from
+  its last completed epoch. Budget ~4.5 GPU-hours per ST-DSSM run at 60 epochs
+  (measured on an RTX 4060 Laptop, 8 GB, `micro_batch_size: 32`).
+
+**Headline:** All models degrade under missingness. ST-DSSM shows higher seed variance
+at 20%/30% conditions (MAE range 2.6–3.5 mph at 20%) than ST-GCN (2.7–3.0 mph),
+suggesting the latent state can amplify input disruption. Masked-sensor MAE is
+consistently 2–3× the unmasked-sensor MAE across all models and conditions.
+
+### 🔲 Phase 13 — Calibration and robustness review
+
+- Calibration diagnostics, error analysis, latency records;
   claims and limitations reconciled with evidence.
 
-**Gate (Phase 13):** Primary 20% condition is repeated across seeds and directly
+**Gate:** Primary 20% condition is repeated across seeds and directly
 traceable to code/config/data/masks.
 
 ---

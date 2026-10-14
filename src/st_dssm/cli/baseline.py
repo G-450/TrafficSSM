@@ -34,6 +34,7 @@ from st_dssm.graph import (
 )
 from st_dssm.io import load_and_validate_artifact
 from st_dssm.mask_generator import MaskGenerator, resolve_mask_generator
+from st_dssm.mask_generator import condition_tag as build_condition_tag
 from st_dssm.training import (
     EarlyStopping,
     MaskedMAELoss,
@@ -46,12 +47,17 @@ from st_dssm.validator import validate_graph
 
 
 def _resolve_condition(
-    config: dict[str, Any], num_nodes: int, seed: int | None
+    config: dict[str, Any], num_nodes: int, seed: int | None, trains: bool = False
 ) -> tuple[MaskGenerator | None, bool, str]:
     """Resolve the run's masking condition and report it.
 
     Returns ``(generator, apply_to_training, run_id_tag)``. ``generator`` is None
     for the normal (0%) condition, in which case nothing about the run changes.
+
+    ``trains`` says whether the caller fits a model. A masked-training ablation
+    run is a different model from the primary condition run, so it earns its own
+    run-identity suffix (ADR-0011); for a model that never trains, the flag has
+    nothing to act on and is reported as ignored rather than tagged.
     """
     masking_cfg = config.get("masking") or {}
     generator = resolve_mask_generator(masking_cfg, num_nodes, seed)
@@ -59,13 +65,21 @@ def _resolve_condition(
     if generator is None:
         return None, apply_to_training, ""
 
+    if apply_to_training and not trains:
+        print(
+            "Note: masking.apply_to_training has no effect on a model that is not "
+            "fitted; this run is the primary condition.",
+            flush=True,
+        )
+        apply_to_training = False
+
     withheld = int((~generator.node_mask).sum())
     print(
         f"Experimental mask {generator.mask_id}: {withheld} of {generator.num_nodes} "
         f"sensors withheld from model inputs (checksum {generator.checksum[:12]}).",
         flush=True,
     )
-    return generator, apply_to_training, f"-{generator.mask_id}"
+    return generator, apply_to_training, build_condition_tag(generator, apply_to_training)
 
 
 def _mask_eval_config(
@@ -198,7 +212,7 @@ def train_and_eval_st_gcn(
     # so the evaluator still scores every sensor (ADR-0004). Masking is in place
     # because a full split of inputs is hundreds of megabytes.
     mask_generator, mask_training, condition_tag = _resolve_condition(
-        config, train_x.shape[2], seed
+        config, train_x.shape[2], seed, trains=True
     )
     if mask_generator is not None:
         test_x, test_x_mask = mask_generator.apply_mask(test_x, test_x_mask, copy=False)

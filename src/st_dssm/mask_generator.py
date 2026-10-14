@@ -236,6 +236,31 @@ class MaskGenerator:
         }
 
 
+# The run-identity suffix for a masked-training ablation run. A primary
+# condition run masks inputs at inference only (ADR-0011); an ablation run also
+# masks them during training and is a different model. Both would otherwise
+# share a run-id prefix at the same condition and seed, so "--resume auto" could
+# continue one from the other's training state, silently mixing the two.
+MASK_TRAINING_TAG = "-masktrain"
+
+
+def condition_tag(
+    generator: MaskGenerator | None, apply_to_training: bool = False
+) -> str:
+    """The run-identity suffix for a masking condition.
+
+    Empty for the normal (0%) condition, ``-node20-seed2026`` for a primary
+    condition run, and ``-node20-seed2026-masktrain`` for the ablation that also
+    withholds the sensors during training.
+    """
+    if generator is None:
+        return ""
+    tag = f"-{generator.mask_id}"
+    if apply_to_training:
+        tag += MASK_TRAINING_TAG
+    return tag
+
+
 def resolve_mask_generator(
     masking_cfg: dict | None,
     num_nodes: int,
