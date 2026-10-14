@@ -12,6 +12,7 @@ manifest and can be re-derived with that script's `--check` flag.
 
 The authoritative project documentation is in [docs/](docs/README.md). Begin with:
 
+- [Final report](docs/FINAL_REPORT.md) — the finished study, every number linked to its evidence
 - [Current implementation state](docs/CURRENT_STATE.md)
 - [Limitations and claim reconciliation](docs/LIMITATIONS.md) — what the results do **not** support
 - [Product requirements](docs/PRD.md)
@@ -21,8 +22,10 @@ The authoritative project documentation is in [docs/](docs/README.md). Begin wit
 
 ## Current state
 
-Phases 1–13 are implemented, verified and locked; Phase 14 (final release) remains.
-361 automated tests pass. See [current state](docs/CURRENT_STATE.md) for the detail.
+**Released as v1.0.0.** All fourteen phases are complete, implemented, verified
+and locked; 363 automated tests pass. The finished study is written up in the
+[final report](docs/FINAL_REPORT.md), and [current state](docs/CURRENT_STATE.md)
+has the detail.
 
 | Deliverable | Locked results | Verify with |
 |---|---|---|

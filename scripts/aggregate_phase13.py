@@ -101,10 +101,18 @@ ABLATION_CONDITION = "20%"
 TARGET_GROUPS = ("all", "masked", "unmasked")
 ARMS = ("raw", "calibrated")
 
-# Recomputation from identical artifacts in one environment is deterministic,
-# so --check holds the aggregate to near-exact equality. The tolerance only
-# absorbs float64 formatting round-trips through JSON.
-CHECK_RTOL = 1e-9
+# Unlike Phases 10 and 12, which compare values stored in the run manifests and
+# can therefore afford 1e-12, this gate *recomputes* every diagnostic from the
+# prediction artifacts. Recomputation is bit-identical within one environment,
+# but float32 reduction order differs across torch/numpy versions, so a
+# cross-environment re-derivation from checksum-identical artifacts lands about
+# 1e-7 away (max observed 1.7e-5, on a three-seed standard deviation, where
+# cancellation amplifies the relative error). Holding the gate tighter than that
+# would make it pass only on the machine that produced the lock, which is not a
+# reproducibility guarantee. This tolerance verifies every value to four
+# significant figures — the precision at which the deliverable reports them —
+# while still catching any change large enough to alter a reported number.
+CHECK_RTOL = 1e-4
 
 
 class AggregationError(Exception):
@@ -1273,7 +1281,8 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print(
             f"Phase 13 results verified: {len(agg['sources'])} runs reproduce "
-            f"{os.path.relpath(json_path)} exactly."
+            f"{os.path.relpath(json_path)} to within {CHECK_RTOL:g} relative "
+            "(four significant figures; see the CHECK_RTOL comment)."
         )
         return 0
 

@@ -26,7 +26,7 @@ The project restarted its implementation on 2026-08-13.
 | 11 | Missingness mechanism | ✅ Done |
 | 12 | Robustness study | ✅ Done |
 | 13 | Calibration and robustness review | ✅ Done |
-| 14 | Final release | 🔲 Pending |
+| 14 | Final release | ✅ Done |
 
 ---
 
@@ -462,13 +462,42 @@ re-derives every number from checksummed manifests and prediction artifacts.
 
 ---
 
-### 🔲 Phase 14 — Final release
+### ✅ Phase 14 — Final release
 
-- Verify clean-environment install and smoke run
-- Freeze manifests and outputs; tag release when Git history is clean
-- Finalize documentation and report with links to evidence
+- **Clean-environment install verified**: `pip install -e ".[dev]"` into a fresh
+  Python 3.12 virtual environment resolves and installs from `pyproject.toml`
+  alone, with the eight console entry points importable and the test suite
+  passing. The clean environment resolves to newer pins than the study used
+  (`torch>=2.0.0` floats to 2.14.1), which is the intended contract: the package
+  installs and runs on current dependencies, while the exact study environments
+  are recorded per run in the deliverables.
+- **Outputs frozen**: all three aggregators re-derive their locked deliverables
+  from checksummed manifests and prediction artifacts
+  (`aggregate_phase10.py --check`, `aggregate_phase12.py --check`,
+  `aggregate_phase13.py --check`), run against the release commit. Verifying
+  Phase 13 on a machine whose torch and numpy differ from the lock's exposed a
+  gate defect: `CHECK_RTOL` was 1e-9, but recomputation from checksum-identical
+  artifacts under different library versions lands ~1e-7 away (float32 reduction
+  order), so the gate passed only on the machine that produced the lock. The
+  tolerance is now 1e-4 — four significant figures, the precision at which the
+  deliverable reports values — with two tests pinning both halves of the
+  behaviour: 1e-7 noise is tolerated, a 1e-3 change is still caught. No locked
+  number changed.
+- **Final report**: [FINAL_REPORT.md](FINAL_REPORT.md) presents the study with
+  every number linked to the deliverable and command that reproduces it, the
+  H0/H1 verdicts, the PRD requirement-coverage matrix, and future work.
+- **Documentation finalized**: the two items `CURRENT_STATE.md` had parked for
+  Phase 14 are settled as stated limitations rather than left open — the run
+  environments are now described accurately as the three the manifests record
+  (`LIMITATIONS.md` §6, previously "two"), and the single-condition scope of the
+  masked-training ablation is recorded in `LIMITATIONS.md` §3 and the report §6.
+- **Release tagged**: `v1.0.0` on a clean history, with Phases 11–13 merged to
+  `main`.
 
-**Gate:** A reviewer can rerun the documented workflow and audit every conclusion.
+**Gate:** A reviewer can rerun the documented workflow and audit every
+conclusion. ✅ — [run.md](../run.md) carries the end-to-end commands, every
+reported number is regenerable with a `--check` flag, and
+[LIMITATIONS.md](LIMITATIONS.md) states what the evidence does not support.
 
 ---
 

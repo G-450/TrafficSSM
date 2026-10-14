@@ -6,6 +6,7 @@ This directory is the authoritative documentation for **Uncertainty-Aware Time-S
 
 | Need | Canonical document |
 |---|---|
+| The finished study, with evidence links | [Final report](FINAL_REPORT.md) |
 | What and why we are building | [PRD](PRD.md) |
 | What exists today | [Current state](CURRENT_STATE.md) |
 | Technical design | [Architecture](ARCHITECTURE.md) |
@@ -29,4 +30,4 @@ This directory is the authoritative documentation for **Uncertainty-Aware Time-S
 
 ## Legacy material
 
-`REPORT.md`, `prob.md`, and `PHASE1_SUMMARY.md` were reviewed as historical inputs. They are not canonical because they contain future-state descriptions and, in places, statements that conflict with the checked implementation. Their useful requirements have been reconciled here; unresolved differences are listed in [open questions](OPEN_QUESTIONS.md).
+`REPORT.md`, `prob.md`, and `PHASE1_SUMMARY.md` were reviewed as historical inputs. They are not canonical because they contain future-state descriptions and, in places, statements that conflict with the checked implementation. The canonical write-up of the finished study is [FINAL_REPORT.md](FINAL_REPORT.md), whose every number is traceable to a locked deliverable; the legacy `REPORT.md` is not its predecessor and should not be read as one. Their useful requirements have been reconciled here; unresolved differences are listed in [open questions](OPEN_QUESTIONS.md).

@@ -1,8 +1,12 @@
 # Current project state
 
 **Status date:** 2026-10-14
-**Delivery state:** Phase 13 calibration and robustness review is complete. Every
-experimental phase (1-13) is done and locked; only Phase 14 final release remains.
+**Delivery state:** **Released as v1.0.0.** All fourteen phases are complete.
+Every experimental phase (1-13) is done and locked, and Phase 14 has verified a
+clean-environment install, re-derived all three locked deliverables against the
+release commit, and published the final report
+([FINAL_REPORT.md](FINAL_REPORT.md)), which carries the study's conclusions with
+every number traceable to the command that reproduces it.
 The locked deliverables are `experiments/normal/phase10_results.md`,
 `experiments/missingness/phase12_results.md` (30 runs, including the completed
 masked-training ablation) and `experiments/calibration/phase13_results.md`
@@ -134,35 +138,46 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 | Phase 11 (masking wiring, leakage gate, target groups) | 21 | ✅ Passing |
 | Phase 12 (condition aggregator, ablation arm, run script) | 18 | ✅ Passing |
 | Phase 13 (calibration diagnostics and temperature scaling) | 28 | ✅ Passing |
-| Phase 13 (calibration aggregator, gates, runner) | 30 | ✅ Passing |
+| Phase 13 (calibration aggregator, gates, runner) | 32 | ✅ Passing |
 | Phase 13 (reliability and PIT plots) | 6 | ✅ Passing |
-| **Total** | **361** | **✅ All passing** |
+| **Total** | **363** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 
-## Next authorized work
+## Release state and remaining optional scope
 
-Phase 13 is complete. Proceed to
-[Phase 14 — Final release](IMPLEMENTATION_PLAN.md):
-- Verify a clean-environment install and smoke run
-- Freeze manifests and outputs; tag the release once Git history is clean
-- Finalize documentation and the report with links to evidence
+**Phase 14 is complete and the project is released as v1.0.0.** The release
+verified a clean-environment install from `pyproject.toml` alone, re-derived all
+three locked deliverables with their `--check` flags, published
+[FINAL_REPORT.md](FINAL_REPORT.md), and tagged a clean history with Phases 11-13
+merged to `main`.
 
-**Gate:** a reviewer can rerun the documented workflow and audit every conclusion.
+**Gate (met):** a reviewer can rerun the documented workflow ([run.md](../run.md))
+and audit every conclusion.
 
-Known items to settle during Phase 14:
-- The study spans two installed environments (torch 2.6.0+cu124 and 2.12.1+cu130). Both
-  aggregators now record every distinct environment with the runs that used it, and
-  [LIMITATIONS.md](LIMITATIONS.md) §6 states the consequence.
-- Masked-training ablation runs exist at 20% only, for ST-DSSM only (~4.5 GPU-hours per
-  additional run). Extending to 10%/30% is optional scope, not a release blocker.
+The two items previously parked for Phase 14 are settled as stated limitations,
+not as open work:
+- The study spans **three** recorded run environments, not two; the manifests
+  record `torch 2.6.0+cu124` (26 runs), `2.12.1+cu130` (7) and `2.12.1+cpu` (8,
+  including the regenerated Phase 10 manifests). Each aggregator lists every
+  distinct environment with the runs that used it, and
+  [LIMITATIONS.md](LIMITATIONS.md) §6 states the consequence and the caveat that a
+  recorded environment is the one that wrote the manifest, not necessarily the one
+  that trained the model.
+- Masked-training ablation runs exist at 20% only, for ST-DSSM only (~4.5
+  GPU-hours per additional run). Extending to 10%/30% is optional post-release
+  scope, recorded in [LIMITATIONS.md](LIMITATIONS.md) §3 and
+  [FINAL_REPORT.md](FINAL_REPORT.md) §11.
 
-**Compute note (2026-10-13):** the installed PyTorch is `2.12.1+cpu`, so
-`torch.cuda.is_available()` is `False`. Per ADR-0011 a condition is a forward pass over
-the test split rather than a training run, so the Phase 12 condition matrix does not need
-the GPU; the masked-training ablation does. The Phase 10 runs were trained on CUDA (an
-RTX 4060 Laptop GPU), so reinstall a CUDA build of torch before any run that fits
-parameters, or the ~5 min/epoch figure below no longer holds.
+**Compute note (2026-10-14, supersedes the 2026-10-13 note):** the installed
+PyTorch is now `2.6.0+cu124` and `torch.cuda.is_available()` is `True`, so the
+~5 min/epoch figure below holds again and no reinstall is needed before a
+parameter-fitting run. Per ADR-0011 a condition is a forward pass over the test
+split rather than a training run, so the Phase 12 condition matrix does not need
+the GPU; the masked-training ablation does. A clean environment installing from
+`pyproject.toml` alone resolves `torch>=2.0.0` to a current release (2.14.1 as of
+this date) — intended, since the package must install on current dependencies
+while the exact study environments stay recorded per run.
 
 ## Reproducing the Phase 10 results
 
@@ -178,9 +193,14 @@ than reading manifests, so it needs the git-ignored `*_predictions.npz` files on
 disk and takes a few minutes; it fails with explicit guidance when they are absent.
 
 Metrics are bit-identical when recomputed from the same predictions in the same
-environment. Values recomputed in a different process can differ by ~1e-7 relative
-(float32 summation order over ~4e7 targets), which is six significant figures below
-the reported precision.
+environment. Values recomputed in a different process, or under a different torch
+or numpy version, can differ by ~1e-7 relative (float32 summation order over ~4e7
+targets), which is six significant figures below the reported precision. The
+Phase 13 gate therefore compares at `CHECK_RTOL = 1e-4` — four significant
+figures, the precision at which the deliverable reports values — because at 1e-9
+it passed only on the machine that produced the lock. It proves the tables derive
+from those exact artifacts and that no reported number moved, not bit-identical
+recomputation; see [LIMITATIONS.md](LIMITATIONS.md) §6.
 
 
 
