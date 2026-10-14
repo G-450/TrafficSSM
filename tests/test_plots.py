@@ -7,6 +7,7 @@ respect physical units, and handle edge cases gracefully.
 from __future__ import annotations
 
 import os
+from typing import ClassVar
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,7 +19,9 @@ from st_dssm.plots import (
     plot_horizon_metrics,
     plot_interval_width_vs_horizon,
     plot_metric_comparison,
+    plot_pit_histogram,
     plot_prediction_intervals,
+    plot_reliability_comparison,
 )
 
 
@@ -146,3 +149,60 @@ class TestPlots:
         out = str(tmp_path / "bad.png")
         with pytest.raises(ValueError, match="same length"):
             plot_horizon_metrics([1, 2], [1.0], "MAE", out)
+
+
+class TestPhase13Plots:
+    LEVELS: ClassVar[list[float]] = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
+
+    def test_plot_reliability_comparison_creates_file(self, tmp_path):
+        out = str(tmp_path / "reliability.png")
+        arms = {
+            "raw": [0.62, 0.71, 0.79, 0.86, 0.93, 0.96, 0.991],
+            "temperature-scaled": [0.51, 0.61, 0.70, 0.80, 0.90, 0.95, 0.990],
+        }
+
+        result = plot_reliability_comparison(
+            self.LEVELS, arms, out, title="ST-DSSM calibration"
+        )
+        assert result == out
+        assert os.path.getsize(out) > 0
+        assert len(plt.get_fignums()) == 0
+
+    def test_plot_reliability_comparison_without_gap_panel(self, tmp_path):
+        out = str(tmp_path / "reliability_nogap.png")
+        arms = {"raw": [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]}
+        plot_reliability_comparison(self.LEVELS, arms, out, gap_panel=False)
+        assert os.path.getsize(out) > 0
+        assert len(plt.get_fignums()) == 0
+
+    def test_plot_reliability_comparison_rejects_bad_arms(self, tmp_path):
+        out = str(tmp_path / "bad_reliability.png")
+        with pytest.raises(ValueError, match="must not be empty"):
+            plot_reliability_comparison(self.LEVELS, {}, out)
+        with pytest.raises(ValueError, match="expected 7"):
+            plot_reliability_comparison(self.LEVELS, {"raw": [0.5, 0.6]}, out)
+
+    def test_plot_pit_histogram_creates_file(self, tmp_path):
+        out = str(tmp_path / "pit.png")
+        rng = np.random.default_rng(2026)
+        densities = list(1.0 + rng.normal(0.0, 0.05, size=20))
+
+        result = plot_pit_histogram(densities, out, title="PIT, seed 2026")
+        assert result == out
+        assert os.path.getsize(out) > 0
+        assert len(plt.get_fignums()) == 0
+
+    def test_plot_pit_histogram_accepts_explicit_edges(self, tmp_path):
+        out = str(tmp_path / "pit_edges.png")
+        densities = [0.8, 1.1, 1.2, 0.9]
+        edges = list(np.linspace(0.0, 1.0, 5))
+        plot_pit_histogram(densities, out, edges=edges, label="observed")
+        assert os.path.getsize(out) > 0
+        assert len(plt.get_fignums()) == 0
+
+    def test_plot_pit_histogram_rejects_bad_input(self, tmp_path):
+        out = str(tmp_path / "bad_pit.png")
+        with pytest.raises(ValueError, match="must not be empty"):
+            plot_pit_histogram([], out)
+        with pytest.raises(ValueError, match="must have 3 entries"):
+            plot_pit_histogram([1.0, 1.0], out, edges=[0.0, 0.5])

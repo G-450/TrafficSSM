@@ -1,11 +1,14 @@
 # Current project state
 
 **Status date:** 2026-10-14
-**Delivery state:** Phase 12 robustness study is complete: all nine conditions
-(10/20/30% × seeds 2026/2027/2028) were executed for ST-DSSM, deterministic ST-GCN and
-historical persistence, and the locked tables live in `experiments/missingness/`.
-Phase 13 calibration and robustness review is next. The Phase 10 and Phase 11/12
-results remain locked and verifiable from manifests alone.
+**Delivery state:** Phase 13 calibration and robustness review is complete. Every
+experimental phase (1-13) is done and locked; only Phase 14 final release remains.
+The locked deliverables are `experiments/normal/phase10_results.md`,
+`experiments/missingness/phase12_results.md` (30 runs, including the completed
+masked-training ablation) and `experiments/calibration/phase13_results.md`
+(calibration diagnostics, error analysis, measured latency), each regenerable and
+verifiable with its aggregator's `--check` flag. Scientific claims and their
+limits are stated in [LIMITATIONS.md](LIMITATIONS.md).
 
 ## Implemented foundation
 
@@ -40,14 +43,48 @@ results remain locked and verifiable from manifests alone.
   locked Phase 10 checkpoints via `--predict-from` (forward passes only, no retraining).
   `scripts/run_phase12.py` automates the 27 runs; `scripts/aggregate_phase12.py` writes
   the locked tables and `--check` re-derives them. Key finding: all models degrade under
-  missingness; ST-DSSM shows higher seed variance at 20/30% (MAE 2.6–3.5 mph at 20%)
-  than ST-GCN (2.7–3.0 mph). Masked-sensor MAE is 2–3× the unmasked-sensor MAE across
-  all models and conditions. The masking-representation ablation
-  (`apply_to_training: true`) retrains under the mask, so it is a different model from a
-  primary condition run: its run identity carries `-masktrain`, and the aggregator reports
-  it in its own labelled section rather than in a primary cell (ADR-0011).
+  missingness; in the primary arm ST-DSSM shows higher seed variance at 20/30%
+  (MAE 2.945 ± 0.471 mph at 20%) than ST-GCN (2.830 ± 0.141). Masked-sensor MAE is
+  2–3× the unmasked-sensor MAE across all models and conditions. The
+  masking-representation ablation (`apply_to_training: true`) retrains under the mask, so
+  it is a different model from a primary condition run: its run identity carries
+  `-masktrain`, and the aggregator reports it in its own labelled section rather than in a
+  primary cell (ADR-0011). **The ablation completed on 2026-10-14 for all three seeds and
+  is locked** (30 manifests total): training under the mask gives MAE 2.108 ± 0.018 mph
+  at 20%, with masked-sensor MAE falling 5.986 -> 2.841, a 26× tighter across-seed
+  spread. That refutes the earlier reading of the seed variance as the latent state
+  amplifying input disruption — it is a train/test representation mismatch. See
+  [LIMITATIONS.md](LIMITATIONS.md) §3 for the caveats that travel with this result
+  (one condition, ST-DSSM only, mask known at training time).
   See `experiments/missingness/phase12_results.md` for locked tables and
   `experiments/missingness/plots/phase12_*.png` for the per-condition comparison figures.
+
+- **Phase 13 Calibration and robustness review:** `st_dssm.calibration` adds reliability
+  tables with signed coverage gaps over seven nominal levels, an interval expected
+  calibration error, PIT diagnostics with a total-variation PIT error, and the ADR-0008
+  secondary temperature-scaling analysis, whose NLL-optimal scalar has the closed form
+  $T^{*} = \sqrt{\text{mean}(r^2)}$ over standardized residuals (verified against a dense
+  grid search). `scripts/run_phase13.py` scores each locked Phase 10 checkpoint over the
+  validation split so the temperature is fitted on validation and frozen before any test
+  number; `scripts/measure_latency.py` records measured inference latency on the GPU and
+  the CPU fallback; `scripts/aggregate_phase13.py` locks
+  `experiments/calibration/phase13_results.{md,json}` plus 12 figures, and `--check`
+  re-derives them from checksummed manifests *and* prediction artifacts. Key findings:
+  point accuracy degrades gracefully under sensor loss while the predictive distribution
+  does not (aggregate NLL 2.117 -> 6.675 at 20%, and 24.224 at withheld sensors, where
+  PICP falls to 0.665 against a nominal 0.95); the forecast is over-dispersed in the bulk
+  and under-dispersed in the tail even in the normal condition, so the fitted temperature
+  (1.0694 ± 0.0196) lowers NLL while raising interval ECE (0.0724 -> 0.0887) — a
+  scalar cannot repair a shape mismatch. Aggregate interval ECE *falls* under missingness
+  while NLL triples, and must not be quoted as evidence of robust calibration. The
+  per-horizon analysis inverts the usual intuition: coverage is worst at the *shortest*
+  horizon, and at a withheld sensor the 5-minute 95% interval covers the truth only 39%
+  of the time (0.794 at 60 min), because a short-horizon interval is narrow precisely
+  where the observation justifying it was removed. The predictive mean is also biased
+  low, increasingly so as sensors are withheld (mean PIT 0.524 normal -> 0.588 at 30%).
+  H0 is rejected and H1's "calibration remains reasonable" clause is false at withheld
+  sensors (interval ECE 0.0724 -> 0.2775). Limits and caveats:
+  [LIMITATIONS.md](LIMITATIONS.md).
 
 - **Phase 10 Normal-condition study:** hyperparameters tuned against validation NLL only
   (`scripts/tune_phase10.py`, search recorded in `experiments/tuning/`, best val NLL 2.118),
@@ -96,20 +133,29 @@ The canonical spatial-temporal encoder was verified across all 10,403 test sampl
 | Phase 11 (mask generation) | 15 | ✅ Passing |
 | Phase 11 (masking wiring, leakage gate, target groups) | 21 | ✅ Passing |
 | Phase 12 (condition aggregator, ablation arm, run script) | 18 | ✅ Passing |
-| **Total** | **297** | **✅ All passing** |
+| Phase 13 (calibration diagnostics and temperature scaling) | 28 | ✅ Passing |
+| Phase 13 (calibration aggregator, gates, runner) | 30 | ✅ Passing |
+| Phase 13 (reliability and PIT plots) | 6 | ✅ Passing |
+| **Total** | **361** | **✅ All passing** |
 
 *Note: `test_encoder_cli_unrecognized_graph_and_missing_metadata` requires the canonical `data/processed` artifact to be present on disk; it is skipped in environments without PEMS-BAY data (pre-existing condition, not caused by Phase 7/8 changes).*
 
 ## Next authorized work
 
-Phase 12 is complete. Proceed to
-[Phase 13 — Calibration and robustness review](IMPLEMENTATION_PLAN.md):
-- Calibration diagnostics: reliability diagrams, expected calibration error, temperature
-  scaling analysis (secondary, per ADR-0008)
-- Error analysis: per-horizon degradation curves under each condition, masked vs unmasked
-  sensor breakdown
-- Latency records and claims reconciled with evidence from `experiments/missingness/`
-- Limitations statement (seed variance at 20/30%, masking-representation ablation deferred)
+Phase 13 is complete. Proceed to
+[Phase 14 — Final release](IMPLEMENTATION_PLAN.md):
+- Verify a clean-environment install and smoke run
+- Freeze manifests and outputs; tag the release once Git history is clean
+- Finalize documentation and the report with links to evidence
+
+**Gate:** a reviewer can rerun the documented workflow and audit every conclusion.
+
+Known items to settle during Phase 14:
+- The study spans two installed environments (torch 2.6.0+cu124 and 2.12.1+cu130). Both
+  aggregators now record every distinct environment with the runs that used it, and
+  [LIMITATIONS.md](LIMITATIONS.md) §6 states the consequence.
+- Masked-training ablation runs exist at 20% only, for ST-DSSM only (~4.5 GPU-hours per
+  additional run). Extending to 10%/30% is optional scope, not a release blocker.
 
 **Compute note (2026-10-13):** the installed PyTorch is `2.12.1+cpu`, so
 `torch.cuda.is_available()` is `False`. Per ADR-0011 a condition is a forward pass over
@@ -123,7 +169,13 @@ parameters, or the ~5 min/epoch figure below no longer holds.
 ```bash
 python scripts/aggregate_phase10.py --check    # verify the locked tables
 python scripts/aggregate_phase10.py            # regenerate tables and figures
+python scripts/aggregate_phase12.py --check    # Phase 12 condition matrix (30 manifests)
+python scripts/aggregate_phase13.py --check    # Phase 13 calibration diagnostics
 ```
+
+`aggregate_phase13.py` recomputes calibration from the prediction artifacts rather
+than reading manifests, so it needs the git-ignored `*_predictions.npz` files on
+disk and takes a few minutes; it fails with explicit guidance when they are absent.
 
 Metrics are bit-identical when recomputed from the same predictions in the same
 environment. Values recomputed in a different process can differ by ~1e-7 relative

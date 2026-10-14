@@ -11,6 +11,7 @@ This directory is the authoritative documentation for **Uncertainty-Aware Time-S
 | Technical design | [Architecture](ARCHITECTURE.md) |
 | Data rules and interfaces | [Data contract](DATA_CONTRACT.md) |
 | Experiments and scientific claims | [Research and experiments](RESEARCH_AND_EXPERIMENTS.md) |
+| What the results do **not** support | [Limitations and claim reconciliation](LIMITATIONS.md) |
 | Delivery sequence | [Implementation plan](IMPLEMENTATION_PLAN.md) |
 | Quality, reproducibility, and testing | [Quality and reproducibility](QUALITY_AND_REPRODUCIBILITY.md) |
 | Git, commits, pull requests, and merging | [Development workflow](DEVELOPMENT_WORKFLOW.md) |

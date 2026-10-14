@@ -11,6 +11,8 @@ plot_calibration_curve : reliability diagram comparing empirical vs nominal cove
 plot_interval_width_vs_horizon : interval width across forecast horizons in minutes.
 plot_metric_comparison : grouped bar chart comparing multiple models or conditions.
 plot_horizon_curves : multi-model horizon curves with across-seed spread bands.
+plot_reliability_comparison : reliability diagram overlaying raw and calibrated arms.
+plot_pit_histogram : probability-integral-transform histogram against the uniform.
 """
 
 from __future__ import annotations
@@ -471,6 +473,156 @@ def plot_horizon_curves(
     ax.set_ylabel(ylabel)
     ax.set_title(title or f"{metric_name} across forecast horizons", fontsize=14, fontweight="bold")
     ax.set_xticks(x)
+    ax.legend(loc="best", framealpha=0.7)
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return output_path
+
+
+# ---------------------------------------------------------------------------
+# Reliability comparison (raw vs calibrated)
+# ---------------------------------------------------------------------------
+
+
+def plot_reliability_comparison(
+    nominal_levels: list[float],
+    arms: dict[str, list[float]],
+    output_path: str,
+    *,
+    title: str | None = None,
+    gap_panel: bool = True,
+) -> str:
+    """Reliability diagram overlaying several arms against the ideal diagonal.
+
+    Phase 13 uses this to read the raw and temperature-scaled forecasts side by
+    side (ADR-0008 requires both to be reported).
+
+    Parameters
+    ----------
+    nominal_levels : nominal coverage levels (x-axis), ascending.
+    arms : ``{label: empirical_coverages}``, one entry per curve.
+    output_path : file path to save the figure.
+    title : optional title.
+    gap_panel : when True, add a lower panel of signed coverage gaps, which
+        resolves differences the diagonal plot compresses near 1.0.
+
+    Returns
+    -------
+    The output file path.
+    """
+    if not arms:
+        raise ValueError("arms must not be empty.")
+    n = len(nominal_levels)
+    for label, coverages in arms.items():
+        if len(coverages) != n:
+            raise ValueError(
+                f"Arm '{label}' has {len(coverages)} coverages but expected {n}."
+            )
+
+    _apply_style()
+    if gap_panel:
+        fig, (ax, ax_gap) = plt.subplots(
+            2, 1, figsize=(7.5, 9), height_ratios=[2.2, 1], sharex=True
+        )
+    else:
+        fig, ax = plt.subplots(figsize=(7.5, 7))
+        ax_gap = None
+
+    x = np.asarray(nominal_levels, dtype=float)
+    ax.plot([0, 1], [0, 1], "--", color="#a0a0a0", linewidth=1.5, label="Ideal calibration")
+
+    for i, (label, coverages) in enumerate(arms.items()):
+        color = _PALETTE[i % len(_PALETTE)]
+        y = np.asarray(coverages, dtype=float)
+        ax.plot(x, y, "o-", color=color, linewidth=2.0, markersize=6, label=label)
+        if ax_gap is not None:
+            ax_gap.plot(x, y - x, "o-", color=color, linewidth=1.8, markersize=5, label=label)
+
+    lo = float(min(x.min(), min(min(v) for v in arms.values())))
+    ax.set_xlim([max(0.0, lo - 0.05), 1.02])
+    ax.set_ylim([max(0.0, lo - 0.05), 1.02])
+    ax.set_ylabel("Empirical coverage (PICP)")
+    ax.set_title(title or "Uncertainty calibration (reliability diagram)", fontsize=14, fontweight="bold")
+    ax.legend(loc="lower right", framealpha=0.7)
+
+    if ax_gap is not None:
+        ax_gap.axhline(0.0, color="#a0a0a0", linestyle="--", linewidth=1.5)
+        ax_gap.set_xlabel("Nominal coverage probability")
+        ax_gap.set_ylabel("Coverage gap\n(empirical - nominal)")
+    else:
+        ax.set_xlabel("Nominal coverage probability")
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return output_path
+
+
+# ---------------------------------------------------------------------------
+# PIT histogram
+# ---------------------------------------------------------------------------
+
+
+def plot_pit_histogram(
+    densities: list[float],
+    output_path: str,
+    *,
+    edges: list[float] | None = None,
+    title: str | None = None,
+    label: str | None = None,
+) -> str:
+    """Histogram of probability-integral-transform values against the uniform.
+
+    Bars are normalized so a calibrated forecast sits on the 1.0 reference
+    line; a central peak means over-dispersion and a U shape under-dispersion.
+
+    Parameters
+    ----------
+    densities : per-bin densities normalized to a calibrated level of 1.0.
+    output_path : file path to save the figure.
+    edges : optional ``len(densities) + 1`` bin edges; defaults to equal-width
+        bins over [0, 1].
+    title : optional title.
+    label : optional legend label for the bars.
+
+    Returns
+    -------
+    The output file path.
+    """
+    if not densities:
+        raise ValueError("densities must not be empty.")
+    if edges is not None and len(edges) != len(densities) + 1:
+        raise ValueError(
+            f"edges must have {len(densities) + 1} entries, got {len(edges)}."
+        )
+
+    bin_edges = (
+        np.asarray(edges, dtype=float)
+        if edges is not None
+        else np.linspace(0.0, 1.0, len(densities) + 1)
+    )
+    centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    widths = np.diff(bin_edges)
+
+    _apply_style()
+    fig, ax = plt.subplots(figsize=(9, 5.5))
+
+    ax.bar(
+        centers,
+        np.asarray(densities, dtype=float),
+        width=widths * 0.92,
+        color=_PALETTE[0],
+        alpha=0.85,
+        label=label or "Observed PIT density",
+    )
+    ax.axhline(1.0, color="#a0a0a0", linestyle="--", linewidth=1.5, label="Calibrated (uniform)")
+
+    ax.set_xlabel(r"PIT value  $\Phi((y - \hat{\mu}) / \hat{\sigma})$")
+    ax.set_ylabel("Density relative to uniform")
+    ax.set_title(title or "Probability integral transform", fontsize=14, fontweight="bold")
+    ax.set_xlim([bin_edges[0], bin_edges[-1]])
     ax.legend(loc="best", framealpha=0.7)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)

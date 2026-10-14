@@ -114,6 +114,73 @@ st-dssm-evaluate --artifact-dir data/processed \
 ```
 
 ---
+**Step 7: Phase 12 — Robustness condition study**
+
+The runner executes the whole 27-run condition matrix (10/20/30% × seeds
+2026/2027/2028 × three models), skipping any condition that already has a manifest.
+Primary runs are forward passes, so no GPU is needed:
+
+```bash
+python scripts/run_phase12.py                   # the full matrix -> experiments/missingness/
+python scripts/run_phase12.py --dry-run         # show what would run
+python scripts/run_phase12.py --ratio 20        # only the primary condition
+```
+
+The masking-representation ablation retrains under the mask, so it is a different model
+from a primary condition run and is reported separately (ADR-0011). These are full
+training runs (~4.5 GPU-hours each) and are launched with `--resume auto`, so an
+interrupted run continues from its last completed epoch:
+
+```bash
+python scripts/run_phase12.py --ablation --ratio 20 --models st_dssm
+```
+
+Lock and verify:
+
+```bash
+python scripts/aggregate_phase12.py             # -> phase12_results.md / .json / plots
+python scripts/aggregate_phase12.py --check     # fails if the tables drifted
+```
+
+---
+**Step 8: Phase 13 — Calibration and robustness review**
+
+Phase 13 needs validation predictions, because ADR-0008 allows temperature scaling only
+as a validation-fitted secondary analysis: the scalar must be selected on the validation
+split and frozen before any test number. The runner scores each locked Phase 10
+checkpoint over the validation split (a forward pass, nothing is retrained) and then
+measures inference latency on the accelerator and on the CPU fallback:
+
+```bash
+python scripts/run_phase13.py                   # validation passes + latency records
+python scripts/run_phase13.py --dry-run
+python scripts/run_phase13.py --skip-latency    # validation passes only
+```
+
+Lock and verify the review:
+
+```bash
+python scripts/aggregate_phase13.py             # -> phase13_results.md / .json / plots
+python scripts/aggregate_phase13.py --check     # fails if any diagnostic drifted
+```
+
+Unlike the Phase 10 and Phase 12 aggregators, this one does **not** read its numbers from
+run manifests: a reliability curve, a PIT histogram and a temperature are functions of the
+full predictive distribution, so they are recomputed from the saved `*_predictions.npz`
+artifacts and the canonical targets. Consequences worth knowing:
+
+- The prediction artifacts are git-ignored (~160 MB each) and must be present on disk.
+  The aggregator fails with explicit guidance naming the missing file and the runner that
+  regenerates it.
+- A SHA256 of every prediction artifact read is recorded in `phase13_results.json`, so the
+  lock is tied to exact artifacts rather than to filenames.
+- A full aggregation recomputes diagnostics over ~40 million targets per run and takes a
+  few minutes; `--check` costs the same.
+
+Only ST-DSSM is diagnosed — the two baselines are point forecasters with no predictive
+scale to calibrate (ADR-0008). They still appear in the latency record.
+
+---
 **Regenerating a single run's manifest**
 
 Evaluation is deterministic given a run's saved `*_predictions.npz`, so a manifest can be

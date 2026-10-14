@@ -1,0 +1,67 @@
+{
+  "checkpoints": {
+    "Deterministic ST-GCN": "experiments/normal/checkpoints/baseline-st_gcn-test-seed2026-20261010-014123_best.pt",
+    "ST-DSSM (ours)": "experiments/normal/checkpoints/st_dssm-test-seed2026-20261012-020607_best.pt"
+  },
+  "environment": {
+    "device": "cuda",
+    "device_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "numpy": "1.26.4",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "python": "3.12.10",
+    "torch": "2.12.1+cu130"
+  },
+  "measured_at_utc": "2026-10-14T12:10:45.063168+00:00",
+  "models": [
+    {
+      "batch_size": 64,
+      "device": "cpu",
+      "model_name": "Historical Persistence",
+      "per_batch_median_ms": 0.03604999801609665,
+      "per_window_max_ms": 0.0012765624433086487,
+      "per_window_median_ms": 0.0005632812190015102,
+      "per_window_min_ms": 0.0005140623215993401,
+      "per_window_p95_ms": 0.001218750185216777,
+      "timed_batches": 30,
+      "trainable_parameters": 0,
+      "windows_per_second": 1775312.1642731691
+    },
+    {
+      "batch_size": 64,
+      "device": "cuda",
+      "model_name": "Deterministic ST-GCN",
+      "per_batch_median_ms": 71.42079999903217,
+      "per_window_max_ms": 1.23029843734912,
+      "per_window_median_ms": 1.1159499999848776,
+      "per_window_min_ms": 1.0670062499684718,
+      "per_window_p95_ms": 1.2231999999130494,
+      "timed_batches": 30,
+      "trainable_parameters": 109260,
+      "windows_per_second": 896.0974954196435
+    },
+    {
+      "batch_size": 64,
+      "device": "cuda",
+      "model_name": "ST-DSSM (ours)",
+      "per_batch_median_ms": 103.06449999916367,
+      "per_window_max_ms": 1.7339921876100561,
+      "per_window_median_ms": 1.6103828124869324,
+      "per_window_min_ms": 1.5757609376123582,
+      "per_window_p95_ms": 1.7323218748970248,
+      "timed_batches": 30,
+      "trainable_parameters": 397058,
+      "windows_per_second": 620.9703632241881
+    }
+  ],
+  "protocol": {
+    "batch_size": 64,
+    "checkpoint_seed": 2026,
+    "cuda_synchronized": true,
+    "operation": "one forward pass: 12 input steps -> 12 horizons x 325 sensors",
+    "split": "test",
+    "st_dssm_path": "forward_predict (prior-only, no target access)",
+    "timed_batches": 30,
+    "warmup_batches": 10
+  },
+  "study": "Phase 13 inference latency"
+}

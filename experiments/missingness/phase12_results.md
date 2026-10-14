@@ -1,6 +1,6 @@
 # Phase 12 — Robustness condition study (locked results)
 
-**Generated:** 2026-10-14T11:49:02.735266+00:00
+**Generated:** 2026-10-14T12:29:32.706625+00:00
 
 Locked test-set results across 10/20/30% sensor-node missingness conditions.
 Every number is read from the run manifests listed under [Provenance](#provenance).
@@ -134,4 +134,40 @@ negative means training under the mask helped.
 | ST-DSSM (ours) | masked-training | 20% | 2027 | `experiments/missingness/st_dssm-test-seed2027-node20-seed2027-masktrain-20261014-011429_manifest.json` | `6aed150ee31f218f...` | `4ff72868ac21` |
 | ST-DSSM (ours) | masked-training | 20% | 2028 | `experiments/missingness/st_dssm-test-seed2028-node20-seed2028-masktrain-20261014-054209_manifest.json` | `168a60599b39a48e...` | `4ff72868ac21` |
 
-**Environment:** matplotlib 3.11.1, numpy 2.5.2, python 3.12.10, scipy 1.18.0, torch 2.6.0+cu124
+**Environments:** the runs above were not all executed under one installed stack, so each is recorded with the runs that used it.
+
+1. matplotlib 3.10.8, numpy 1.26.4, python 3.12.10, scipy 1.17.1, torch 2.12.1+cu130 — 4 run(s):
+
+   - `baseline-persistence-test-node20-seed2026-20261013-201920`
+   - `st_dssm-test-seed2026-node20-seed2026-masktrain-20261013-205242`
+   - `st_dssm-test-seed2027-node20-seed2027-masktrain-20261014-011429`
+   - `st_dssm-test-seed2028-node20-seed2028-masktrain-20261014-054209`
+
+2. matplotlib 3.11.1, numpy 2.5.2, python 3.12.10, scipy 1.18.0, torch 2.6.0+cu124 — 26 run(s):
+
+   - `baseline-persistence-test-node10-seed2026-20261013-190241`
+   - `baseline-persistence-test-node10-seed2027-20261013-191003`
+   - `baseline-persistence-test-node10-seed2028-20261013-191733`
+   - `baseline-persistence-test-node20-seed2027-20261013-191234`
+   - `baseline-persistence-test-node20-seed2028-20261013-191955`
+   - `baseline-persistence-test-node30-seed2026-20261013-190731`
+   - `baseline-persistence-test-node30-seed2027-20261013-191508`
+   - `baseline-persistence-test-node30-seed2028-20261013-192223`
+   - `baseline-st_gcn-test-seed2026-node10-seed2026-predict-20261013-190308`
+   - `baseline-st_gcn-test-seed2026-node20-seed2026-predict-20261013-190519`
+   - `baseline-st_gcn-test-seed2026-node30-seed2026-predict-20261013-190756`
+   - `baseline-st_gcn-test-seed2027-node10-seed2027-predict-20261013-191028`
+   - `baseline-st_gcn-test-seed2027-node20-seed2027-predict-20261013-191301`
+   - `baseline-st_gcn-test-seed2027-node30-seed2027-predict-20261013-191534`
+   - `baseline-st_gcn-test-seed2028-node10-seed2028-predict-20261013-191752`
+   - `baseline-st_gcn-test-seed2028-node20-seed2028-predict-20261013-192019`
+   - `baseline-st_gcn-test-seed2028-node30-seed2028-predict-20261013-192248`
+   - `st_dssm-test-seed2026-node10-seed2026-predict-20261013-190353`
+   - `st_dssm-test-seed2026-node20-seed2026-predict-20261013-190606`
+   - `st_dssm-test-seed2026-node30-seed2026-predict-20261013-190840`
+   - `st_dssm-test-seed2027-node10-seed2027-predict-20261013-191112`
+   - `st_dssm-test-seed2027-node20-seed2027-predict-20261013-191345`
+   - `st_dssm-test-seed2027-node30-seed2027-predict-20261013-191618`
+   - `st_dssm-test-seed2028-node10-seed2028-predict-20261013-191836`
+   - `st_dssm-test-seed2028-node20-seed2028-predict-20261013-192103`
+   - `st_dssm-test-seed2028-node30-seed2028-predict-20261013-192331`

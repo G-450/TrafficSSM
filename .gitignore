@@ -56,3 +56,9 @@ experiments/baselines/plots/
 # deliverable is the model-comparison set that aggregate_phase12.py writes.
 experiments/missingness/plots/*
 !experiments/missingness/plots/phase12_*.png
+
+# Phase 13 per-run validation plots: the same per-run-rather-than-per-finding
+# figures as Phase 12. The locked deliverable is the reliability, PIT and
+# degradation set that aggregate_phase13.py writes.
+experiments/calibration/plots/*
+!experiments/calibration/plots/phase13_*.png

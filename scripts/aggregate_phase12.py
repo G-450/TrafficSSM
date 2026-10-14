@@ -269,6 +269,27 @@ def _mean_std(values: list[float]) -> dict[str, Any]:
     }
 
 
+def _run_environments(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Group the source runs by the package versions they were executed under.
+
+    A single-environment study yields one entry. More than one entry is not an
+    error: it records honestly that the runs were not all produced by the same
+    installed stack.
+    """
+    buckets: dict[str, dict[str, Any]] = {}
+    for run in runs:
+        versions = run["package_versions"] or {}
+        key = json.dumps(versions, sort_keys=True)
+        entry = buckets.setdefault(
+            key, {"package_versions": versions, "run_ids": []}
+        )
+        entry["run_ids"].append(run["run_id"])
+    for entry in buckets.values():
+        entry["run_ids"].sort()
+        entry["run_count"] = len(entry["run_ids"])
+    return [buckets[key] for key in sorted(buckets)]
+
+
 def _aggregate_arm(runs: list[dict[str, Any]]) -> dict[str, Any]:
     """Aggregate one arm's runs by (model, condition) across seeds."""
     models_conditions: dict[str, Any] = {}
@@ -376,7 +397,12 @@ def aggregate(runs: list[dict[str, Any]]) -> dict[str, Any]:
         "forecast_horizon": reference["forecast_horizon"],
         "dataset_manifest_checksum": reference["dataset_manifest_checksum"],
         "split_artifact_checksum": reference["split_artifact_checksum"],
-        "package_versions": reference["package_versions"],
+        # The study spans more than one environment: the condition matrix was
+        # executed over two days and a CUDA build of torch was reinstalled in
+        # between. Reporting only the first run's versions would claim one
+        # environment for a table built from several, so every distinct version
+        # set is recorded with the runs that used it.
+        "run_environments": _run_environments(runs),
         "models": models_conditions,
         "sources": [
             {
@@ -579,8 +605,28 @@ def render_markdown(agg: dict[str, Any]) -> str:
             f"`{source['git_commit'][:12]}`{dirty} |"
         )
 
-    versions = ", ".join(f"{k} {v}" for k, v in sorted(agg["package_versions"].items()))
-    lines += ["", f"**Environment:** {versions}", ""]
+    environments = agg["run_environments"]
+    lines += [""]
+    if len(environments) == 1:
+        versions = ", ".join(
+            f"{k} {v}" for k, v in sorted(environments[0]["package_versions"].items())
+        )
+        lines += [f"**Environment:** {versions}", ""]
+    else:
+        lines += [
+            (
+                "**Environments:** the runs above were not all executed under one "
+                "installed stack, so each is recorded with the runs that used it."
+            ),
+            "",
+        ]
+        for i, env in enumerate(environments, start=1):
+            versions = ", ".join(
+                f"{k} {v}" for k, v in sorted(env["package_versions"].items())
+            )
+            lines += [f"{i}. {versions} — {env['run_count']} run(s):", ""]
+            lines += [f"   - `{run_id}`" for run_id in env["run_ids"]]
+            lines += [""]
 
     return "\n".join(lines)
 
