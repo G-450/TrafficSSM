@@ -248,9 +248,12 @@ Limitations on these numbers:
   `scripts/run_phase10.py`, `run_phase12.py` and `run_phase13.py`.
 - **The study spans three recorded environments.** The locked deliverables cite
   40 run manifests (7 Phase 10 + 30 Phase 12 + 3 Phase 13 validation passes), and
-  `experiments/` holds one further manifest — a superseded 20% persistence
-  condition run, `baseline-persistence-test-node20-seed2026-20261013-110858` —
-  which no lock cites and which was replaced by the `...-201920` re-run. Across
+  one further manifest is retained outside them, filed under
+  `experiments/missingness/superseded/`: a 20% persistence condition run,
+  `baseline-persistence-test-node20-seed2026-20261013-110858`, which no lock
+  cites and which the `...-201920` re-run replaced. It is kept rather than
+  deleted so the superseded result stays auditable, and its directory is what
+  marks it as not part of the study. Across
   the 41: 26 runs (most of the Phase 12 condition matrix) used
   `torch 2.6.0+cu124 / numpy 2.5.2`; 7 runs (the three masked-training ablation
   runs, the re-run persistence condition, and the Phase 13 validation passes)
