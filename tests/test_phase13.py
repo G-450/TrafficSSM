@@ -379,6 +379,48 @@ def test_check_fails_on_hand_edited_results(tmp_path: Path) -> None:
     assert agg.main(_args(dirs, "--check")) == 1
 
 
+def test_check_tolerates_cross_environment_float_noise(tmp_path: Path) -> None:
+    """Float32 reduction order differs across torch/numpy versions.
+
+    Recomputing from checksum-identical artifacts in another environment lands
+    ~1e-7 away, so a gate tighter than that would pass only on the machine that
+    produced the lock. Perturbing a locked value by 1e-7 relative must not be
+    reported as drift.
+    """
+    agg = _load_script("aggregate_phase13")
+    dirs = _study(tmp_path)
+    assert agg.main(_args(dirs)) == 0
+
+    json_path = dirs["val"] / "phase13_results.json"
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    record = payload["conditions"]["20%"]["per_group"]["all"]["raw"]["NLL"]
+    record["mean"] = record["mean"] * (1.0 + 1e-7)
+    json_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert agg.main(_args(dirs, "--check")) == 0
+
+
+def test_check_still_fails_on_drift_that_moves_a_reported_value(
+    tmp_path: Path,
+) -> None:
+    """The tolerance absorbs float noise, not a change worth reporting.
+
+    The deliverable quotes values to four significant figures, so a relative
+    change of 1e-3 alters a printed number and must still be caught.
+    """
+    agg = _load_script("aggregate_phase13")
+    dirs = _study(tmp_path)
+    assert agg.main(_args(dirs)) == 0
+
+    json_path = dirs["val"] / "phase13_results.json"
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    record = payload["conditions"]["20%"]["per_group"]["all"]["raw"]["NLL"]
+    record["mean"] = record["mean"] * (1.0 + 1e-3)
+    json_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert agg.main(_args(dirs, "--check")) == 1
+
+
 def test_check_without_a_committed_aggregate_fails(tmp_path: Path) -> None:
     agg = _load_script("aggregate_phase13")
     dirs = _study(tmp_path)

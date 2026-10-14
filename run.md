@@ -197,3 +197,45 @@ st-dssm-evaluate \
   --provenance-checkpoint experiments/normal/checkpoints/<run_id>_best.pt \
   --selection-metric val_nll --total-epochs 60
 ```
+
+---
+**Step 9: Release verification (Phase 14)**
+
+What a reviewer runs to audit the release without retraining anything. Each
+aggregator re-derives its locked deliverable from checksummed evidence and exits
+non-zero if a single number has drifted:
+
+```bash
+python -m pytest                               # 363 tests
+python scripts/aggregate_phase10.py --check    # normal-condition tables (7 manifests)
+python scripts/aggregate_phase12.py --check    # condition matrix (30 manifests)
+python scripts/aggregate_phase13.py --check    # calibration (~25 min, needs predictions)
+```
+
+To verify the package installs from its metadata alone, build a fresh environment
+and install from `pyproject.toml` with no pinned lockfile:
+
+```bash
+python -m venv /tmp/st-dssm-clean
+/tmp/st-dssm-clean/bin/pip install -e ".[dev]"   # Scripts/pip on Windows
+/tmp/st-dssm-clean/bin/python -m pytest
+```
+
+A clean environment resolves `torch>=2.0.0` to a current release rather than the
+versions the study ran on, which is intended: the package must install on current
+dependencies, while each run's exact environment stays recorded in its manifest
+and in the deliverables (see [LIMITATIONS.md](docs/LIMITATIONS.md) §6). The
+dataset-dependent test is skipped where `data/processed` is absent.
+
+> [!NOTE]
+> **On Windows, build that environment at a short path.** Installed into a deeply
+> nested directory, `h5py` fails at import with
+> `ImportError: DLL load failed while importing _objects: The filename or
+> extension is too long`, which surfaces as every HDF5-touching test erroring
+> during collection and as `st-dssm-baseline --synthetic-smoke` exiting 1. It is
+> the Windows path-length limit in the DLL loader, not a packaging fault: the same
+> install at `%TEMP%\stclean` works. Use a short venv path, or enable long paths
+> (`LongPathsEnabled`).
+
+The finished study, with every number linked to the command that reproduces it,
+is [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md).

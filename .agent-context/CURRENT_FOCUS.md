@@ -1,50 +1,52 @@
 # Current focus
 
-Phase 10 normal-condition study is complete and locked: tuning, three seeded test runs per
-model, and manifest-derived tables, figures and a machine-readable aggregate in
-`experiments/normal/` (`python scripts/aggregate_phase10.py --check` re-derives them).
+**The project is released as v1.0.0. All fourteen phases are complete and locked,
+and there is no in-flight phase.** Do not start experimental work without a new
+authorization; the deliverables below are frozen evidence.
 
-Phase 11 missingness mechanism is complete: the nine canonical masks are published under
-`experiments/masks/`, masks are wired through every predictor's input boundary
-(`masking:` config block or `--mask-ratio/--mask-seed/--mask-path/--mask-training`), a
-condition is run against a finished checkpoint with `--predict-from`, and every metric is
-reported over `all`/`masked`/`unmasked` target groups with the mask recorded in the run
-manifest. The leakage gate is `tests/test_phase11_masking.py`.
+Read [`docs/FINAL_REPORT.md`](../docs/FINAL_REPORT.md) first — it is the finished
+study with every number linked to the deliverable and command that reproduces it
+— and [`docs/LIMITATIONS.md`](../docs/LIMITATIONS.md) before repeating any claim,
+because several intuitive readings of these results are wrong and are documented
+as such.
 
-Phases 10 and 11 are merged into `main` (PRs #20-#22). The nine ST-DSSM condition
-configs are published under `configs/missingness/` and each one resolves to its
-published mask; the Phase 10 checkpoints the conditions evaluate are in
-`experiments/normal/checkpoints/`.
+## The three locked deliverables
 
-Phase 12 — Robustness study is complete and pending PR merge.
+| Deliverable | File | Verify with |
+|---|---|---|
+| Normal-condition study (7 manifests) | `experiments/normal/phase10_results.md` | `python scripts/aggregate_phase10.py --check` |
+| Robustness condition matrix (30 manifests) | `experiments/missingness/phase12_results.md` | `python scripts/aggregate_phase12.py --check` |
+| Calibration, error analysis, latency | `experiments/calibration/phase13_results.md` | `python scripts/aggregate_phase13.py --check` |
 
-The scripts and tests are in place:
-- `scripts/run_phase12.py`   — executes the 27 condition runs (9 × 3 models, all CPU
-  forward passes); skips completed runs; `--dry-run` previews the plan.
-- `scripts/aggregate_phase12.py` — locks the condition tables once all runs are done;
-  `--check` re-derives them.
-- `tests/test_phase12.py`    — 18 gate tests for the aggregator, the masked-training
-  ablation arm and the run script (all pass).
+Never hand-edit a locked results file; it is generated from checksummed
+manifests, and `--check` will fail. The Phase 13 aggregator recomputes from the
+git-ignored `*_predictions.npz` artifacts (~160 MB each), so it needs them on
+disk and takes ~25 minutes.
 
-All 27 conditions are complete and were executed via `python scripts/run_phase12.py`.
-All 27 manifests are in `experiments/missingness/`. Locked tables are at
-`experiments/missingness/phase12_results.md` and `phase12_results.json`.
-Verify with: `python scripts/aggregate_phase12.py --check`
+## Traps to avoid when citing these results
 
-**Ablations:**
-- Graph context and state-space ablations are covered by the model comparison in the
-  condition tables (Persistence = no graph, ST-GCN = no state space).
-- Masked-training ablation (ST-DSSM trained with `apply_to_training: true`) requires
-  retraining: ~4.5 GPU-hours per seed at 60 epochs, measured on an RTX 4060 Laptop
-  (8 GB, `micro_batch_size: 32`). Run it with
-  `python scripts/run_phase12.py --ablation --ratio 20 --models st_dssm` (~13.5 h for
-  the three canonical seeds at the primary condition). The arm is resumable: each run
-  carries a `-masktrain` run identity and `--resume auto`, so re-running the command
-  continues from the last completed epoch instead of starting over. Per ADR-0011 the
-  aggregator reports it in its own section, never inside a primary condition cell.
+- **Aggregate interval ECE improves under missingness while NLL triples.** That
+  is an artifact of bulk over-dispersion, not robustness. Cite the per-group
+  tables and NLL instead.
+- **The masked-training ablation is a different model** from a primary condition
+  run (ADR-0011) and must never be averaged into a primary cell. It exists at 20%
+  only, for ST-DSSM only, and assumes the outage pattern is known at training
+  time.
+- **No claim that the model is calibrated after temperature scaling** is
+  supportable: the fitted scalar lowers NLL while raising interval ECE.
+- **The latent state is not claimed to confer or to harm robustness.** The Phase
+  12 seed variance turned out to be a train/test representation mismatch, which
+  the ablation demonstrated.
 
-The next focus is Phase 13 — Calibration and robustness review.
+## If more work is authorized
 
-See `docs/IMPLEMENTATION_PLAN.md` for gates and sequencing, and consult the accepted
-decision records before making a material design choice. Record any newly discovered
-ambiguity in `docs/OPEN_QUESTIONS.md`.
+The highest-value extensions, in order, are in `docs/FINAL_REPORT.md` §11: a
+heavier-tailed predictive family (the shape mismatch is present with no masking
+at all), and conditioning the predictive scale on the observation mask so
+uncertainty localizes where evidence was lost. Lower priority: masked-training at
+10%/30% (~4.5 GPU-hours per run), per-condition temperatures (outside the locked
+ADR-0008 protocol), correlated outage mechanisms, and a second sensor network.
+
+See `docs/IMPLEMENTATION_PLAN.md` for the phase record and gates, and consult the
+accepted decision records in `docs/DECISIONS/` before making a material design
+choice. Record any newly discovered ambiguity in `docs/OPEN_QUESTIONS.md`.

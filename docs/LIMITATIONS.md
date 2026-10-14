@@ -1,6 +1,6 @@
 # Limitations and claim reconciliation
 
-**Status date:** 2026-10-14 (Phase 13)
+**Status date:** 2026-10-14 (Phase 14, release v1.0.0)
 
 This document states what the project's measured results do and do not support.
 Every number cited here is read from a locked deliverable:
@@ -246,14 +246,41 @@ Limitations on these numbers:
   read, so the lock is verifiable when the artifacts are present and
   `--check` fails loudly when they are not. Regenerate them with
   `scripts/run_phase10.py`, `run_phase12.py` and `run_phase13.py`.
-- **The study spans two installed environments.** 26 of the 30 Phase 12 runs
-  used `torch 2.6.0+cu124 / numpy 2.5.2`; the three masked-training ablation
-  runs, one re-run persistence condition, and the Phase 13 validation passes used
-  `torch 2.12.1+cu130 / numpy 1.26.4`. Both aggregators now record every distinct
-  environment with the runs that used it rather than reporting one run's versions
-  as the study's. Metric differences from this are ~1e-7 relative, six
-  significant figures below reported precision, but the arms are not
+- **The study spans three recorded environments.** The locked deliverables cite
+  40 run manifests (7 Phase 10 + 30 Phase 12 + 3 Phase 13 validation passes), and
+  `experiments/` holds one further manifest — a superseded 20% persistence
+  condition run, `baseline-persistence-test-node20-seed2026-20261013-110858` —
+  which no lock cites and which was replaced by the `...-201920` re-run. Across
+  the 41: 26 runs (most of the Phase 12 condition matrix) used
+  `torch 2.6.0+cu124 / numpy 2.5.2`; 7 runs (the three masked-training ablation
+  runs, the re-run persistence condition, and the Phase 13 validation passes)
+  used `torch 2.12.1+cu130 / numpy 1.26.4`; and 8 — the seven Phase 10
+  normal-condition manifests, which were regenerated from saved predictions on
+  2026-10-13, plus the superseded run — recorded
+  `torch 2.12.1+cpu / numpy 1.26.4`. Each
+  aggregator lists every distinct environment with the runs that used it rather
+  than reporting one run's versions as the study's. Two caveats on reading these
+  records: the recorded versions are those of the process that *wrote the
+  manifest*, which for a regenerated manifest is the evaluation environment and
+  not the environment the model was trained in (the Phase 10 models were trained
+  on CUDA); and metric differences across these environments are ~1e-7 relative,
+  six significant figures below reported precision, but the arms are not
   bit-identical environments and the tables say so.
+- **The Phase 13 gate verifies to four significant figures, not bit-exactly.**
+  Phases 10 and 12 compare values stored in the run manifests, so their gates
+  hold to 1e-12. Phase 13 instead *recomputes* every diagnostic from the
+  prediction artifacts, and float32 reduction order differs across torch and
+  numpy versions: re-deriving the lock from checksum-identical artifacts in a
+  different environment lands about 1e-7 away, with a worst observed deviation
+  of 1.7e-5 on a three-seed standard deviation, where cancellation amplifies the
+  relative error. `aggregate_phase13.py` therefore sets `CHECK_RTOL = 1e-4` —
+  four significant figures, the precision at which the deliverable reports every
+  value. The consequence is explicit: the Phase 13 gate proves that the tables
+  derive from those exact artifacts and that no reported number has moved; it
+  does not prove bit-identical recomputation, and a drift smaller than 1e-4
+  relative would not be caught. A tighter gate was measured and rejected,
+  because at 1e-9 it passed only on the machine that produced the lock, which is
+  not a reproducibility guarantee.
 - **Preprocessing checksums are environment-specific.** `data/processed`
   checksums were produced on Python 3.12.10 / Windows 11; values differ by at
   most 1.5e-5 across Python and NumPy versions (float32 rounding). Regenerate
